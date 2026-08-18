@@ -71,9 +71,9 @@ if ( is_search() && '' !== get_search_query() ) {
 		</div>
 	<?php else : ?>
 		<section class="empty-story reveal">
-			<h2><?php esc_html_e( '아직 이야기가 없습니다.', 'odd-note' ); ?></h2>
-			<p><?php esc_html_e( '검색어를 바꾸거나 첫 화면으로 돌아가 보세요.', 'odd-note' ); ?></p>
-			<a class="magnetic-button magnetic" href="<?php echo esc_url( home_url( '/' ) ); ?>" data-cursor="HOME"><span><?php esc_html_e( '첫 화면으로', 'odd-note' ); ?></span></a>
+			<h2><?php esc_html_e( '이 주제의 첫 분석을 준비하고 있습니다.', 'odd-note' ); ?></h2>
+			<p><?php esc_html_e( '새 글이 발행되기 전까지 전체 글에서 개발 실전 기록을 확인해 보세요.', 'odd-note' ); ?></p>
+			<a class="magnetic-button magnetic" href="<?php echo esc_url( odd_note_posts_url() ); ?>" data-cursor="BROWSE"><span><?php esc_html_e( '전체 글 보기', 'odd-note' ); ?></span></a>
 		</section>
 	<?php endif; ?>
 </main>

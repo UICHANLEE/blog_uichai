@@ -126,6 +126,103 @@ function odd_note_bootstrap_category( $name, $slug, $description ) {
 }
 
 /**
+ * Create one core editorial category without rewriting an existing taxonomy.
+ *
+ * @param string $name Category name.
+ * @param string $slug Category slug.
+ * @param string $description Category description.
+ * @return int
+ */
+function odd_note_core_category( $name, $slug, $description ) {
+	$term = get_term_by( 'slug', $slug, 'category' );
+
+	if ( $term ) {
+		if ( $term->name !== $name ) {
+			odd_note_bootstrap_fail( '새 핵심 카테고리와 같은 슬러그를 사용하는 기존 분류가 있습니다: ' . $slug );
+		}
+
+		return (int) $term->term_id;
+	}
+
+	$result = wp_insert_term(
+		$name,
+		'category',
+		array(
+			'slug'        => $slug,
+			'description' => $description,
+		)
+	);
+
+	if ( is_wp_error( $result ) ) {
+		odd_note_bootstrap_fail( '핵심 카테고리 생성 실패: ' . $result->get_error_message() );
+	}
+
+	$term_id = (int) $result['term_id'];
+	update_term_meta( $term_id, '_odd_note_bootstrap', '1' );
+	update_term_meta( $term_id, '_odd_note_editorial_revision', '1.3.0' );
+
+	return $term_id;
+}
+
+/**
+ * Return the original About page body used before the editorial expansion.
+ *
+ * @return string
+ */
+function odd_note_legacy_about_content() {
+	return <<<'HTML'
+<!-- wp:paragraph -->
+<p>Odd Note는 직접 써보고 직접 구축한 경험을 바탕으로 AI 도구, 맥 워크플로, 홈서버 운영을 기록하는 독립 웹 저널입니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">무엇을 다루나요?</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><li>업무와 창작에 실제로 도움이 되는 AI 도구</li><li>Mac을 더 편하고 안전하게 사용하는 워크플로</li><li>WordPress, Docker, Cloudflare를 활용한 홈서버 운영</li></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">편집 원칙</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>직접 확인하지 않은 내용을 경험처럼 말하지 않습니다. 장점뿐 아니라 비용, 한계, 실패 가능성을 함께 기록합니다. 오래된 정보는 발견하는 대로 수정하고 중요한 수정은 글에 표시합니다.</p>
+<!-- /wp:paragraph -->
+HTML;
+}
+
+/**
+ * Return the About page body for the technology and business journal.
+ *
+ * @return string
+ */
+function odd_note_about_content() {
+	return <<<'HTML'
+<!-- wp:paragraph -->
+<p>Odd Note는 개발과 사업의 경계에서 중요한 변화를 골라 읽는 독립 정보 블로그입니다. IT 뉴스로 신호를 포착하고, AI 논문으로 근거와 한계를 확인하며, 사업 지식으로 다음 행동을 설계합니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">무엇을 다루나요?</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><li>제품·플랫폼·정책의 변화가 개발과 사업에 미치는 영향</li><li>새 AI 논문의 연구 질문, 방법, 결과와 한계</li><li>고객, 시장, 가격, 수익모델과 운영에 필요한 사업 원리</li><li>직접 구축하고 운영하며 얻은 개발 실전 기록</li></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">편집 원칙</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>빠른 발행보다 정확한 맥락을 우선합니다. 뉴스에는 원문 링크와 확인 시각을, 논문에는 버전·방법·한계를, 사업 글에는 전제와 적용 범위를 밝힙니다. 사실과 해석을 구분하고 중요한 수정은 날짜와 함께 남깁니다. 광고와 제휴는 편집 내용과 분명히 구분합니다.</p>
+<!-- /wp:paragraph -->
+HTML;
+}
+
+/**
  * Return the editorial body for the AI-assisted blogging workflow article.
  *
  * @return string
@@ -323,7 +420,7 @@ function odd_note_apply_editor_identity( $owner_id, $admin_email ) {
 			'user_nicename' => 'odd-note-editor',
 			'display_name'  => 'Odd Note Editor',
 			'nickname'      => 'Odd Note Editor',
-			'description'   => 'AI 도구, 맥 워크플로, 홈서버 운영을 직접 실험하고 기록합니다.',
+			'description'   => 'IT 최신 뉴스, AI 논문 분석, 사업 지식을 개발과 운영 관점에서 검증하고 기록합니다.',
 			'locale'        => 'ko_KR',
 		)
 	);
@@ -561,6 +658,147 @@ function odd_note_bootstrap_menu( $name, $items ) {
 	return $menu_id;
 }
 
+/**
+ * Check that a menu still matches the bootstrap-owned item sequence.
+ *
+ * @param int                           $menu_id Menu term ID.
+ * @param array<int,array<string,mixed>> $expected_items Expected items.
+ * @return bool
+ */
+function odd_note_menu_matches( $menu_id, $expected_items ) {
+	$items = wp_get_nav_menu_items( $menu_id );
+	if ( count( (array) $items ) !== count( $expected_items ) ) {
+		return false;
+	}
+
+	foreach ( array_values( (array) $items ) as $index => $item ) {
+		$expected = $expected_items[ $index ];
+		if (
+			$item->title !== $expected['title'] ||
+			(int) $item->object_id !== (int) $expected['object_id'] ||
+			$item->object !== $expected['object'] ||
+			$item->type !== $expected['type']
+		) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Add and activate the three core editorial desks without rewriting legacy posts.
+ *
+ * @param int $owner_id Author user ID.
+ * @return void
+ */
+function odd_note_apply_editorial_focus( $owner_id ) {
+	$it_news_id = odd_note_core_category(
+		'IT 최신 뉴스',
+		'it-news',
+		'개발자와 만드는 사람이 알아야 할 제품·플랫폼·정책 변화를 원문 출처와 실제 영향까지 정리합니다.'
+	);
+	$ai_paper_id = odd_note_core_category(
+		'AI 논문 분석',
+		'ai-paper-analysis',
+		'새 AI 논문의 질문·방법·결과·한계를 풀어 읽고 실무 적용 가능성을 구분합니다.'
+	);
+	$business_id = odd_note_core_category(
+		'사업 지식',
+		'business-knowledge',
+		'고객·시장·가격·수익모델·운영과 성장에 필요한 개념을 사례와 실행 질문으로 정리합니다.'
+	);
+
+	update_option(
+		'odd_note_core_category_ids',
+		array(
+			'it-news'             => $it_news_id,
+			'ai-paper-analysis'   => $ai_paper_id,
+			'business-knowledge'  => $business_id,
+		),
+		false
+	);
+
+	$legacy_description = '직접 써보고 구축한 AI 도구, 맥 워크플로, 홈서버 활용법을 기록하는 실전 블로그';
+	if ( $legacy_description === get_option( 'blogdescription' ) ) {
+		update_option( 'blogdescription', 'IT 최신 뉴스, AI 논문 분석, 사업 지식을 기술을 만들고 사업을 운영하는 사람의 관점으로 정리합니다.' );
+	}
+
+	$owner = get_userdata( $owner_id );
+	if ( $owner && 'AI 도구, 맥 워크플로, 홈서버 운영을 직접 실험하고 기록합니다.' === $owner->description ) {
+		$result = wp_update_user(
+			array(
+				'ID'          => $owner_id,
+				'description' => 'IT 최신 뉴스, AI 논문 분석, 사업 지식을 개발과 운영 관점에서 검증하고 기록합니다.',
+			)
+		);
+		if ( is_wp_error( $result ) ) {
+			odd_note_bootstrap_fail( '작성자 소개를 새 편집 방향으로 갱신하지 못했습니다.' );
+		}
+	}
+
+	$about = get_page_by_path( 'about', OBJECT, 'page' );
+	if ( $about && trim( (string) $about->post_content ) === trim( odd_note_legacy_about_content() ) ) {
+		$updated = wp_update_post(
+			wp_slash(
+				array(
+					'ID'           => (int) $about->ID,
+					'post_content' => odd_note_about_content(),
+				)
+			),
+			true
+		);
+		if ( is_wp_error( $updated ) ) {
+			odd_note_bootstrap_fail( '소개 페이지를 새 편집 방향으로 갱신하지 못했습니다.' );
+		}
+	}
+
+	$stories = get_page_by_path( 'stories', OBJECT, 'page' );
+	if ( ! $stories || ! $about ) {
+		odd_note_bootstrap_fail( '핵심 메뉴에 필요한 전체 글 또는 소개 페이지를 찾지 못했습니다.' );
+	}
+
+	$new_items = array(
+		array( 'title' => '전체 글', 'object_id' => (int) $stories->ID, 'object' => 'page', 'type' => 'post_type' ),
+		array( 'title' => 'IT 최신 뉴스', 'object_id' => $it_news_id, 'object' => 'category', 'type' => 'taxonomy' ),
+		array( 'title' => 'AI 논문 분석', 'object_id' => $ai_paper_id, 'object' => 'category', 'type' => 'taxonomy' ),
+		array( 'title' => '사업 지식', 'object_id' => $business_id, 'object' => 'category', 'type' => 'taxonomy' ),
+		array( 'title' => '소개', 'object_id' => (int) $about->ID, 'object' => 'page', 'type' => 'post_type' ),
+	);
+	$new_menu_id = odd_note_bootstrap_menu( 'Odd Note Primary v2', $new_items );
+
+	$legacy_menu = wp_get_nav_menu_object( 'Odd Note Primary' );
+	$ai_tools    = get_term_by( 'slug', 'ai-tools', 'category' );
+	$mac_flow    = get_term_by( 'slug', 'mac-workflow', 'category' );
+	$home_server = get_term_by( 'slug', 'home-server', 'category' );
+	$legacy_items = array();
+	if ( $legacy_menu && $ai_tools && $mac_flow && $home_server ) {
+		$legacy_items = array(
+			array( 'title' => '전체 글', 'object_id' => (int) $stories->ID, 'object' => 'page', 'type' => 'post_type' ),
+			array( 'title' => 'AI 도구', 'object_id' => (int) $ai_tools->term_id, 'object' => 'category', 'type' => 'taxonomy' ),
+			array( 'title' => '맥 워크플로', 'object_id' => (int) $mac_flow->term_id, 'object' => 'category', 'type' => 'taxonomy' ),
+			array( 'title' => '홈서버 실전', 'object_id' => (int) $home_server->term_id, 'object' => 'category', 'type' => 'taxonomy' ),
+			array( 'title' => '소개', 'object_id' => (int) $about->ID, 'object' => 'page', 'type' => 'post_type' ),
+		);
+	}
+
+	$theme_mods = (array) get_option( 'theme_mods_odd-note', array() );
+	$locations  = isset( $theme_mods['nav_menu_locations'] ) ? (array) $theme_mods['nav_menu_locations'] : array();
+	$current_id = isset( $locations['primary'] ) ? (int) $locations['primary'] : 0;
+	$can_switch = ! $current_id || $current_id === $new_menu_id;
+	if ( $legacy_menu && $current_id === (int) $legacy_menu->term_id && odd_note_menu_matches( $current_id, $legacy_items ) ) {
+		$can_switch = true;
+	}
+
+	if ( $can_switch ) {
+		$locations['primary']                 = $new_menu_id;
+		$theme_mods['nav_menu_locations']     = $locations;
+		update_option( 'theme_mods_odd-note', $theme_mods );
+	} else {
+		echo '알림: 사용자가 수정한 헤더 메뉴를 보존했습니다. 새 핵심 카테고리는 생성되었습니다.' . PHP_EOL;
+	}
+}
+
 $admin_user     = odd_note_bootstrap_input( '관리자 아이디' );
 $admin_password = odd_note_bootstrap_input( '관리자 비밀번호' );
 $admin_email    = odd_note_bootstrap_input( '관리자 이메일' );
@@ -593,7 +831,7 @@ if (
 	odd_note_bootstrap_fail( '사이트 주소 형식이 올바르지 않습니다.' );
 }
 
-$target_version = '1.2.1';
+$target_version = '1.3.0';
 $installed      = is_blog_installed();
 $state          = $installed ? get_option( 'odd_note_bootstrap_state', '' ) : '';
 
@@ -618,6 +856,10 @@ if ( $installed && 'complete' === $state ) {
 
 		if ( version_compare( $current_version, '1.2.1', '<' ) ) {
 			odd_note_publish_mac_image_workflow( $owner_id );
+		}
+
+		if ( version_compare( $current_version, '1.3.0', '<' ) ) {
+			odd_note_apply_editorial_focus( $owner_id );
 		}
 
 		update_option( 'odd_note_bootstrap_version', $target_version, false );
@@ -679,7 +921,7 @@ switch_theme( 'odd-note' );
 odd_note_apply_editor_identity( $owner_id, $admin_email );
 
 update_option( 'blogname', $site_title );
-update_option( 'blogdescription', '직접 써보고 구축한 AI 도구, 맥 워크플로, 홈서버 활용법을 기록하는 실전 블로그' );
+update_option( 'blogdescription', 'IT 최신 뉴스, AI 논문 분석, 사업 지식을 기술을 만들고 사업을 운영하는 사람의 관점으로 정리합니다.' );
 update_option( 'admin_email', $admin_email );
 update_option( 'blog_public', 0 );
 update_option( 'timezone_string', 'Asia/Seoul' );
@@ -740,6 +982,30 @@ $mac_workflow_id = odd_note_bootstrap_category(
 	'mac-workflow',
 	'Mac으로 일하고 만들고 운영하는 과정을 더 단단하게 다듬는 방법입니다.'
 );
+$it_news_id = odd_note_core_category(
+	'IT 최신 뉴스',
+	'it-news',
+	'개발자와 만드는 사람이 알아야 할 제품·플랫폼·정책 변화를 원문 출처와 실제 영향까지 정리합니다.'
+);
+$ai_paper_id = odd_note_core_category(
+	'AI 논문 분석',
+	'ai-paper-analysis',
+	'새 AI 논문의 질문·방법·결과·한계를 풀어 읽고 실무 적용 가능성을 구분합니다.'
+);
+$business_id = odd_note_core_category(
+	'사업 지식',
+	'business-knowledge',
+	'고객·시장·가격·수익모델·운영과 성장에 필요한 개념을 사례와 실행 질문으로 정리합니다.'
+);
+update_option(
+	'odd_note_core_category_ids',
+	array(
+		'it-news'            => $it_news_id,
+		'ai-paper-analysis'  => $ai_paper_id,
+		'business-knowledge' => $business_id,
+	),
+	false
+);
 update_option( 'default_category', $home_server_id );
 
 $home_id = odd_note_bootstrap_post(
@@ -764,27 +1030,7 @@ $stories_id = odd_note_bootstrap_post(
 	)
 );
 
-$about_content = <<<'HTML'
-<!-- wp:paragraph -->
-<p>Odd Note는 직접 써보고 직접 구축한 경험을 바탕으로 AI 도구, 맥 워크플로, 홈서버 운영을 기록하는 독립 웹 저널입니다.</p>
-<!-- /wp:paragraph -->
-
-<!-- wp:heading -->
-<h2 class="wp-block-heading">무엇을 다루나요?</h2>
-<!-- /wp:heading -->
-
-<!-- wp:list -->
-<ul class="wp-block-list"><li>업무와 창작에 실제로 도움이 되는 AI 도구</li><li>Mac을 더 편하고 안전하게 사용하는 워크플로</li><li>WordPress, Docker, Cloudflare를 활용한 홈서버 운영</li></ul>
-<!-- /wp:list -->
-
-<!-- wp:heading -->
-<h2 class="wp-block-heading">편집 원칙</h2>
-<!-- /wp:heading -->
-
-<!-- wp:paragraph -->
-<p>직접 확인하지 않은 내용을 경험처럼 말하지 않습니다. 장점뿐 아니라 비용, 한계, 실패 가능성을 함께 기록합니다. 오래된 정보는 발견하는 대로 수정하고 중요한 수정은 글에 표시합니다.</p>
-<!-- /wp:paragraph -->
-HTML;
+$about_content = odd_note_about_content();
 
 $about_id = odd_note_bootstrap_post(
 	array(
@@ -1067,9 +1313,9 @@ $primary_menu_id = odd_note_bootstrap_menu(
 	'Odd Note Primary',
 	array(
 		array( 'title' => '전체 글', 'object_id' => $stories_id, 'object' => 'page', 'type' => 'post_type' ),
-		array( 'title' => 'AI 도구', 'object_id' => $ai_tools_id, 'object' => 'category', 'type' => 'taxonomy' ),
-		array( 'title' => '맥 워크플로', 'object_id' => $mac_workflow_id, 'object' => 'category', 'type' => 'taxonomy' ),
-		array( 'title' => '홈서버 실전', 'object_id' => $home_server_id, 'object' => 'category', 'type' => 'taxonomy' ),
+		array( 'title' => 'IT 최신 뉴스', 'object_id' => $it_news_id, 'object' => 'category', 'type' => 'taxonomy' ),
+		array( 'title' => 'AI 논문 분석', 'object_id' => $ai_paper_id, 'object' => 'category', 'type' => 'taxonomy' ),
+		array( 'title' => '사업 지식', 'object_id' => $business_id, 'object' => 'category', 'type' => 'taxonomy' ),
 		array( 'title' => '소개', 'object_id' => $about_id, 'object' => 'page', 'type' => 'post_type' ),
 	)
 );
@@ -1101,4 +1347,4 @@ update_option( 'odd_note_bootstrap_version', $target_version, false );
 update_option( 'odd_note_bootstrap_state', 'complete', false );
 
 echo 'Odd Note 설치와 초기 콘텐츠 구성이 완료됐습니다.' . PHP_EOL;
-echo '페이지 6개, 카테고리 3개, 글 5개, 메뉴 2개를 준비했습니다.' . PHP_EOL;
+echo '페이지 6개, 카테고리 6개, 글 5개, 메뉴 2개를 준비했습니다.' . PHP_EOL;

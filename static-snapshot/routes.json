@@ -17,14 +17,29 @@
       "indexable": true
     },
     {
+      "path": "/category/ai-paper-analysis/",
+      "file": "category/ai-paper-analysis/index.html",
+      "indexable": false
+    },
+    {
       "path": "/category/ai-tools/",
       "file": "category/ai-tools/index.html",
       "indexable": true
     },
     {
+      "path": "/category/business-knowledge/",
+      "file": "category/business-knowledge/index.html",
+      "indexable": false
+    },
+    {
       "path": "/category/home-server/",
       "file": "category/home-server/index.html",
       "indexable": true
+    },
+    {
+      "path": "/category/it-news/",
+      "file": "category/it-news/index.html",
+      "indexable": false
     },
     {
       "path": "/category/mac-workflow/",

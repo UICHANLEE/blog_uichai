@@ -134,16 +134,26 @@ function odd_note_reading_time( $post_id = null ) {
 }
 
 /**
- * Return the first category name for the current post.
+ * Return the preferred category name for the current post.
  *
  * @param int|null $post_id Post ID.
  * @return string
  */
 function odd_note_primary_category( $post_id = null ) {
-	$categories = get_the_category( $post_id ? (int) $post_id : get_the_ID() );
+	$post_id    = $post_id ? (int) $post_id : get_the_ID();
+	$categories = get_the_category( $post_id );
 
 	if ( empty( $categories ) ) {
 		return __( 'Note', 'odd-note' );
+	}
+
+	$preferred_id = (int) get_post_meta( $post_id, '_odd_note_primary_category_id', true );
+	if ( $preferred_id ) {
+		foreach ( $categories as $category ) {
+			if ( $preferred_id === (int) $category->term_id ) {
+				return $category->name;
+			}
+		}
 	}
 
 	return $categories[0]->name;
@@ -202,22 +212,17 @@ function odd_note_about_url() {
  * A useful menu before the user creates one.
  */
 function odd_note_primary_menu_fallback() {
-	$categories = get_categories(
-		array(
-			'number'  => 3,
-			'orderby' => 'count',
-			'order'   => 'DESC',
-		)
-	);
-
 	echo '<ul class="site-menu">';
-	echo '<li><a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html__( 'Home', 'odd-note' ) . '</a></li>';
+	echo '<li><a href="' . esc_url( odd_note_posts_url() ) . '">' . esc_html__( '전체 글', 'odd-note' ) . '</a></li>';
 
-	foreach ( $categories as $category ) {
-		echo '<li><a href="' . esc_url( get_category_link( $category ) ) . '">' . esc_html( $category->name ) . '</a></li>';
+	foreach ( array( 'it-news', 'ai-paper-analysis', 'business-knowledge' ) as $slug ) {
+		$category = get_category_by_slug( $slug );
+		if ( $category ) {
+			echo '<li><a href="' . esc_url( get_category_link( $category ) ) . '">' . esc_html( $category->name ) . '</a></li>';
+		}
 	}
 
-	echo '<li><a href="' . esc_url( odd_note_posts_url() ) . '">' . esc_html__( 'Archive', 'odd-note' ) . '</a></li>';
+	echo '<li><a href="' . esc_url( odd_note_about_url() ) . '">' . esc_html__( '소개', 'odd-note' ) . '</a></li>';
 	echo '</ul>';
 }
 
@@ -255,7 +260,7 @@ function odd_note_social_meta() {
 		}
 	} elseif ( is_home() ) {
 		$url           = odd_note_posts_url();
-		$description   = 'Odd Note가 기록한 AI 도구, 맥 워크플로, 홈서버 실전의 모든 글입니다.';
+		$description   = 'Odd Note의 IT 최신 뉴스, AI 논문 분석, 사업 지식과 개발 실전 기록을 한곳에서 확인합니다.';
 		$add_canonical = true;
 	} elseif ( is_category() || is_tag() ) {
 		$term = get_queried_object();
@@ -289,7 +294,7 @@ function odd_note_social_meta() {
 		$add_canonical = true;
 	}
 
-	$image = get_theme_file_uri( 'assets/images/og.png' );
+	$image = get_theme_file_uri( 'assets/images/og-tech-business.png' );
 
 	echo '<meta name="description" content="' . esc_attr( $description ) . '">' . "\n";
 	echo '<meta property="og:locale" content="ko_KR">' . "\n";
@@ -303,7 +308,7 @@ function odd_note_social_meta() {
 	echo '<meta property="og:image" content="' . esc_url( $image ) . '">' . "\n";
 	echo '<meta property="og:image:width" content="1200">' . "\n";
 	echo '<meta property="og:image:height" content="630">' . "\n";
-	echo '<meta property="og:image:alt" content="Odd Note — AI 도구, 맥 워크플로, 홈서버 실전">' . "\n";
+	echo '<meta property="og:image:alt" content="Odd Note — IT 최신 뉴스, AI 논문 분석, 사업 지식">' . "\n";
 	echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
 	if ( $add_canonical && $url ) {
 		echo '<link rel="canonical" href="' . esc_url( $url ) . '">' . "\n";

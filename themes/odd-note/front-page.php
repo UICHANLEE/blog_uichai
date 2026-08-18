@@ -31,9 +31,9 @@ if ( ! $featured_posts ) {
 }
 $featured_post  = ! empty( $featured_posts ) ? $featured_posts[0] : null;
 $featured_id    = $featured_post ? (int) $featured_post->ID : 0;
-$ai_tools_url    = odd_note_category_url( 'ai-tools' );
-$mac_workflow_url = odd_note_category_url( 'mac-workflow' );
-$home_server_url = odd_note_category_url( 'home-server' );
+$it_news_url          = odd_note_category_url( 'it-news' );
+$ai_paper_url         = odd_note_category_url( 'ai-paper-analysis' );
+$business_knowledge_url = odd_note_category_url( 'business-knowledge' );
 ?>
 
 <main id="main-content" tabindex="-1">
@@ -42,75 +42,75 @@ $home_server_url = odd_note_category_url( 'home-server' );
 		<div class="hero__grid" aria-hidden="true"></div>
 
 		<div class="hero__meta reveal">
-			<p lang="en"><span class="status-dot" aria-hidden="true"></span><?php esc_html_e( 'INDEPENDENT WEB JOURNAL', 'odd-note' ); ?></p>
+			<p lang="en"><span class="status-dot" aria-hidden="true"></span><?php esc_html_e( 'TECH · AI · BUSINESS JOURNAL', 'odd-note' ); ?></p>
 			<p><span data-seoul-clock>SEOUL — --:--</span></p>
 		</div>
 
 		<div class="hero__copy">
-			<p class="section-kicker reveal" lang="en"><?php esc_html_e( 'A SMALL SHIFT IN PERSPECTIVE', 'odd-note' ); ?></p>
-			<h1 class="hero__title" aria-label="<?php esc_attr_e( '평범한 하루에 낯선 질문을 던집니다.', 'odd-note' ); ?>">
-				<span class="hero__line"><?php esc_html_e( '평범한 하루에', 'odd-note' ); ?></span>
-				<span class="hero__line hero__line--accent"><?php esc_html_e( '낯선 질문을', 'odd-note' ); ?></span>
-				<span class="hero__line"><?php esc_html_e( '던집니다.', 'odd-note' ); ?></span>
+			<p class="section-kicker reveal" lang="en"><?php esc_html_e( 'FROM SIGNAL TO DECISION', 'odd-note' ); ?></p>
+			<h1 class="hero__title" aria-label="<?php esc_attr_e( '빠른 변화를 근거로 읽고 사업으로 연결합니다.', 'odd-note' ); ?>">
+				<span class="hero__line"><?php esc_html_e( '빠른 변화를', 'odd-note' ); ?></span>
+				<span class="hero__line hero__line--accent"><?php esc_html_e( '근거로 읽고', 'odd-note' ); ?></span>
+				<span class="hero__line"><?php esc_html_e( '사업으로 연결합니다.', 'odd-note' ); ?></span>
 			</h1>
 		</div>
 
 		<div class="hero__footer reveal">
-			<p><?php esc_html_e( '직접 써본 AI 도구, 맥 워크플로, 홈서버 운영까지. 만들어 본 사람의 기준으로 기록합니다.', 'odd-note' ); ?></p>
+			<p><?php esc_html_e( 'IT 최신 뉴스의 맥락, AI 논문의 핵심과 한계, 사업에 필요한 판단 기준을 짧고 정확하게 정리합니다.', 'odd-note' ); ?></p>
 			<a class="magnetic-button magnetic" href="#stories" data-cursor="EXPLORE">
-				<span><?php esc_html_e( '오늘의 이야기', 'odd-note' ); ?></span>
+				<span><?php esc_html_e( '오늘의 브리핑', 'odd-note' ); ?></span>
 				<span aria-hidden="true">↓</span>
 			</a>
 		</div>
 
 		<div class="hero-orbit" aria-hidden="true">
 			<div class="hero-orbit__ring"></div>
-			<div class="hero-orbit__core">?</div>
-			<span class="hero-orbit__note hero-orbit__note--one">READ</span>
-			<span class="hero-orbit__note hero-orbit__note--two">THINK</span>
-			<span class="hero-orbit__note hero-orbit__note--three">SHIFT</span>
+			<div class="hero-orbit__core">→</div>
+			<span class="hero-orbit__note hero-orbit__note--one">SIGNAL</span>
+			<span class="hero-orbit__note hero-orbit__note--two">EVIDENCE</span>
+			<span class="hero-orbit__note hero-orbit__note--three">ACTION</span>
 		</div>
 	</section>
 
 	<section class="signal-strip" aria-label="<?php esc_attr_e( '블로그 키워드', 'odd-note' ); ?>">
 		<div class="signal-strip__track">
 			<div class="signal-strip__group">
-				<span lang="en">AI TOOLS, TESTED</span><i aria-hidden="true">✦</i>
-				<span lang="en">MAC WORKFLOWS</span><i aria-hidden="true">✦</i>
-				<span lang="en">HOME SERVER NOTES</span><i aria-hidden="true">✦</i>
+				<span lang="en">TECH NEWS, IN CONTEXT</span><i aria-hidden="true">✦</i>
+				<span lang="en">AI PAPERS, EXPLAINED</span><i aria-hidden="true">✦</i>
+				<span lang="en">BUSINESS, APPLIED</span><i aria-hidden="true">✦</i>
 			</div>
 			<div class="signal-strip__group" aria-hidden="true">
-				<span>AI TOOLS, TESTED</span><i>✦</i>
-				<span>MAC WORKFLOWS</span><i>✦</i>
-				<span>HOME SERVER NOTES</span><i>✦</i>
+				<span>TECH NEWS, IN CONTEXT</span><i>✦</i>
+				<span>AI PAPERS, EXPLAINED</span><i>✦</i>
+				<span>BUSINESS, APPLIED</span><i>✦</i>
 			</div>
 		</div>
 	</section>
 
 	<section class="topic-deck section-shell">
 		<div class="section-heading reveal">
-			<p class="section-kicker" lang="en"><?php esc_html_e( 'THREE WAYS IN', 'odd-note' ); ?></p>
-			<h2><?php esc_html_e( '어디서부터', 'odd-note' ); ?><br><?php esc_html_e( '읽어볼까요?', 'odd-note' ); ?></h2>
+			<p class="section-kicker" lang="en"><?php esc_html_e( 'THREE EDITORIAL DESKS', 'odd-note' ); ?></p>
+			<h2><?php esc_html_e( '무엇을 깊게', 'odd-note' ); ?><br><?php esc_html_e( '읽나요?', 'odd-note' ); ?></h2>
 		</div>
 
 		<div class="topic-deck__grid">
-			<a class="topic-card reveal" href="<?php echo esc_url( $ai_tools_url ); ?>" data-cursor="AI LAB">
-				<span class="topic-card__number">01</span>
+			<a class="topic-card reveal" href="<?php echo esc_url( $it_news_url ); ?>" data-cursor="TECH">
+				<span class="topic-card__number">01 · TECH SIGNAL</span>
 				<span class="topic-card__icon" aria-hidden="true">↗</span>
-				<h3 lang="en">AI LAB</h3>
-				<p><?php esc_html_e( '직접 사용해 본 AI 도구의 활용법과 분명한 한계.', 'odd-note' ); ?></p>
+				<h3><?php esc_html_e( 'IT 최신 뉴스', 'odd-note' ); ?></h3>
+				<p><?php esc_html_e( '제품·플랫폼·정책의 변화를 원문 출처와 실제 영향까지 정리합니다.', 'odd-note' ); ?></p>
 			</a>
-			<a class="topic-card reveal" href="<?php echo esc_url( $mac_workflow_url ); ?>" data-cursor="MAC">
-				<span class="topic-card__number">02</span>
+			<a class="topic-card reveal" href="<?php echo esc_url( $ai_paper_url ); ?>" data-cursor="PAPER">
+				<span class="topic-card__number">02 · AI RESEARCH</span>
 				<span class="topic-card__icon" aria-hidden="true">↗</span>
-				<h3 lang="en">MAC FLOW</h3>
-				<p><?php esc_html_e( 'Mac으로 일하고 만들고 운영하는 단단한 워크플로.', 'odd-note' ); ?></p>
+				<h3><?php esc_html_e( 'AI 논문 분석', 'odd-note' ); ?></h3>
+				<p><?php esc_html_e( '새 논문의 질문·방법·결과·한계를 풀어 읽고 실무 가능성을 구분합니다.', 'odd-note' ); ?></p>
 			</a>
-			<a class="topic-card reveal" href="<?php echo esc_url( $home_server_url ); ?>" data-cursor="SERVER">
-				<span class="topic-card__number">03</span>
+			<a class="topic-card reveal" href="<?php echo esc_url( $business_knowledge_url ); ?>" data-cursor="BUSINESS">
+				<span class="topic-card__number">03 · BUSINESS</span>
 				<span class="topic-card__icon" aria-hidden="true">↗</span>
-				<h3 lang="en">HOME LAB</h3>
-				<p><?php esc_html_e( '집에 있는 장비로 직접 운영하며 얻은 실전 기록.', 'odd-note' ); ?></p>
+				<h3><?php esc_html_e( '사업 지식', 'odd-note' ); ?></h3>
+				<p><?php esc_html_e( '고객·시장·가격·수익모델·운영을 사례와 실행 질문으로 정리합니다.', 'odd-note' ); ?></p>
 			</a>
 		</div>
 	</section>
@@ -119,7 +119,7 @@ $home_server_url = odd_note_category_url( 'home-server' );
 		<div class="section-heading section-heading--row reveal">
 			<div>
 				<p class="section-kicker" lang="en"><?php esc_html_e( 'EDITOR’S PICK', 'odd-note' ); ?></p>
-				<h2><?php esc_html_e( '오늘의 한 편', 'odd-note' ); ?></h2>
+				<h2><?php esc_html_e( '오늘의 분석', 'odd-note' ); ?></h2>
 			</div>
 			<p class="section-index">01 — FEATURE</p>
 		</div>
@@ -161,8 +161,8 @@ $home_server_url = odd_note_category_url( 'home-server' );
 	<section class="latest-stories section-shell">
 		<div class="section-heading section-heading--row reveal">
 			<div>
-				<p class="section-kicker" lang="en"><?php esc_html_e( 'LATEST NOTES', 'odd-note' ); ?></p>
-				<h2><?php esc_html_e( '방금 도착한 생각', 'odd-note' ); ?></h2>
+				<p class="section-kicker" lang="en"><?php esc_html_e( 'LATEST INTELLIGENCE', 'odd-note' ); ?></p>
+				<h2><?php esc_html_e( '새로 도착한 분석', 'odd-note' ); ?></h2>
 			</div>
 			<p class="section-index">02 — ARCHIVE</p>
 		</div>
@@ -214,12 +214,12 @@ $home_server_url = odd_note_category_url( 'home-server' );
 
 	<section class="manifesto" aria-label="<?php esc_attr_e( '편집 원칙', 'odd-note' ); ?>">
 		<div class="manifesto__line reveal">
-			<span><?php esc_html_e( '빠르게 소비하고', 'odd-note' ); ?></span>
-			<strong><?php esc_html_e( '오래 생각하기.', 'odd-note' ); ?></strong>
+			<span><?php esc_html_e( '빠르게 포착하고', 'odd-note' ); ?></span>
+			<strong><?php esc_html_e( '깊게 검증하기.', 'odd-note' ); ?></strong>
 		</div>
 		<div class="manifesto__line manifesto__line--offset reveal">
-			<span><?php esc_html_e( '익숙하게 읽고', 'odd-note' ); ?></span>
-			<strong><?php esc_html_e( '낯설게 보기.', 'odd-note' ); ?></strong>
+			<span><?php esc_html_e( '기술을 읽고', 'odd-note' ); ?></span>
+			<strong><?php esc_html_e( '사업으로 연결하기.', 'odd-note' ); ?></strong>
 		</div>
 	</section>
 </main>

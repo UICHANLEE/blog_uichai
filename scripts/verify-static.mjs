@@ -60,6 +60,19 @@ const routeFiles = new Map(
   manifest.routes.map((route) => [decodeURIComponent(new URL(route.path, origin).pathname), route.file]),
 );
 
+for (const requiredRoute of [
+  '/category/ai-tools/',
+  '/category/mac-workflow/',
+  '/category/home-server/',
+  '/category/it-news/',
+  '/category/ai-paper-analysis/',
+  '/category/business-knowledge/',
+]) {
+  if (!routeFiles.has(requiredRoute)) {
+    throw new Error(`필수 카테고리 경로가 없습니다: ${requiredRoute}`);
+  }
+}
+
 for (const requiredPath of [
   'index.html',
   '404.html',
@@ -68,9 +81,16 @@ for (const requiredPath of [
   'robots.txt',
   'wp-content/themes/odd-note/assets/css/site.css',
   'wp-content/themes/odd-note/assets/js/site.js',
-  'wp-content/themes/odd-note/assets/images/og.png',
+  'wp-content/themes/odd-note/assets/images/og-tech-business.png',
 ]) {
   await access(join(outputDirectory, requiredPath));
+}
+
+const home = await readFile(join(outputDirectory, 'index.html'), 'utf8');
+for (const editorialFocus of ['IT 최신 뉴스', 'AI 논문 분석', '사업 지식']) {
+  if (!home.includes(editorialFocus)) {
+    throw new Error(`첫 화면에서 핵심 편집 주제를 확인할 수 없습니다: ${editorialFocus}`);
+  }
 }
 
 for (const route of manifest.routes) {

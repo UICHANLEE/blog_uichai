@@ -8,8 +8,8 @@
 <footer class="site-footer">
 	<div class="site-footer__orb" aria-hidden="true"></div>
 	<div class="site-footer__inner">
-		<p class="section-kicker reveal" lang="en"><?php esc_html_e( 'KEEP THE CURIOSITY', 'odd-note' ); ?></p>
-		<h2 class="site-footer__title reveal"><?php esc_html_e( '다음 질문은', 'odd-note' ); ?><br><em><?php esc_html_e( '당신의 것.', 'odd-note' ); ?></em></h2>
+		<p class="section-kicker reveal" lang="en"><?php esc_html_e( 'SIGNAL TO ACTION', 'odd-note' ); ?></p>
+		<h2 class="site-footer__title reveal"><?php esc_html_e( '다음 판단을', 'odd-note' ); ?><br><em><?php esc_html_e( '더 선명하게.', 'odd-note' ); ?></em></h2>
 
 		<div class="site-footer__actions reveal">
 			<a class="magnetic-button magnetic" href="<?php echo esc_url( get_bloginfo( 'rss2_url' ) ); ?>" data-cursor="RSS">
@@ -36,7 +36,7 @@
 					?>
 				</nav>
 			<?php endif; ?>
-			<p lang="en"><?php esc_html_e( 'Independent ideas, carefully edited.', 'odd-note' ); ?></p>
+			<p lang="en"><?php esc_html_e( 'Technology, evidence, and business — carefully edited.', 'odd-note' ); ?></p>
 		</div>
 	</div>
 </footer>

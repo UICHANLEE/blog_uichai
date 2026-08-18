@@ -19,6 +19,7 @@ if (!['http:', 'https:'].includes(sourceUrl.protocol)) {
 
 const temporaryDirectory = await mkdtemp(join(projectRoot, '.static-snapshot-'));
 let completed = false;
+const emptyCategoryPaths = new Set();
 
 function decodeHtml(value) {
   return value.replaceAll('&#038;', '&').replaceAll('&amp;', '&');
@@ -37,7 +38,11 @@ function routeFile(pathname) {
 }
 
 function isIndexable(pathname) {
-  return !pathname.startsWith('/tag/') && !pathname.startsWith('/author/');
+  return (
+    !pathname.startsWith('/tag/') &&
+    !pathname.startsWith('/author/') &&
+    !emptyCategoryPaths.has(pathname)
+  );
 }
 
 function shouldCrawl(candidate) {
@@ -86,6 +91,9 @@ async function fetchCollection(resource) {
     endpoint.searchParams.set('per_page', '100');
     endpoint.searchParams.set('page', String(page));
     endpoint.searchParams.set('_fields', 'link,slug,status,count');
+    if (resource === 'categories') {
+      endpoint.searchParams.set('hide_empty', 'false');
+    }
 
     const response = await fetchResponse(endpoint);
     records.push(...await response.json());
@@ -245,6 +253,15 @@ try {
     fetchCollection('categories'),
     fetchCollection('tags'),
   ]);
+
+  for (const category of collections[2]) {
+    if (category.link && Number(category.count) === 0) {
+      const categoryUrl = new URL(category.link, sourceUrl);
+      emptyCategoryPaths.add(
+        categoryUrl.pathname.endsWith('/') ? categoryUrl.pathname : `${categoryUrl.pathname}/`,
+      );
+    }
+  }
 
   const queue = [sourceUrl.href];
   for (const record of collections.flat()) {
