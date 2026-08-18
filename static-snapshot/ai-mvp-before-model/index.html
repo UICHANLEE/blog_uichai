@@ -3,14 +3,14 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>맥에서 WordPress 이미지 용량 줄이기: 리사이즈·WebP 변환 워크플로 &#8211; Odd Note</title>
-<meta name="description" content="원본 보관부터 리사이즈, WebP·AVIF 비교, WordPress 업로드 후 확인까지 유료 플러그인 없이 반복해서 사용할 수 있는 이미지 최적화 과정을 정리했습니다.">
+	<title>AI MVP, 모델부터 만들면 늦는다: 앱 리뷰 → 대기자 명단 → 가짜 AI의 검증 순서 &#8211; Odd Note</title>
+<meta name="description" content="모델 정확도를 높이기 전에 고객 문제와 핵심 행동부터 확인해야 합니다. 앱 리뷰에서 문제를 찾고, 대기자 명단으로 행동을 확인하고, mock AI로 핵심 경험을 검증하는 실전 프레임워크입니다.">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Odd Note">
-<meta property="og:title" content="맥에서 WordPress 이미지 용량 줄이기: 리사이즈·WebP 변환 워크플로 &#8211; Odd Note">
-<meta property="og:description" content="원본 보관부터 리사이즈, WebP·AVIF 비교, WordPress 업로드 후 확인까지 유료 플러그인 없이 반복해서 사용할 수 있는 이미지 최적화 과정을 정리했습니다.">
-<meta property="og:url" content="https://odd-note.invalid/mac-wordpress-image-optimization-workflow/">
+<meta property="og:title" content="AI MVP, 모델부터 만들면 늦는다: 앱 리뷰 → 대기자 명단 → 가짜 AI의 검증 순서 &#8211; Odd Note">
+<meta property="og:description" content="모델 정확도를 높이기 전에 고객 문제와 핵심 행동부터 확인해야 합니다. 앱 리뷰에서 문제를 찾고, 대기자 명단으로 행동을 확인하고, mock AI로 핵심 경험을 검증하는 실전 프레임워크입니다.">
+<meta property="og:url" content="https://odd-note.invalid/ai-mvp-before-model/">
 <meta property="og:image" content="https://odd-note.invalid/wp-content/themes/odd-note/assets/images/og-tech-business.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -37,9 +37,13 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 .is-small-text{font-size:.875em}.is-regular-text{font-size:1em}.is-large-text{font-size:2.25em}.is-larger-text{font-size:3em}.has-drop-cap:not(:focus):first-letter{float:left;font-size:8.4em;font-style:normal;font-weight:100;line-height:.68;margin:.05em .1em 0 0;text-transform:uppercase}body.rtl .has-drop-cap:not(:focus):first-letter{float:none;margin-left:.1em}p.has-drop-cap.has-background{overflow:hidden}:root :where(p.has-background){padding:1.25em 2.375em}:where(p.has-text-color:not(.has-link-color)) a{color:inherit}p.has-text-align-left[style*="writing-mode:vertical-lr"],p.has-text-align-right[style*="writing-mode:vertical-rl"]{rotate:180deg}
 /*# sourceURL=/wp-includes/blocks/paragraph/style.min.css */
 </style>
-<style id="wp-block-code-inline-css">
-.wp-block-code{box-sizing:border-box}.wp-block-code code{direction:ltr;display:block;font-family:inherit;overflow-wrap:break-word;text-align:initial;white-space:pre-wrap}
-/*# sourceURL=/wp-includes/blocks/code/style.min.css */
+<style id="wp-block-quote-inline-css">
+.wp-block-quote{box-sizing:border-box;overflow-wrap:break-word}.wp-block-quote.is-large:where(:not(.is-style-plain)),.wp-block-quote.is-style-large:where(:not(.is-style-plain)){margin-bottom:1em;padding:0 1em}.wp-block-quote.is-large:where(:not(.is-style-plain)) p,.wp-block-quote.is-style-large:where(:not(.is-style-plain)) p{font-size:1.5em;font-style:italic;line-height:1.6}.wp-block-quote.is-large:where(:not(.is-style-plain)) cite,.wp-block-quote.is-large:where(:not(.is-style-plain)) footer,.wp-block-quote.is-style-large:where(:not(.is-style-plain)) cite,.wp-block-quote.is-style-large:where(:not(.is-style-plain)) footer{font-size:1.125em;text-align:right}.wp-block-quote>cite{display:block}
+/*# sourceURL=/wp-includes/blocks/quote/style.min.css */
+</style>
+<style id="wp-block-separator-inline-css">
+@charset "UTF-8";.wp-block-separator{border:none;border-top:2px solid}:root :where(.wp-block-separator.is-style-dots){height:auto;line-height:1;text-align:center}:root :where(.wp-block-separator.is-style-dots):before{color:currentColor;content:"···";font-family:serif;font-size:1.5em;letter-spacing:2em;padding-left:2em}.wp-block-separator.is-style-dots{background:none!important;border:none!important}
+/*# sourceURL=/wp-includes/blocks/separator/style.min.css */
 </style>
 <style id="wp-block-table-inline-css">
 .wp-block-table{overflow-x:auto}.wp-block-table table{border-collapse:collapse;width:100%}.wp-block-table thead{border-bottom:3px solid}.wp-block-table tfoot{border-top:3px solid}.wp-block-table td,.wp-block-table th{border:1px solid;padding:.5em}.wp-block-table .has-fixed-layout{table-layout:fixed;width:100%}.wp-block-table .has-fixed-layout td,.wp-block-table .has-fixed-layout th{word-break:break-word}.wp-block-table.aligncenter,.wp-block-table.alignleft,.wp-block-table.alignright{display:table;width:auto}.wp-block-table.aligncenter td,.wp-block-table.aligncenter th,.wp-block-table.alignleft td,.wp-block-table.alignleft th,.wp-block-table.alignright td,.wp-block-table.alignright th{word-break:break-word}.wp-block-table .has-subtle-light-gray-background-color{background-color:#f3f4f5}.wp-block-table .has-subtle-pale-green-background-color{background-color:#e9fbe5}.wp-block-table .has-subtle-pale-blue-background-color{background-color:#e7f5fe}.wp-block-table .has-subtle-pale-pink-background-color{background-color:#fcf0ef}.wp-block-table.is-style-stripes{background-color:initial;border-collapse:inherit;border-spacing:0}.wp-block-table.is-style-stripes tbody tr:nth-child(odd){background-color:#f0f0f0}.wp-block-table.is-style-stripes.has-subtle-light-gray-background-color tbody tr:nth-child(odd){background-color:#f3f4f5}.wp-block-table.is-style-stripes.has-subtle-pale-green-background-color tbody tr:nth-child(odd){background-color:#e9fbe5}.wp-block-table.is-style-stripes.has-subtle-pale-blue-background-color tbody tr:nth-child(odd){background-color:#e7f5fe}.wp-block-table.is-style-stripes.has-subtle-pale-pink-background-color tbody tr:nth-child(odd){background-color:#fcf0ef}.wp-block-table.is-style-stripes td,.wp-block-table.is-style-stripes th{border-color:#0000}.wp-block-table.is-style-stripes{border-bottom:1px solid #f0f0f0}.wp-block-table .has-border-color td,.wp-block-table .has-border-color th,.wp-block-table .has-border-color tr,.wp-block-table .has-border-color>*{border-color:inherit}.wp-block-table table[style*=border-top-color] tr:first-child,.wp-block-table table[style*=border-top-color] tr:first-child td,.wp-block-table table[style*=border-top-color] tr:first-child th,.wp-block-table table[style*=border-top-color]>*,.wp-block-table table[style*=border-top-color]>* td,.wp-block-table table[style*=border-top-color]>* th{border-top-color:inherit}.wp-block-table table[style*=border-top-color] tr:not(:first-child){border-top-color:initial}.wp-block-table table[style*=border-right-color] td:last-child,.wp-block-table table[style*=border-right-color] th,.wp-block-table table[style*=border-right-color] tr,.wp-block-table table[style*=border-right-color]>*{border-right-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:last-child,.wp-block-table table[style*=border-bottom-color] tr:last-child td,.wp-block-table table[style*=border-bottom-color] tr:last-child th,.wp-block-table table[style*=border-bottom-color]>*,.wp-block-table table[style*=border-bottom-color]>* td,.wp-block-table table[style*=border-bottom-color]>* th{border-bottom-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:not(:last-child){border-bottom-color:initial}.wp-block-table table[style*=border-left-color] td:first-child,.wp-block-table table[style*=border-left-color] th,.wp-block-table table[style*=border-left-color] tr,.wp-block-table table[style*=border-left-color]>*{border-left-color:inherit}.wp-block-table table[style*=border-style] td,.wp-block-table table[style*=border-style] th,.wp-block-table table[style*=border-style] tr,.wp-block-table table[style*=border-style]>*{border-style:inherit}.wp-block-table table[style*=border-width] td,.wp-block-table table[style*=border-width] th,.wp-block-table table[style*=border-width] tr,.wp-block-table table[style*=border-width]>*{border-style:inherit;border-width:inherit}
@@ -55,10 +59,10 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 <link rel='stylesheet' id='odd-note-site-css' href='/wp-content/themes/odd-note/assets/css/site.css?ver=1786859575' media='all' />
 <meta name="theme-color" content="#0d0d12">
 <!-- ODD_NOTE_ROBOTS:indexable -->
-<link rel="canonical" href="https://odd-note.invalid/mac-wordpress-image-optimization-workflow/">
+<link rel="canonical" href="https://odd-note.invalid/ai-mvp-before-model/">
 <link rel="alternate" type="application/rss+xml" title="Odd Note RSS" href="/feed.xml">
 </head>
-<body class="wp-singular post-template-default single single-post postid-24 single-format-standard wp-embed-responsive wp-theme-odd-note odd-note" data-mood="acid">
+<body class="wp-singular post-template-default single single-post postid-34 single-format-standard wp-embed-responsive wp-theme-odd-note odd-note" data-mood="acid">
 
 <a class="skip-link" href="#main-content">본문으로 바로가기</a>
 
@@ -83,7 +87,7 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 			<ul id="menu-odd-note-primary-v2" class="site-menu"><li id="menu-item-27" class="menu-item menu-item-type-post_type menu-item-object-page current_page_parent menu-item-27"><a href="/stories/">전체 글</a></li>
 <li id="menu-item-28" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-28"><a href="/category/it-news/">IT 최신 뉴스</a></li>
 <li id="menu-item-29" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-29"><a href="/category/ai-paper-analysis/">AI 논문 분석</a></li>
-<li id="menu-item-30" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-30"><a href="/category/business-knowledge/">사업 지식</a></li>
+<li id="menu-item-30" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-30"><a href="/category/business-knowledge/">사업 지식</a></li>
 <li id="menu-item-31" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-31"><a href="/about/">소개</a></li>
 </ul>		</nav>
 
@@ -102,21 +106,21 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 </header>
 
 <main id="main-content" class="single-page" tabindex="-1">
-					<article class="single-article post-24 post type-post status-publish format-standard hentry category-mac-workflow tag-macos tag-webp tag-wordpress- tag-23">
+					<article class="single-article post-34 post type-post status-publish format-standard hentry category-business-knowledge tag-1- tag-ai-mvp tag-41 tag-40 tag-42">
 			<header class="article-hero section-shell">
 				<div class="post-meta reveal">
-					<span>맥 워크플로</span>
-					<time datetime="2026-08-18T23:52:59+09:00">2026.08.18</time>
-					<span>5 min read</span>
+					<span>사업 지식</span>
+					<time datetime="2026-08-19T08:11:21+09:00">2026.08.19</time>
+					<span>7 min read</span>
 				</div>
-				<h1 class="article-title reveal">맥에서 WordPress 이미지 용량 줄이기: 리사이즈·WebP 변환 워크플로</h1>
-									<p class="article-deck reveal">원본 보관부터 리사이즈, WebP·AVIF 비교, WordPress 업로드 후 확인까지 유료 플러그인 없이 반복해서 사용할 수 있는 이미지 최적화 과정을 정리했습니다.</p>
+				<h1 class="article-title reveal">AI MVP, 모델부터 만들면 늦는다: 앱 리뷰 → 대기자 명단 → 가짜 AI의 검증 순서</h1>
+									<p class="article-deck reveal">모델 정확도를 높이기 전에 고객 문제와 핵심 행동부터 확인해야 합니다. 앱 리뷰에서 문제를 찾고, 대기자 명단으로 행동을 확인하고, mock AI로 핵심 경험을 검증하는 실전 프레임워크입니다.</p>
 							</header>
 
 			<div class="article-visual section-shell reveal">
-									<div class="generative-cover generative-cover--article" style="--cover-seed: 6;">
-						<span class="generative-cover__word">맥 워크플로</span>
-						<span class="generative-cover__issue">NOTE 024</span>
+									<div class="generative-cover generative-cover--article" style="--cover-seed: 7;">
+						<span class="generative-cover__word">사업 지식</span>
+						<span class="generative-cover__issue">NOTE 034</span>
 					</div>
 							</div>
 
@@ -129,129 +133,221 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 
 				<div class="article-content reveal">
 
-<p class="wp-block-paragraph">WordPress는 이미지를 올릴 때 여러 크기를 만들고 브라우저가 화면에 맞는 파일을 고르도록 도와줍니다. 그렇다고 카메라 원본이나 4K 스크린샷을 그대로 올려도 된다는 뜻은 아닙니다. 업로드 전에 실제 표시 크기로 줄이고 콘텐츠에 맞는 포맷을 고르면 유료 최적화 플러그인 없이도 전송량을 크게 줄일 수 있습니다.</p>
+<p class="article-lead wp-block-paragraph">AI 서비스를 떠올리면 가장 먼저 모델 비교표를 열기 쉽다. OCR 정확도는 얼마인지, 어떤 LLM이 더 싼지, 파인튜닝이 필요한지부터 따진다. 그러나 초기 제품에서 더 비싼 실패는 <strong>모델을 못 만든 것</strong>이 아니라 <strong>아무도 반복해서 쓰지 않을 모델을 잘 만든 것</strong>이다.</p>
 
 
 
-<p class="wp-block-paragraph">이 글은 M1 Pro Mac과 WordPress 7.0.2 환경에서 확인한 결과를 바탕으로, <strong>원본 보관 → 리사이즈 → 포맷 변환 → WordPress 확인</strong>을 반복 가능한 작업으로 정리합니다.</p>
+<p class="wp-block-paragraph">사진 한 장을 올리면 지출 내역을 정리해 주는 가계부를 예로 들어보자. 기술적으로는 영수증 인식, 항목 분류, 중복 제거, 개인화 추천까지 만들 수 있다. 그렇지만 사용자가 정말 원하는 것은 “정확한 OCR”일까, “입력하지 않아도 되는 가계부”일까, 아니면 “이번 달에 어디서 새고 있는지 바로 알려주는 답”일까?</p>
 
 
 
-<h2 class="wp-block-heading">1. 원본과 업로드본을 먼저 분리한다</h2>
+<p class="wp-block-paragraph">이 질문에 답하기 전에는 모델 정확도 95%도 무의미할 수 있다. 개인 프로젝트 노트에서 반복해서 드러난 교훈은 단순했다. <strong>문제 → 행동 → 기술</strong> 순서로 검증하면 개발비를 쓰기 전에 틀릴 기회를 얻는다.</p>
 
 
 
-<p class="wp-block-paragraph">이미지 폴더를 <code>original</code>, <code>convert</code>, <code>upload-ready</code> 세 단계로 나눕니다. 원본은 건드리지 않고 복사본만 변환합니다. 그래야 압축 품질이 나쁘거나 잘못 잘랐을 때 다시 시작할 수 있고, WordPress 미디어 파일을 원본 보관소처럼 사용하는 실수도 피할 수 있습니다.</p>
+<h2 class="wp-block-heading">AI MVP에는 서로 다른 세 가지 위험이 있다</h2>
 
 
 
-<h2 class="wp-block-heading">2. WordPress가 해주는 일과 못 해주는 일을 구분한다</h2>
+<figure class="wp-block-table"><table><thead><tr><th>위험</th><th>확인할 질문</th><th>초기 검증 수단</th></tr></thead><tbody><tr><td><strong>문제 위험</strong></td><td>사람들이 충분히 자주, 충분히 아프게 겪는 문제인가?</td><td>앱 리뷰, 커뮤니티 글, 사용자 인터뷰</td></tr><tr><td><strong>행동 위험</strong></td><td>좋다고 말하는 것을 넘어 실제로 시간을 쓰거나 정보를 남기는가?</td><td>랜딩 페이지, 대기자 명단, 예약·결제 의향</td></tr><tr><td><strong>기술 위험</strong></td><td>핵심 결과를 허용 가능한 비용과 품질로 만들 수 있는가?</td><td>수동 처리, Wizard of Oz, 얇은 프로토타입</td></tr></tbody></table></figure>
 
 
 
-<p class="wp-block-paragraph">WordPress는 업로드한 이미지에서 여러 중간 크기를 만들고, 생성한 HTML에 <code>srcset</code>과 <code>sizes</code>를 추가합니다. 브라우저는 이 정보를 보고 화면 폭과 해상도에 적합한 파일을 선택할 수 있습니다. 자세한 동작은 <a href="https://developer.wordpress.org/apis/responsive-images/">WordPress 반응형 이미지 공식 문서</a>에서 확인할 수 있습니다.</p>
+<p class="wp-block-paragraph">세 위험을 한 번에 해결하려고 하면 완성도 높은 앱을 먼저 만들게 된다. 반대로 가장 불확실한 가설부터 작은 실험으로 떼어내면 “만들 수는 있지만 필요 없는 제품”을 피할 수 있다. Strategyzer도 아이디어를 기능 목록으로 다루기보다 가장 결정적인 가설을 먼저 적고 증거로 시험하라고 권한다.</p>
 
 
 
-<p class="wp-block-paragraph">WordPress는 기본적으로 PNG를 제외한 이미지의 한 변이 2,560px를 넘으면 축소본을 만들어 가장 큰 사용 이미지로 삼고 원본도 보관합니다. 다만 테마의 실제 표시 크기, 콘텐츠에 맞는 포맷, 시각 품질까지 판단하지는 않습니다. 본문에서 최대 1,200px로 표시할 사진이라면 6,000px 원본을 업로드 전에 적정 크기로 줄이는 편이 저장 공간과 백업 시간까지 아낍니다. 자세한 기본 동작은 <a href="https://make.wordpress.org/core/2019/10/09/introducing-handling-of-big-images-in-wordpress-5-3/">WordPress 대형 이미지 공식 안내</a>에서 확인할 수 있습니다.</p>
+<h2 class="wp-block-heading">1단계: 경쟁 앱 리뷰에서 ‘기능’이 아니라 ‘진전’을 읽는다</h2>
 
 
 
-<h2 class="wp-block-heading">3. 이미지 종류에 따라 포맷을 고른다</h2>
+<p class="wp-block-paragraph">앱스토어 별점 평균만 보면 시장의 온도를 알 수는 있어도 고객의 일을 이해하기 어렵다. 리뷰를 읽을 때는 “이 기능이 없다”보다 사용자가 어떤 상황에서 무엇을 끝내려 했는지 찾아야 한다.</p>
 
 
 
-<ul class="wp-block-list"><li><strong>사진:</strong> JPEG, WebP, AVIF를 같은 화면 크기로 비교합니다.</li><li><strong>작은 글자가 있는 UI 스크린샷:</strong> PNG와 WebP를 100% 확대해 글자 번짐을 확인합니다.</li><li><strong>투명 배경 이미지:</strong> 알파 채널이 필요한지 확인하고 WebP 또는 PNG를 비교합니다.</li><li><strong>로고와 단순 도형:</strong> 출처가 안전한 벡터 원본이 있다면 SVG가 적합할 수 있지만, WordPress 업로드 정책과 보안 설정을 먼저 확인합니다.</li></ul>
+<ul class="wp-block-list">
+<li><strong>상황:</strong> 언제 문제가 시작됐는가? 월말 정산, 출장, 공동생활, 카드 명세서 확인 같은 맥락을 적는다.</li>
 
 
+<li><strong>원하는 진전:</strong> 기록 자체가 목적인가, 과소비를 찾거나 비용을 나누는 것이 목적인가?</li>
 
-<p class="wp-block-paragraph">‘가장 최신 포맷’이 매번 가장 작은 것은 아닙니다. 같은 품질 숫자도 포맷 사이에서 같은 시각 품질을 뜻하지 않으므로 파일 크기와 실제 화면을 함께 봐야 합니다.</p>
 
+<li><strong>마찰:</strong> 입력 단계가 많은가, 분류가 틀리는가, 동기화가 느린가, 신뢰하기 어려운가?</li>
 
 
-<h2 class="wp-block-heading">4. 한두 장은 Finder 빠른 동작으로 처리한다</h2>
+<li><strong>우회 행동:</strong> 메모장, 스프레드시트, 카카오톡, 영수증 사진처럼 이미 쓰는 대안은 무엇인가?</li>
 
 
+<li><strong>전환 조건:</strong> 사용자가 기존 습관을 버릴 만큼 중요한 한 가지 변화는 무엇인가?</li>
+</ul>
 
-<p class="wp-block-paragraph">Finder에서 이미지를 선택하고 <strong>빠른 동작 → 이미지 변환</strong>을 사용하면 별도 앱 없이 크기와 포맷을 바꿀 수 있습니다. Apple의 <a href="https://support.apple.com/guide/mac-help/perform-quick-actions-in-the-finder-on-mac-mchl97ff9142/mac">Finder 빠른 동작 안내</a>는 HEIC 사진을 JPEG나 PNG로 바꾸는 예를 제공합니다. 현재 Mac의 지원 포맷은 파일 종류와 확장 기능에 따라 달라질 수 있으므로 WebP가 기본으로 된다고 단정하지 않습니다.</p>
 
 
+<p class="wp-block-paragraph">“자동 분류가 필요하다”는 리뷰 한 줄은 기능 요청일 뿐이다. “월말에 영수증을 몰아서 입력하다가 포기한다”는 문장은 상황, 빈도, 기존 행동까지 포함한다. 후자가 MVP 가설을 만드는 데 훨씬 유용하다.</p>
 
-<h2 class="wp-block-heading">5. 반복 변환은 cwebp 명령으로 고정한다</h2>
 
 
+<p class="wp-block-paragraph">리뷰는 공개된 문제 후보를 찾는 데 좋지만 대표 표본은 아니다. 화가 난 사용자와 열성 사용자가 과대표집되고, 리뷰를 쓰지 않은 이탈자는 보이지 않는다. 따라서 리뷰에서 반복 패턴을 찾은 뒤 실제 목표 사용자와 짧은 인터뷰로 맥락을 확인해야 한다.</p>
 
-<p class="wp-block-paragraph">WebP 변환을 반복한다면 Google의 <code>cwebp</code> 도구를 사용해 규칙을 명령으로 남길 수 있습니다. <a href="https://formulae.brew.sh/formula/webp">Homebrew의 WebP formula</a>로 설치한 뒤, 가로 사진은 너비를 1,600px로, 세로 사진은 높이를 1,600px로 지정할 수 있습니다. 품질은 82로 설정하고 메타데이터는 복사하지 않는 예시입니다.</p>
 
 
+<h2 class="wp-block-heading">2단계: 랜딩 페이지는 설명서가 아니라 행동 실험이다</h2>
 
-<pre class="wp-block-code"><code>brew install webp
 
-# 가로 사진: 너비 1,600px, 높이는 비율에 맞춰 계산
-cwebp -preset photo -q 82 -resize 1600 0 -metadata none input.jpg -o output.webp
 
-# 세로 사진: 높이 1,600px, 너비는 비율에 맞춰 계산
-cwebp -preset photo -q 82 -resize 0 1600 -metadata none input.jpg -o output.webp</code></pre>
+<p class="wp-block-paragraph">인터뷰에서 “좋네요, 나오면 쓸게요”라는 답은 친절한 반응일 수 있다. 더 강한 증거는 사용자가 다음 행동을 하는지다. 랜딩 페이지는 아직 없는 제품을 거창하게 포장하는 곳이 아니라 가치 제안을 읽은 사람이 작은 비용을 감수하는지 확인하는 도구다.</p>
 
 
 
-<p class="wp-block-paragraph"><code>-q</code>는 0부터 100 사이의 손실 압축 품질, <code>-resize</code>는 크기 변경, <code>-metadata none</code>은 메타데이터 제거 옵션입니다. <code>-resize 1600 0</code>은 긴 변을 자동으로 찾는 명령이 아니라 너비를 지정하는 명령입니다. 따라서 먼저 이미지 방향과 크기를 확인하고, 이미 1,600px보다 작은 파일은 확대하지 않도록 변환 대상에서 제외합니다. 투명 이미지나 글자가 많은 화면에는 같은 값을 그대로 적용하지 말고 <a href="https://developers.google.com/speed/webp/docs/cwebp">cwebp 공식 옵션</a>의 <code>-lossless</code>, <code>-preset text</code> 등을 별도로 시험합니다.</p>
+<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow">
+<p class="wp-block-paragraph">“영수증을 읽어주는 AI 가계부”보다 “사진만 남기면 월말 정리가 끝나는 가계부”가 사용자의 진전을 더 선명하게 보여준다.</p>
+</blockquote>
 
 
 
-<h2 class="wp-block-heading">6. 실제 Odd Note 이미지로 비교해 봤다</h2>
+<p class="wp-block-paragraph">초기 페이지에는 세 가지만 있으면 된다. 누구의 어떤 순간을 해결하는지, 사용 전후가 어떻게 달라지는지, 그리고 대기자 등록·테스트 신청·상담 예약 같은 하나의 행동이다. 기능을 열 개 나열하면 어떤 약속에 반응했는지 알 수 없다.</p>
 
 
 
-<p class="wp-block-paragraph">2026년 8월 18일, 이 사이트의 1,200×630 공유 카드 PNG를 WordPress의 Imagick 편집기로 변환했습니다. 원본은 992,289바이트였고 JPEG·WebP·AVIF는 모두 품질 82로 저장했습니다.</p>
+<p class="wp-block-paragraph">전환율 하나만 보지 말고 유입 경로와 약속을 함께 기록한다. 지인 링크에서 20명이 등록한 것과, 문제를 검색해 들어온 낯선 방문자가 등록한 것은 증거의 성격이 다르다. 표본이 작을 때 소수점 전환율보다 “어떤 문장에 어떤 사람이 왜 반응했는가”를 읽는 편이 낫다.</p>
 
 
 
-<figure class="wp-block-table"><table><thead><tr><th>포맷</th><th>파일 크기</th></tr></thead><tbody><tr><td>PNG 원본</td><td>992,289 B</td></tr><tr><td>JPEG</td><td>76,432 B</td></tr><tr><td>WebP</td><td>51,928 B</td></tr><tr><td>AVIF</td><td>56,071 B</td></tr></tbody></table></figure>
+<h2 class="wp-block-heading">3단계: ‘가짜 AI’로 모델이 아니라 경험을 검증한다</h2>
 
 
 
-<p class="wp-block-paragraph">이 한 장에서는 WebP가 AVIF보다 작았습니다. 다만 같은 품질 숫자가 동일한 시각 품질을 보장하지 않으므로 이 표만으로 포맷의 우열을 정할 수는 없습니다. 실제 글에 쓸 사진과 글자가 있는 스크린샷을 각각 변환해 모바일 화면과 100% 확대 상태에서 확인해야 합니다.</p>
+<p class="wp-block-paragraph">여기서 말하는 “가짜 AI”는 사용자를 속이는 것이 아니다. 인터페이스 뒤의 일부 처리를 사람이 수행하는 <strong>Wizard of Oz 프로토타입</strong>이다. Google Design의 AI 프로토타이핑 사례처럼 아직 만들기 비싼 지능을 시뮬레이션해, 사용자가 결과를 어떻게 이해하고 수정하고 신뢰하는지 먼저 관찰한다.</p>
 
 
 
-<h2 class="wp-block-heading">7. AVIF는 서버 지원부터 확인한다</h2>
+<p class="wp-block-paragraph">예를 들어 테스트 참여자가 영수증 사진을 보내면 운영자가 금액과 카테고리를 정리해 몇 분 뒤 앱 화면처럼 돌려준다. 이때 측정할 것은 “사람이 잘 분류했는가”가 아니다.</p>
 
 
 
-<p class="wp-block-paragraph">WordPress는 6.5부터 AVIF 업로드를 지원하지만 서버의 GD 또는 Imagick 라이브러리가 AVIF를 처리할 수 있어야 합니다. 관리자 화면의 <strong>도구 → 사이트 건강 → 정보 → 미디어 처리</strong>에서 지원 포맷을 확인합니다. 이 Odd Note 서버는 점검 당시 Imagick을 사용했고 WebP와 AVIF를 모두 지원했습니다. 환경별 차이는 <a href="https://make.wordpress.org/core/2024/02/23/wordpress-6-5-adds-avif-support/">WordPress AVIF 공식 안내</a>를 참고합니다.</p>
+<ul class="wp-block-list">
+<li>사용자가 사진을 실제로 반복해서 보내는가?</li>
 
 
+<li>결과에서 가장 먼저 확인하는 필드는 무엇인가?</li>
 
-<h2 class="wp-block-heading">8. 업로드 후 네 가지를 다시 본다</h2>
 
+<li>어떤 오류는 바로 고치고 어떤 오류는 무시하는가?</li>
 
 
-<ol class="wp-block-list"><li>미디어 정보에 기대한 픽셀 크기와 포맷이 표시되는가?</li><li>본문 HTML에 적절한 <code>srcset</code>과 <code>sizes</code>가 생성됐는가?</li><li>첫 화면에서 가장 큰 대표 이미지를 불필요하게 지연 로딩하지 않았는가?</li><li>모바일 네트워크에서 실제 전송 파일이 원본보다 작은가?</li></ol>
+<li>결과를 받은 뒤 예산 수정이나 지출 확인 같은 다음 행동을 하는가?</li>
 
 
+<li>응답을 기다릴 수 있는 시간과 지불할 수 있는 가격은 어느 정도인가?</li>
+</ul>
 
-<p class="wp-block-paragraph">최적화 플러그인을 추가했다면 같은 이미지를 두 번 압축하지 않는지도 확인합니다. 파일 크기 감소는 로딩 경험을 개선할 수 있지만 검색 순위나 PageSpeed 점수 상승을 보장하지는 않습니다.</p>
 
 
+<p class="wp-block-paragraph">테스트 참여자에게 수동 보조가 포함된 초기 실험임을 알려야 한다. 영수증에는 상호, 위치, 결제 정보처럼 민감한 데이터가 들어갈 수 있으므로 수집 목적, 보관 기간, 삭제 방법, 사람이 열람하는 범위를 명시하고 최소한만 받아야 한다. 검증 속도가 동의와 개인정보 보호보다 앞설 수는 없다.</p>
 
-<h2 class="wp-block-heading">발행 전 이미지 체크리스트</h2>
 
 
+<h2 class="wp-block-heading">사용자의 수정은 가장 값진 학습 데이터가 된다</h2>
 
-<ul class="wp-block-list"><li>원본과 업로드본을 다른 폴더에 보관했다.</li><li>실제 표시 크기보다 지나치게 큰 파일을 줄였다.</li><li>사진과 스크린샷을 서로 다른 기준으로 비교했다.</li><li>파일명과 대체 텍스트가 이미지 내용을 설명한다.</li><li>WebP·AVIF 서버 지원을 사이트 건강에서 확인했다.</li><li>모바일과 100% 확대 화면에서 품질을 확인했다.</li><li>변환 전후 크기와 작업 규칙을 기록했다.</li></ul>
 
 
+<p class="wp-block-paragraph">AI 결과가 틀렸을 때 사용자가 어떻게 고치는지는 모델 정확도보다 제품 설계에 더 많은 것을 알려준다. 상호명 철자는 그대로 두지만 금액 오류는 반드시 고친다면, 두 필드의 허용 오차와 UI 우선순위가 다르다는 뜻이다.</p>
 
-<p class="wp-block-paragraph"><strong>결론:</strong> 이미지 최적화는 포맷 하나를 고르는 일이 아니라, 실제 표시 크기·콘텐츠별 품질·WordPress 반응형 이미지·측정을 하나의 반복 가능한 Mac 워크플로로 묶는 일입니다.</p>
+
+
+<p class="wp-block-paragraph">초기부터 원본 입력, 제안 결과, 사용자의 최종 수정, 수정 이유를 분리해 기록하면 나중에 자동화 우선순위를 정할 수 있다. 단, “서비스 개선”이라는 포괄적 문구만으로 개인 데이터를 무기한 학습에 사용하는 것은 위험하다. 학습 사용 동의를 별도로 받고, 식별 정보를 제거하고, 삭제 요청이 원본과 파생 데이터에 어떻게 반영되는지 설계해야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">모델 개발로 넘어가기 전 세 개의 문</h2>
+
+
+
+<p class="wp-block-paragraph">“반응이 좋았다”는 감상 대신 다음 세 조건을 통과했을 때 자동화 투자를 시작한다.</p>
+
+
+
+<ol class="wp-block-list">
+<li><strong>행동의 문:</strong> 목표 사용자가 핵심 입력을 한 번이 아니라 반복하고, 결과를 받은 뒤 의도한 다음 행동을 한다.</li>
+
+
+<li><strong>데이터의 문:</strong> 어떤 입력과 오류가 자주 발생하는지 알며, 합법적이고 지속 가능한 방식으로 개선 데이터를 얻을 수 있다.</li>
+
+
+<li><strong>경제성의 문:</strong> 사용자가 얻는 가치와 지불 의향이 추론비, 저장비, 지원비, 수동 검수비보다 충분히 크다.</li>
+</ol>
+
+
+
+<p class="wp-block-paragraph">이 세 문을 통과해도 곧바로 자체 모델을 학습할 필요는 없다. 규칙 기반 처리, 기존 API, 작은 모델과 사람 검수의 조합이 먼저일 수 있다. 자동화할 작업은 사용자가 가장 자주 수정하고 운영자가 가장 오래 처리하는 구간부터 선택한다. 모델은 제품의 출발점이 아니라 반복해서 확인된 병목을 제거하는 수단이다.</p>
+
+
+
+<h2 class="wp-block-heading">2주 안에 실행하는 최소 검증 순서</h2>
+
+
+
+<ol class="wp-block-list">
+<li><strong>1~2일:</strong> 경쟁 앱의 최근 긍정·부정 리뷰를 함께 읽고 상황, 진전, 마찰, 우회 행동으로 분류한다.</li>
+
+
+<li><strong>3~4일:</strong> 가장 위험한 가설 한 개와 실패 기준을 적는다. “사람들이 원한다”가 아니라 관찰할 행동으로 쓴다.</li>
+
+
+<li><strong>5~7일:</strong> 가치 제안 하나와 CTA 하나가 있는 랜딩 페이지를 만들고 목표 사용자가 모인 채널에서 반응을 본다.</li>
+
+
+<li><strong>8~11일:</strong> 동의한 소수 참여자에게 수동 보조 프로토타입을 제공하고 입력, 대기, 확인, 수정 과정을 관찰한다.</li>
+
+
+<li><strong>12~14일:</strong> 행동·데이터·경제성의 문을 검토해 중단, 가치 제안 변경, 제한적 자동화 중 하나를 결정한다.</li>
+</ol>
+
+
+
+<p class="wp-block-paragraph">기간보다 중요한 것은 실험 전에 실패 기준을 정하는 일이다. 결과를 본 뒤 기준을 바꾸면 어떤 반응도 성공처럼 해석하게 된다. 대기자 수, 반복 사용, 허용 대기 시간, 수정 빈도처럼 제품에 맞는 기준을 사전에 적어야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">결론: 먼저 사람이 원하는 진전을 증명하라</h2>
+
+
+
+<p class="wp-block-paragraph">AI MVP의 목적은 작은 AI를 만드는 것이 아니다. <strong>사용자가 원하는 진전을 가장 싼 방법으로 증명하는 것</strong>이다. 앱 리뷰로 문제 후보를 찾고, 인터뷰로 맥락을 확인하고, 대기자 명단으로 행동을 보고, 투명한 수동 프로토타입으로 경험을 검증한다. 그다음에야 어디를 자동화할지 알 수 있다.</p>
+
+
+
+<p class="wp-block-paragraph">모델을 먼저 만들면 정확도는 올라가도 왜 쓰는지는 끝까지 모를 수 있다. 반대로 수요와 행동을 먼저 확인하면 기술 선택이 단순해진다. 무엇을 학습시킬지, 어떤 오류를 허용할지, 어디에 사람 검수가 필요한지가 실제 사용에서 드러나기 때문이다.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity" />
+
+
+
+<h3 class="wp-block-heading">참고 자료와 확인 범위</h3>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://www.strategyzer.com/library/how-to-test-your-idea-start-with-the-most-critical-hypotheses">Strategyzer — Start with the Most Critical Hypotheses</a></li>
+
+
+<li><a href="https://design.google/library/simulating-intelligence">Google Design — Simulating Intelligence</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><em>이 글은 개인 프로젝트 노트에서 반복된 제품 검증 질문을 익명화해 일반적인 프레임워크로 정리했습니다. 특정 서비스의 시장 성공이나 실제 전환율을 주장하지 않으며, 제시한 2주 일정과 통과 기준은 제품의 위험도와 고객군에 맞게 조정해야 합니다.</em></p>
+
 									</div>
 			</div>
 
 			<footer class="article-footer section-shell reveal">
-				<div class="article-tags"><a href="/tag/macos/" rel="tag">macOS</a> <a href="/tag/webp/" rel="tag">WebP</a> <a href="/tag/wordpress-%ec%9d%b4%eb%af%b8%ec%a7%80/" rel="tag">WordPress 이미지</a> <a href="/tag/%ec%84%b1%eb%8a%a5-%ec%b5%9c%ec%a0%81%ed%99%94/" rel="tag">성능 최적화</a></div>
+				<div class="article-tags"><a href="/tag/1%ec%9d%b8-%ec%b0%bd%ec%97%85/" rel="tag">1인 창업</a> <a href="/tag/ai-mvp/" rel="tag">AI MVP</a> <a href="/tag/%ea%b3%a0%ea%b0%9d-%ea%b0%9c%eb%b0%9c/" rel="tag">고객 개발</a> <a href="/tag/%ec%a0%9c%ed%92%88-%ea%b2%80%ec%a6%9d/" rel="tag">제품 검증</a> <a href="/tag/%ed%94%84%eb%a1%9c%ed%86%a0%ed%83%80%ec%9e%85/" rel="tag">프로토타입</a></div>
 				<nav class="post-navigation" aria-label="다른 글">
-					<div><a href="/ai-blog-writing-workflow/" rel="prev"><span>이전 글</span>수익형 블로그에 AI를 쓰는 7단계: 검색 의도부터 팩트체크까지</a></div>
-					<div><a href="/supabase-realtime-binary-state-sync/" rel="next"><span>다음 글</span>Supabase Realtime이 바이너리를 품었다: 그래도 WebSocket만 믿으면 안 되는 이유</a></div>
+					<div><a href="/spatialvlm-paper-review/" rel="prev"><span>이전 글</span>사진 한 장으로 사물 사이 거리를 재는 AI: SpatialVLM은 어디까지 믿을 수 있나</a></div>
+					<div></div>
 				</nav>
 			</footer>
 

@@ -3,14 +3,14 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>맥에서 WordPress 이미지 용량 줄이기: 리사이즈·WebP 변환 워크플로 &#8211; Odd Note</title>
-<meta name="description" content="원본 보관부터 리사이즈, WebP·AVIF 비교, WordPress 업로드 후 확인까지 유료 플러그인 없이 반복해서 사용할 수 있는 이미지 최적화 과정을 정리했습니다.">
+	<title>사진 한 장으로 사물 사이 거리를 재는 AI: SpatialVLM은 어디까지 믿을 수 있나 &#8211; Odd Note</title>
+<meta name="description" content="SpatialVLM은 1천만 장의 이미지에서 20억 개 공간 질문을 합성해 VLM에 거리와 크기를 가르쳤습니다. 논문의 방법, 결과와 숫자 뒤에 숨은 한계를 함께 읽습니다.">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Odd Note">
-<meta property="og:title" content="맥에서 WordPress 이미지 용량 줄이기: 리사이즈·WebP 변환 워크플로 &#8211; Odd Note">
-<meta property="og:description" content="원본 보관부터 리사이즈, WebP·AVIF 비교, WordPress 업로드 후 확인까지 유료 플러그인 없이 반복해서 사용할 수 있는 이미지 최적화 과정을 정리했습니다.">
-<meta property="og:url" content="https://odd-note.invalid/mac-wordpress-image-optimization-workflow/">
+<meta property="og:title" content="사진 한 장으로 사물 사이 거리를 재는 AI: SpatialVLM은 어디까지 믿을 수 있나 &#8211; Odd Note">
+<meta property="og:description" content="SpatialVLM은 1천만 장의 이미지에서 20억 개 공간 질문을 합성해 VLM에 거리와 크기를 가르쳤습니다. 논문의 방법, 결과와 숫자 뒤에 숨은 한계를 함께 읽습니다.">
+<meta property="og:url" content="https://odd-note.invalid/spatialvlm-paper-review/">
 <meta property="og:image" content="https://odd-note.invalid/wp-content/themes/odd-note/assets/images/og-tech-business.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -37,9 +37,13 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 .is-small-text{font-size:.875em}.is-regular-text{font-size:1em}.is-large-text{font-size:2.25em}.is-larger-text{font-size:3em}.has-drop-cap:not(:focus):first-letter{float:left;font-size:8.4em;font-style:normal;font-weight:100;line-height:.68;margin:.05em .1em 0 0;text-transform:uppercase}body.rtl .has-drop-cap:not(:focus):first-letter{float:none;margin-left:.1em}p.has-drop-cap.has-background{overflow:hidden}:root :where(p.has-background){padding:1.25em 2.375em}:where(p.has-text-color:not(.has-link-color)) a{color:inherit}p.has-text-align-left[style*="writing-mode:vertical-lr"],p.has-text-align-right[style*="writing-mode:vertical-rl"]{rotate:180deg}
 /*# sourceURL=/wp-includes/blocks/paragraph/style.min.css */
 </style>
-<style id="wp-block-code-inline-css">
-.wp-block-code{box-sizing:border-box}.wp-block-code code{direction:ltr;display:block;font-family:inherit;overflow-wrap:break-word;text-align:initial;white-space:pre-wrap}
-/*# sourceURL=/wp-includes/blocks/code/style.min.css */
+<style id="wp-block-quote-inline-css">
+.wp-block-quote{box-sizing:border-box;overflow-wrap:break-word}.wp-block-quote.is-large:where(:not(.is-style-plain)),.wp-block-quote.is-style-large:where(:not(.is-style-plain)){margin-bottom:1em;padding:0 1em}.wp-block-quote.is-large:where(:not(.is-style-plain)) p,.wp-block-quote.is-style-large:where(:not(.is-style-plain)) p{font-size:1.5em;font-style:italic;line-height:1.6}.wp-block-quote.is-large:where(:not(.is-style-plain)) cite,.wp-block-quote.is-large:where(:not(.is-style-plain)) footer,.wp-block-quote.is-style-large:where(:not(.is-style-plain)) cite,.wp-block-quote.is-style-large:where(:not(.is-style-plain)) footer{font-size:1.125em;text-align:right}.wp-block-quote>cite{display:block}
+/*# sourceURL=/wp-includes/blocks/quote/style.min.css */
+</style>
+<style id="wp-block-separator-inline-css">
+@charset "UTF-8";.wp-block-separator{border:none;border-top:2px solid}:root :where(.wp-block-separator.is-style-dots){height:auto;line-height:1;text-align:center}:root :where(.wp-block-separator.is-style-dots):before{color:currentColor;content:"···";font-family:serif;font-size:1.5em;letter-spacing:2em;padding-left:2em}.wp-block-separator.is-style-dots{background:none!important;border:none!important}
+/*# sourceURL=/wp-includes/blocks/separator/style.min.css */
 </style>
 <style id="wp-block-table-inline-css">
 .wp-block-table{overflow-x:auto}.wp-block-table table{border-collapse:collapse;width:100%}.wp-block-table thead{border-bottom:3px solid}.wp-block-table tfoot{border-top:3px solid}.wp-block-table td,.wp-block-table th{border:1px solid;padding:.5em}.wp-block-table .has-fixed-layout{table-layout:fixed;width:100%}.wp-block-table .has-fixed-layout td,.wp-block-table .has-fixed-layout th{word-break:break-word}.wp-block-table.aligncenter,.wp-block-table.alignleft,.wp-block-table.alignright{display:table;width:auto}.wp-block-table.aligncenter td,.wp-block-table.aligncenter th,.wp-block-table.alignleft td,.wp-block-table.alignleft th,.wp-block-table.alignright td,.wp-block-table.alignright th{word-break:break-word}.wp-block-table .has-subtle-light-gray-background-color{background-color:#f3f4f5}.wp-block-table .has-subtle-pale-green-background-color{background-color:#e9fbe5}.wp-block-table .has-subtle-pale-blue-background-color{background-color:#e7f5fe}.wp-block-table .has-subtle-pale-pink-background-color{background-color:#fcf0ef}.wp-block-table.is-style-stripes{background-color:initial;border-collapse:inherit;border-spacing:0}.wp-block-table.is-style-stripes tbody tr:nth-child(odd){background-color:#f0f0f0}.wp-block-table.is-style-stripes.has-subtle-light-gray-background-color tbody tr:nth-child(odd){background-color:#f3f4f5}.wp-block-table.is-style-stripes.has-subtle-pale-green-background-color tbody tr:nth-child(odd){background-color:#e9fbe5}.wp-block-table.is-style-stripes.has-subtle-pale-blue-background-color tbody tr:nth-child(odd){background-color:#e7f5fe}.wp-block-table.is-style-stripes.has-subtle-pale-pink-background-color tbody tr:nth-child(odd){background-color:#fcf0ef}.wp-block-table.is-style-stripes td,.wp-block-table.is-style-stripes th{border-color:#0000}.wp-block-table.is-style-stripes{border-bottom:1px solid #f0f0f0}.wp-block-table .has-border-color td,.wp-block-table .has-border-color th,.wp-block-table .has-border-color tr,.wp-block-table .has-border-color>*{border-color:inherit}.wp-block-table table[style*=border-top-color] tr:first-child,.wp-block-table table[style*=border-top-color] tr:first-child td,.wp-block-table table[style*=border-top-color] tr:first-child th,.wp-block-table table[style*=border-top-color]>*,.wp-block-table table[style*=border-top-color]>* td,.wp-block-table table[style*=border-top-color]>* th{border-top-color:inherit}.wp-block-table table[style*=border-top-color] tr:not(:first-child){border-top-color:initial}.wp-block-table table[style*=border-right-color] td:last-child,.wp-block-table table[style*=border-right-color] th,.wp-block-table table[style*=border-right-color] tr,.wp-block-table table[style*=border-right-color]>*{border-right-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:last-child,.wp-block-table table[style*=border-bottom-color] tr:last-child td,.wp-block-table table[style*=border-bottom-color] tr:last-child th,.wp-block-table table[style*=border-bottom-color]>*,.wp-block-table table[style*=border-bottom-color]>* td,.wp-block-table table[style*=border-bottom-color]>* th{border-bottom-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:not(:last-child){border-bottom-color:initial}.wp-block-table table[style*=border-left-color] td:first-child,.wp-block-table table[style*=border-left-color] th,.wp-block-table table[style*=border-left-color] tr,.wp-block-table table[style*=border-left-color]>*{border-left-color:inherit}.wp-block-table table[style*=border-style] td,.wp-block-table table[style*=border-style] th,.wp-block-table table[style*=border-style] tr,.wp-block-table table[style*=border-style]>*{border-style:inherit}.wp-block-table table[style*=border-width] td,.wp-block-table table[style*=border-width] th,.wp-block-table table[style*=border-width] tr,.wp-block-table table[style*=border-width]>*{border-style:inherit;border-width:inherit}
@@ -55,10 +59,10 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 <link rel='stylesheet' id='odd-note-site-css' href='/wp-content/themes/odd-note/assets/css/site.css?ver=1786859575' media='all' />
 <meta name="theme-color" content="#0d0d12">
 <!-- ODD_NOTE_ROBOTS:indexable -->
-<link rel="canonical" href="https://odd-note.invalid/mac-wordpress-image-optimization-workflow/">
+<link rel="canonical" href="https://odd-note.invalid/spatialvlm-paper-review/">
 <link rel="alternate" type="application/rss+xml" title="Odd Note RSS" href="/feed.xml">
 </head>
-<body class="wp-singular post-template-default single single-post postid-24 single-format-standard wp-embed-responsive wp-theme-odd-note odd-note" data-mood="acid">
+<body class="wp-singular post-template-default single single-post postid-33 single-format-standard wp-embed-responsive wp-theme-odd-note odd-note" data-mood="acid">
 
 <a class="skip-link" href="#main-content">본문으로 바로가기</a>
 
@@ -82,7 +86,7 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 		<nav class="primary-nav" aria-label="주요 메뉴">
 			<ul id="menu-odd-note-primary-v2" class="site-menu"><li id="menu-item-27" class="menu-item menu-item-type-post_type menu-item-object-page current_page_parent menu-item-27"><a href="/stories/">전체 글</a></li>
 <li id="menu-item-28" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-28"><a href="/category/it-news/">IT 최신 뉴스</a></li>
-<li id="menu-item-29" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-29"><a href="/category/ai-paper-analysis/">AI 논문 분석</a></li>
+<li id="menu-item-29" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-29"><a href="/category/ai-paper-analysis/">AI 논문 분석</a></li>
 <li id="menu-item-30" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-30"><a href="/category/business-knowledge/">사업 지식</a></li>
 <li id="menu-item-31" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-31"><a href="/about/">소개</a></li>
 </ul>		</nav>
@@ -102,21 +106,21 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 </header>
 
 <main id="main-content" class="single-page" tabindex="-1">
-					<article class="single-article post-24 post type-post status-publish format-standard hentry category-mac-workflow tag-macos tag-webp tag-wordpress- tag-23">
+					<article class="single-article post-33 post type-post status-publish format-standard hentry category-ai-paper-analysis tag-3d-- tag-cvpr-2024 tag-spatialvlm tag-vlm tag-38">
 			<header class="article-hero section-shell">
 				<div class="post-meta reveal">
-					<span>맥 워크플로</span>
-					<time datetime="2026-08-18T23:52:59+09:00">2026.08.18</time>
-					<span>5 min read</span>
+					<span>AI 논문 분석</span>
+					<time datetime="2026-08-19T08:11:21+09:00">2026.08.19</time>
+					<span>7 min read</span>
 				</div>
-				<h1 class="article-title reveal">맥에서 WordPress 이미지 용량 줄이기: 리사이즈·WebP 변환 워크플로</h1>
-									<p class="article-deck reveal">원본 보관부터 리사이즈, WebP·AVIF 비교, WordPress 업로드 후 확인까지 유료 플러그인 없이 반복해서 사용할 수 있는 이미지 최적화 과정을 정리했습니다.</p>
+				<h1 class="article-title reveal">사진 한 장으로 사물 사이 거리를 재는 AI: SpatialVLM은 어디까지 믿을 수 있나</h1>
+									<p class="article-deck reveal">SpatialVLM은 1천만 장의 이미지에서 20억 개 공간 질문을 합성해 VLM에 거리와 크기를 가르쳤습니다. 논문의 방법, 결과와 숫자 뒤에 숨은 한계를 함께 읽습니다.</p>
 							</header>
 
 			<div class="article-visual section-shell reveal">
 									<div class="generative-cover generative-cover--article" style="--cover-seed: 6;">
-						<span class="generative-cover__word">맥 워크플로</span>
-						<span class="generative-cover__issue">NOTE 024</span>
+						<span class="generative-cover__word">AI 논문 분석</span>
+						<span class="generative-cover__issue">NOTE 033</span>
 					</div>
 							</div>
 
@@ -129,129 +133,204 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 
 				<div class="article-content reveal">
 
-<p class="wp-block-paragraph">WordPress는 이미지를 올릴 때 여러 크기를 만들고 브라우저가 화면에 맞는 파일을 고르도록 도와줍니다. 그렇다고 카메라 원본이나 4K 스크린샷을 그대로 올려도 된다는 뜻은 아닙니다. 업로드 전에 실제 표시 크기로 줄이고 콘텐츠에 맞는 포맷을 고르면 유료 최적화 플러그인 없이도 전송량을 크게 줄일 수 있습니다.</p>
+<p class="article-lead wp-block-paragraph">거실 사진 한 장을 AI에게 보여주고 이렇게 묻는다고 해보자. <strong>“폭이 1미터인 청소 로봇이 소파와 테이블 사이를 지나갈 수 있을까?”</strong></p>
 
 
 
-<p class="wp-block-paragraph">이 글은 M1 Pro Mac과 WordPress 7.0.2 환경에서 확인한 결과를 바탕으로, <strong>원본 보관 → 리사이즈 → 포맷 변환 → WordPress 확인</strong>을 반복 가능한 작업으로 정리합니다.</p>
+<p class="wp-block-paragraph">사진 속에 소파와 테이블이 있다는 사실을 알아보는 것과 두 물체 사이의 간격을 미터 단위로 추정하는 것은 전혀 다른 문제다. 기존 비전 언어 모델(VLM)은 사물의 이름과 장면은 잘 설명하지만, “얼마나 떨어져 있는가”, “어느 물체가 더 큰가” 같은 3차원 공간 문제에서는 답을 피하거나 근거 없는 숫자를 내놓기 쉽다.</p>
 
 
 
-<h2 class="wp-block-heading">1. 원본과 업로드본을 먼저 분리한다</h2>
+<p class="wp-block-paragraph">Google DeepMind와 MIT·Stanford 연구진이 CVPR 2024에서 발표한 <a href="https://arxiv.org/abs/2401.12168">SpatialVLM 논문</a>은 이 문제를 모델 구조보다 <strong>학습 데이터의 문제</strong>로 바라본다. 인터넷 이미지에 공간 정보를 대규모로 덧붙여 학습하면 기존 VLM도 거리와 크기에 관한 질문에 더 잘 답할 수 있다는 가설이다.</p>
 
 
 
-<p class="wp-block-paragraph">이미지 폴더를 <code>original</code>, <code>convert</code>, <code>upload-ready</code> 세 단계로 나눕니다. 원본은 건드리지 않고 복사본만 변환합니다. 그래야 압축 품질이 나쁘거나 잘못 잘랐을 때 다시 시작할 수 있고, WordPress 미디어 파일을 원본 보관소처럼 사용하는 실수도 피할 수 있습니다.</p>
+<p class="wp-block-paragraph"><strong>먼저 결론부터 말하면</strong>, SpatialVLM은 AI가 사진 속 공간을 이해하도록 만드는 흥미로운 방법을 보여줬다. 그러나 아직 사진을 실제 줄자처럼 바꿔주는 기술은 아니다. 이 둘을 구분하는 것이 논문을 제대로 읽는 핵심이다.</p>
 
 
 
-<h2 class="wp-block-heading">2. WordPress가 해주는 일과 못 해주는 일을 구분한다</h2>
+<h2 class="wp-block-heading">SpatialVLM이 던진 질문</h2>
 
 
 
-<p class="wp-block-paragraph">WordPress는 업로드한 이미지에서 여러 중간 크기를 만들고, 생성한 HTML에 <code>srcset</code>과 <code>sizes</code>를 추가합니다. 브라우저는 이 정보를 보고 화면 폭과 해상도에 적합한 파일을 선택할 수 있습니다. 자세한 동작은 <a href="https://developer.wordpress.org/apis/responsive-images/">WordPress 반응형 이미지 공식 문서</a>에서 확인할 수 있습니다.</p>
+<p class="wp-block-paragraph">대부분의 VLM은 이미지와 캡션으로 학습된다. 일반적인 캡션에는 “강아지가 의자 왼쪽에 있다” 정도의 표현은 있어도 “강아지와 의자 사이의 수평 거리는 70센티미터다” 같은 정량적 공간 정보는 거의 없다.</p>
 
 
 
-<p class="wp-block-paragraph">WordPress는 기본적으로 PNG를 제외한 이미지의 한 변이 2,560px를 넘으면 축소본을 만들어 가장 큰 사용 이미지로 삼고 원본도 보관합니다. 다만 테마의 실제 표시 크기, 콘텐츠에 맞는 포맷, 시각 품질까지 판단하지는 않습니다. 본문에서 최대 1,200px로 표시할 사진이라면 6,000px 원본을 업로드 전에 적정 크기로 줄이는 편이 저장 공간과 백업 시간까지 아낍니다. 자세한 기본 동작은 <a href="https://make.wordpress.org/core/2019/10/09/introducing-handling-of-big-images-in-wordpress-5-3/">WordPress 대형 이미지 공식 안내</a>에서 확인할 수 있습니다.</p>
+<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow">
+<p class="wp-block-paragraph">VLM이 공간을 이해하지 못하는 이유는 아키텍처가 부족해서가 아니라 공간을 가르치는 데이터가 부족해서일 수 있다.</p>
+</blockquote>
 
 
 
-<h2 class="wp-block-heading">3. 이미지 종류에 따라 포맷을 고른다</h2>
+<p class="wp-block-paragraph">이를 검증하려면 수많은 이미지에 물체의 위치, 크기, 깊이, 거리 정보를 붙여야 한다. 사람이 직접 측정하고 라벨링하기에는 비용이 너무 크다. SpatialVLM은 이미 존재하는 여러 비전 모델을 조립해 이 과정을 자동화했다.</p>
 
 
 
-<ul class="wp-block-list"><li><strong>사진:</strong> JPEG, WebP, AVIF를 같은 화면 크기로 비교합니다.</li><li><strong>작은 글자가 있는 UI 스크린샷:</strong> PNG와 WebP를 100% 확대해 글자 번짐을 확인합니다.</li><li><strong>투명 배경 이미지:</strong> 알파 채널이 필요한지 확인하고 WebP 또는 PNG를 비교합니다.</li><li><strong>로고와 단순 도형:</strong> 출처가 안전한 벡터 원본이 있다면 SVG가 적합할 수 있지만, WordPress 업로드 정책과 보안 설정을 먼저 확인합니다.</li></ul>
+<h2 class="wp-block-heading">2D 사진을 3D 학습 문제로 바꾸는 방법</h2>
 
 
 
-<p class="wp-block-paragraph">‘가장 최신 포맷’이 매번 가장 작은 것은 아닙니다. 같은 품질 숫자도 포맷 사이에서 같은 시각 품질을 뜻하지 않으므로 파일 크기와 실제 화면을 함께 봐야 합니다.</p>
+<ol class="wp-block-list">
+<li><strong>장면 사진 선별:</strong> 상품 하나만 찍힌 이미지나 화면 캡처처럼 공간 관계를 학습하기 어려운 이미지를 걸러낸다.</li>
 
 
+<li><strong>물체 분리와 설명:</strong> 장면 안의 물체를 탐지·분할하고 “케이크”보다 구체적인 “집 모양 케이크” 같은 설명을 붙인다.</li>
 
-<h2 class="wp-block-heading">4. 한두 장은 Finder 빠른 동작으로 처리한다</h2>
 
+<li><strong>깊이 추정:</strong> 단안 깊이 추정 모델로 각 픽셀이 카메라에서 얼마나 떨어져 있는지 예측한다.</li>
 
 
-<p class="wp-block-paragraph">Finder에서 이미지를 선택하고 <strong>빠른 동작 → 이미지 변환</strong>을 사용하면 별도 앱 없이 크기와 포맷을 바꿀 수 있습니다. Apple의 <a href="https://support.apple.com/guide/mac-help/perform-quick-actions-in-the-finder-on-mac-mchl97ff9142/mac">Finder 빠른 동작 안내</a>는 HEIC 사진을 JPEG나 PNG로 바꾸는 예를 제공합니다. 현재 Mac의 지원 포맷은 파일 종류와 확장 기능에 따라 달라질 수 있으므로 WebP가 기본으로 된다고 단정하지 않습니다.</p>
+<li><strong>3D 공간으로 변환:</strong> 2D 픽셀과 깊이 값을 미터 단위 3D 포인트 클라우드로 끌어올린다. 바닥이나 테이블처럼 수평인 면을 이용해 좌표계도 정리한다.</li>
 
 
+<li><strong>질문과 답 생성:</strong> 물체 사이의 좌우·상하·앞뒤 관계, 거리와 크기를 계산해 자연어 질문과 답으로 변환한다.</li>
+</ol>
 
-<h2 class="wp-block-heading">5. 반복 변환은 cwebp 명령으로 고정한다</h2>
 
 
+<p class="wp-block-paragraph">연구진은 38종의 공간 질문을 설계했다. 이 파이프라인으로 <strong>1천만 장의 실제 이미지에서 20억 개의 공간 질의응답 쌍</strong>을 만들었다. 절반은 “A가 B보다 앞에 있는가?” 같은 정성적 질문이고, 나머지 절반은 거리와 크기를 묻는 정량적 질문이다.</p>
 
-<p class="wp-block-paragraph">WebP 변환을 반복한다면 Google의 <code>cwebp</code> 도구를 사용해 규칙을 명령으로 남길 수 있습니다. <a href="https://formulae.brew.sh/formula/webp">Homebrew의 WebP formula</a>로 설치한 뒤, 가로 사진은 너비를 1,600px로, 세로 사진은 높이를 1,600px로 지정할 수 있습니다. 품질은 82로 설정하고 메타데이터는 복사하지 않는 예시입니다.</p>
 
 
+<p class="wp-block-paragraph">모델은 PaLM-E 계열 학습 절차와 PaLM 2-S 백본을 사용했으며 전체 학습 토큰 중 5%를 공간 추론 문제에 배정했다. 완전히 새로운 모델을 발명했다기보다 기존 VLM에 새로운 종류의 학습 신호를 주입한 셈이다.</p>
 
-<pre class="wp-block-code"><code>brew install webp
 
-# 가로 사진: 너비 1,600px, 높이는 비율에 맞춰 계산
-cwebp -preset photo -q 82 -resize 1600 0 -metadata none input.jpg -o output.webp
 
-# 세로 사진: 높이 1,600px, 너비는 비율에 맞춰 계산
-cwebp -preset photo -q 82 -resize 0 1600 -metadata none input.jpg -o output.webp</code></pre>
+<h2 class="wp-block-heading">성적표: 방향 판단은 좋아졌지만 거리는 아직 거칠다</h2>
 
 
 
-<p class="wp-block-paragraph"><code>-q</code>는 0부터 100 사이의 손실 압축 품질, <code>-resize</code>는 크기 변경, <code>-metadata none</code>은 메타데이터 제거 옵션입니다. <code>-resize 1600 0</code>은 긴 변을 자동으로 찾는 명령이 아니라 너비를 지정하는 명령입니다. 따라서 먼저 이미지 방향과 크기를 확인하고, 이미 1,600px보다 작은 파일은 확대하지 않도록 변환 대상에서 제외합니다. 투명 이미지나 글자가 많은 화면에는 같은 값을 그대로 적용하지 말고 <a href="https://developers.google.com/speed/webp/docs/cwebp">cwebp 공식 옵션</a>의 <code>-lossless</code>, <code>-preset text</code> 등을 별도로 시험합니다.</p>
+<p class="wp-block-paragraph">연구진은 WebLI 이미지 일부를 이용해 별도의 평가 세트를 만들었다. 사람이 작성한 <strong>정성적 질문 331개와 정량적 질문 215개, 총 546개</strong>로 구성된 자체 벤치마크다.</p>
 
 
 
-<h2 class="wp-block-heading">6. 실제 Odd Note 이미지로 비교해 봤다</h2>
+<figure class="wp-block-table"><table><thead><tr><th>평가 항목</th><th>SpatialVLM</th><th>무엇을 뜻하나</th></tr></thead><tbody><tr><td>정성적 공간 질문 정확도</td><td><strong>75.2%</strong></td><td>좌우·앞뒤·가까움 같은 관계 판단</td></tr><tr><td>숫자 형태의 답변 출력률</td><td><strong>99.0%</strong></td><td>거리 질문을 회피하지 않고 숫자로 답한 비율</td></tr><tr><td>기준값의 절반~두 배 범위</td><td><strong>37.2%</strong></td><td>예측이 사람 추정치의 0.5배~2배 안에 든 비율</td></tr><tr><td>기준값의 ±10% 범위</td><td><strong>8.4%</strong></td><td>더 엄격한 정량 오차 기준</td></tr></tbody></table></figure>
 
 
 
-<p class="wp-block-paragraph">2026년 8월 18일, 이 사이트의 1,200×630 공유 카드 PNG를 WordPress의 Imagick 편집기로 변환했습니다. 원본은 992,289바이트였고 JPEG·WebP·AVIF는 모두 품질 82로 저장했습니다.</p>
+<p class="wp-block-paragraph">정성적 질문에서는 75.2%를 기록해 논문에 포함된 GPT-4V 68.0%, LLaVA-1.5 71.3%보다 높았다. 다만 GPT-4V 평가는 2023년 11월 버전에 대한 결과다. 이 수치를 2026년의 최신 멀티모달 모델과 직접 비교해서는 안 된다.</p>
 
 
 
-<figure class="wp-block-table"><table><thead><tr><th>포맷</th><th>파일 크기</th></tr></thead><tbody><tr><td>PNG 원본</td><td>992,289 B</td></tr><tr><td>JPEG</td><td>76,432 B</td></tr><tr><td>WebP</td><td>51,928 B</td></tr><tr><td>AVIF</td><td>56,071 B</td></tr></tbody></table></figure>
+<h2 class="wp-block-heading">“숫자를 99% 출력했다”는 말의 함정</h2>
 
 
 
-<p class="wp-block-paragraph">이 한 장에서는 WebP가 AVIF보다 작았습니다. 다만 같은 품질 숫자가 동일한 시각 품질을 보장하지 않으므로 이 표만으로 포맷의 우열을 정할 수는 없습니다. 실제 글에 쓸 사진과 글자가 있는 스크린샷을 각각 변환해 모바일 화면과 100% 확대 상태에서 확인해야 합니다.</p>
+<p class="wp-block-paragraph">가장 오해하기 쉬운 수치는 99%다. 이것은 거리 측정 정확도가 99%라는 뜻이 아니다. 모델이 “기준이 없어 답할 수 없습니다”라고 회피하지 않고 숫자가 포함된 형식으로 답한 비율이다.</p>
 
 
 
-<h2 class="wp-block-heading">7. AVIF는 서버 지원부터 확인한다</h2>
+<p class="wp-block-paragraph">실제 거리와의 일치도를 보면 그림이 달라진다. 예측값이 사람 기준값의 절반에서 두 배 사이에 들어온 경우는 37.2%였다. 실제 거리가 1미터라면 0.5~2미터까지를 맞는 범위로 인정한 비교적 느슨한 기준이다. 더 엄격하게 사람 추정치의 ±10% 범위를 적용했을 때는 8.4%였다.</p>
 
 
 
-<p class="wp-block-paragraph">WordPress는 6.5부터 AVIF 업로드를 지원하지만 서버의 GD 또는 Imagick 라이브러리가 AVIF를 처리할 수 있어야 합니다. 관리자 화면의 <strong>도구 → 사이트 건강 → 정보 → 미디어 처리</strong>에서 지원 포맷을 확인합니다. 이 Odd Note 서버는 점검 당시 Imagick을 사용했고 WebP와 AVIF를 모두 지원했습니다. 환경별 차이는 <a href="https://make.wordpress.org/core/2024/02/23/wordpress-6-5-adds-avif-support/">WordPress AVIF 공식 안내</a>를 참고합니다.</p>
+<p class="wp-block-paragraph">따라서 SpatialVLM은 “어느 쪽이 더 가깝고 대략 어느 정도 차이가 나는지” 묻는 도구에는 가까워졌지만, 가구 치수를 재거나 안전거리를 판정하는 계측 장비와는 거리가 멀다.</p>
 
 
 
-<h2 class="wp-block-heading">8. 업로드 후 네 가지를 다시 본다</h2>
+<h2 class="wp-block-heading">왜 1~10미터 구간에서 상대적으로 잘했을까?</h2>
 
 
 
-<ol class="wp-block-list"><li>미디어 정보에 기대한 픽셀 크기와 포맷이 표시되는가?</li><li>본문 HTML에 적절한 <code>srcset</code>과 <code>sizes</code>가 생성됐는가?</li><li>첫 화면에서 가장 큰 대표 이미지를 불필요하게 지연 로딩하지 않았는가?</li><li>모바일 네트워크에서 실제 전송 파일이 원본보다 작은가?</li></ol>
+<p class="wp-block-paragraph">논문에서 특히 중요한 대목은 모델이 <strong>카메라로부터 약 1~10미터 떨어진 중간 거리 장면에서 상대적으로 좋은 결과</strong>를 보였다는 점이다. 연구진은 이 범위가 데이터 생성에 사용한 단안 깊이 추정 모델이 미터 단위 깊이를 비교적 안정적으로 예측하는 구간과 겹친다고 설명한다.</p>
 
 
 
-<p class="wp-block-paragraph">최적화 플러그인을 추가했다면 같은 이미지를 두 번 압축하지 않는지도 확인합니다. 파일 크기 감소는 로딩 경험을 개선할 수 있지만 검색 순위나 PageSpeed 점수 상승을 보장하지는 않습니다.</p>
+<p class="wp-block-paragraph">이는 SpatialVLM의 장점이면서 동시에 한계다. 학습 라벨을 만든 깊이 추정기가 특정 거리, 카메라, 장면에서 편향되면 그 데이터로 학습한 VLM도 같은 편향을 물려받는다. 논문도 SpatialVLM이 데이터 합성 파이프라인에 포함된 전문가 모델의 편향과 한계를 상속한다고 명시한다.</p>
 
 
 
-<h2 class="wp-block-heading">발행 전 이미지 체크리스트</h2>
+<p class="wp-block-paragraph">단일 사진에서 절대 거리를 알아내는 문제 자체에도 모호함이 있다. 같은 크기로 보이는 물체라도 작은 물체가 가까이 있거나 큰 물체가 멀리 있을 수 있다. 카메라 내부 정보, 기준 물체, 깊이 센서가 없다면 모델은 장면에 대한 학습된 상식을 이용해 추정할 수밖에 없다.</p>
 
 
 
-<ul class="wp-block-list"><li>원본과 업로드본을 다른 폴더에 보관했다.</li><li>실제 표시 크기보다 지나치게 큰 파일을 줄였다.</li><li>사진과 스크린샷을 서로 다른 기준으로 비교했다.</li><li>파일명과 대체 텍스트가 이미지 내용을 설명한다.</li><li>WebP·AVIF 서버 지원을 사이트 건강에서 확인했다.</li><li>모바일과 100% 확대 화면에서 품질을 확인했다.</li><li>변환 전후 크기와 작업 규칙을 기록했다.</li></ul>
+<h2 class="wp-block-heading">로봇에게는 어디까지 쓸 수 있을까?</h2>
 
 
 
-<p class="wp-block-paragraph"><strong>결론:</strong> 이미지 최적화는 포맷 하나를 고르는 일이 아니라, 실제 표시 크기·콘텐츠별 품질·WordPress 반응형 이미지·측정을 하나의 반복 가능한 Mac 워크플로로 묶는 일입니다.</p>
+<p class="wp-block-paragraph">연구진은 로봇 그리퍼가 캔에 접근하는 연속 이미지에서 두 물체 사이의 예측 거리가 점차 감소하는 모습을 보여줬다. 이를 이용하면 “사과를 집어라” 같은 자연어 명령을 로봇 학습용 보상 신호로 바꿀 수 있다. 성공과 실패만 알려주는 이진 보상보다 “목표물에 얼마나 가까워졌는가”라는 연속적인 신호가 학습에 더 유용할 수 있다는 아이디어다.</p>
+
+
+
+<p class="wp-block-paragraph">하지만 논문 저자들 역시 이 실험이 심층적인 로봇 벤치마크는 아니라고 선을 긋는다. 다단계 추론 사례도 SpatialVLM 단독 능력이 아니라 별도의 대형 언어 모델이 질문을 작은 공간 문제로 나누고 답을 조합하는 방식이다. 로봇의 충돌 회피나 안전거리 판단에 바로 투입할 수준을 증명한 것은 아니다.</p>
+
+
+
+<h2 class="wp-block-heading">이 논문에서 진짜 흥미로운 것은 모델보다 데이터다</h2>
+
+
+
+<p class="wp-block-paragraph">SpatialVLM의 가장 큰 메시지는 “더 큰 모델을 만들면 모든 능력이 자연스럽게 생긴다”가 아니다. 오히려 모델이 경험하지 못한 개념은 명시적으로 가르쳐야 한다는 주장에 가깝다.</p>
+
+
+
+<p class="wp-block-paragraph">여러 전문 모델을 연결해 사람이 만들기 어려운 학습 데이터를 자동으로 생성하고, 그 데이터로 특정 능력을 주입했다. 이 관점은 AI 제품을 만드는 개발자와 사업자에게도 중요하다. 경쟁력은 항상 새로운 파운데이션 모델에서만 나오지 않는다. 특정 업무에 필요한 질문을 정의하고 기존 데이터에서 적절한 학습 신호를 추출하는 파이프라인이 더 강한 차별점이 될 수 있다.</p>
+
+
+
+<h2 class="wp-block-heading">개발자와 제품 팀이 가져갈 세 가지</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>숫자를 말하는 능력과 정확히 측정하는 능력을 구분한다.</strong> 숫자 출력률 99%를 측정 정확도처럼 홍보하면 안 된다.</li>
+
+
+<li><strong>합성 데이터는 원본 모델의 오류도 함께 증폭한다.</strong> 깊이·분할·캡션 모델 각각의 편향을 최종 제품의 불확실성에 포함해야 한다.</li>
+
+
+<li><strong>안전이 중요한 제품에서는 센서와 결합한다.</strong> SpatialVLM식 추론은 후보 행동이나 대략적인 보상에 쓰고 실제 거리 판정은 깊이 카메라·라이다·캘리브레이션 정보로 검증하는 편이 안전하다.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">결론: 공간을 이해하기 시작했지만 아직 줄자는 아니다</h2>
+
+
+
+<p class="wp-block-paragraph">SpatialVLM은 평면 이미지와 언어만 다루던 VLM에 미터 단위 공간 개념을 가르칠 수 있다는 가능성을 보여줬다. 1천만 장의 이미지에서 생성한 20억 개의 질문은 공간 추론 능력이 모델 크기뿐 아니라 데이터 설계에 달려 있음을 보여주는 인상적인 사례다.</p>
+
+
+
+<p class="wp-block-paragraph">동시에 결과는 냉정하게 읽어야 한다. 정성적 판단은 개선됐지만 정량적 답변 중 사람 기준값의 절반에서 두 배 범위에 들어온 것은 37.2%였다. 사용자에게 숫자를 보여주는 제품이라면 “얼마나 자주 숫자를 답하는가”보다 <strong>“그 숫자가 틀렸을 때 어떤 일이 생기는가”</strong>를 먼저 물어야 한다.</p>
+
+
+
+<p class="wp-block-paragraph">SpatialVLM은 줄자를 대체하지 않는다. 대신 AI가 현실 세계와 상호작용하려면 언어 능력만큼 공간에 대한 학습 경험이 중요하다는 사실을 선명하게 보여준다.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity" />
+
+
+
+<h3 class="wp-block-heading">원문 자료와 확인 범위</h3>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://arxiv.org/abs/2401.12168">SpatialVLM — arXiv</a></li>
+
+
+<li><a href="https://openaccess.thecvf.com/content/CVPR2024/html/Chen_SpatialVLM_Endowing_Vision-Language_Models_with_Spatial_Reasoning_Capabilities_CVPR_2024_paper.html">SpatialVLM — CVPR 2024 Open Access</a></li>
+
+
+<li><a href="https://spatial-vlm.github.io/">SpatialVLM 공식 프로젝트 페이지</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><em>성능 수치는 CVPR 2024 논문의 모델과 평가 조건을 기준으로 해석했습니다. 개인 연구 노트는 주제 탐색에만 사용했고, 글의 사실과 수치는 원 논문으로 다시 확인했습니다.</em></p>
+
 									</div>
 			</div>
 
 			<footer class="article-footer section-shell reveal">
-				<div class="article-tags"><a href="/tag/macos/" rel="tag">macOS</a> <a href="/tag/webp/" rel="tag">WebP</a> <a href="/tag/wordpress-%ec%9d%b4%eb%af%b8%ec%a7%80/" rel="tag">WordPress 이미지</a> <a href="/tag/%ec%84%b1%eb%8a%a5-%ec%b5%9c%ec%a0%81%ed%99%94/" rel="tag">성능 최적화</a></div>
+				<div class="article-tags"><a href="/tag/3d-%ea%b3%b5%ea%b0%84-%ec%b6%94%eb%a1%a0/" rel="tag">3D 공간 추론</a> <a href="/tag/cvpr-2024/" rel="tag">CVPR 2024</a> <a href="/tag/spatialvlm/" rel="tag">SpatialVLM</a> <a href="/tag/vlm/" rel="tag">VLM</a> <a href="/tag/%eb%a1%9c%eb%b3%b4%ed%8b%b1%ec%8a%a4/" rel="tag">로보틱스</a></div>
 				<nav class="post-navigation" aria-label="다른 글">
-					<div><a href="/ai-blog-writing-workflow/" rel="prev"><span>이전 글</span>수익형 블로그에 AI를 쓰는 7단계: 검색 의도부터 팩트체크까지</a></div>
-					<div><a href="/supabase-realtime-binary-state-sync/" rel="next"><span>다음 글</span>Supabase Realtime이 바이너리를 품었다: 그래도 WebSocket만 믿으면 안 되는 이유</a></div>
+					<div><a href="/supabase-realtime-binary-state-sync/" rel="prev"><span>이전 글</span>Supabase Realtime이 바이너리를 품었다: 그래도 WebSocket만 믿으면 안 되는 이유</a></div>
+					<div><a href="/ai-mvp-before-model/" rel="next"><span>다음 글</span>AI MVP, 모델부터 만들면 늦는다: 앱 리뷰 → 대기자 명단 → 가짜 AI의 검증 순서</a></div>
 				</nav>
 			</footer>
 

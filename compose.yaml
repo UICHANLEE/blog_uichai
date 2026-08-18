@@ -83,6 +83,12 @@ services:
         read_only: true
         bind:
           create_host_path: false
+      - type: bind
+        source: ./content/posts
+        target: /opt/odd-note/content/posts
+        read_only: true
+        bind:
+          create_host_path: false
     secrets:
       - db_password
     ports:

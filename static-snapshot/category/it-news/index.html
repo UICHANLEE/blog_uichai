@@ -33,7 +33,7 @@ img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
 
 <link rel='stylesheet' id='odd-note-site-css' href='/wp-content/themes/odd-note/assets/css/site.css?ver=1786859575' media='all' />
 <meta name="theme-color" content="#0d0d12">
-<!-- ODD_NOTE_ROBOTS:noindex -->
+<!-- ODD_NOTE_ROBOTS:indexable -->
 <link rel="canonical" href="https://odd-note.invalid/category/it-news/">
 <link rel="alternate" type="application/rss+xml" title="Odd Note RSS" href="/feed.xml">
 </head>
@@ -91,11 +91,27 @@ img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
 		<a class="text-link" href="/stories/" data-cursor="BROWSE">전체 글에서 찾아보기 <span aria-hidden="true">↗</span></a>
 	</div>
 
-			<section class="empty-story reveal">
-			<h2>이 주제의 첫 분석을 준비하고 있습니다.</h2>
-			<p>새 글이 발행되기 전까지 전체 글에서 개발 실전 기록을 확인해 보세요.</p>
-			<a class="magnetic-button magnetic" href="/stories/" data-cursor="BROWSE"><span>전체 글 보기</span></a>
-		</section>
+			<div class="story-grid story-grid--archive">
+											<article class="story-card reveal post-32 post type-post status-publish format-standard hentry category-it-news tag-realtime tag-redis tag-supabase tag-websocket tag-33" data-tilt-card>
+					<a class="story-card__link" href="/supabase-realtime-binary-state-sync/" data-cursor="READ">
+						<div class="story-card__visual">
+															<div class="generative-cover" style="--cover-seed: 5;">
+									<span>IT 최신 뉴스</span>
+								</div>
+													</div>
+						<div class="post-meta">
+							<span>IT 최신 뉴스</span>
+							<time datetime="2026-08-19T08:11:20+09:00">2026.08.19</time>
+						</div>
+						<h2>Supabase Realtime이 바이너리를 품었다: 그래도 WebSocket만 믿으면 안 되는 이유</h2>
+						<p>2026년 6월 Supabase Broadcast에 바이너리 payload가 추가됐습니다. 전송은 가벼워졌지만 전달 보장은 별개입니다. 원본 상태, Broadcast 신호, 재연결 동기화와 polling 안전망을 나누는 기준을 정리했습니다.</p>
+						<span class="story-card__arrow" aria-hidden="true">↗</span>
+					</a>
+				</article>
+					</div>
+
+		<div class="pagination-shell reveal">
+					</div>
 	</main>
 
 <footer class="site-footer">

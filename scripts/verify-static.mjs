@@ -67,6 +67,9 @@ for (const requiredRoute of [
   '/category/it-news/',
   '/category/ai-paper-analysis/',
   '/category/business-knowledge/',
+  '/supabase-realtime-binary-state-sync/',
+  '/spatialvlm-paper-review/',
+  '/ai-mvp-before-model/',
 ]) {
   if (!routeFiles.has(requiredRoute)) {
     throw new Error(`필수 카테고리 경로가 없습니다: ${requiredRoute}`);
@@ -90,6 +93,20 @@ const home = await readFile(join(outputDirectory, 'index.html'), 'utf8');
 for (const editorialFocus of ['IT 최신 뉴스', 'AI 논문 분석', '사업 지식']) {
   if (!home.includes(editorialFocus)) {
     throw new Error(`첫 화면에서 핵심 편집 주제를 확인할 수 없습니다: ${editorialFocus}`);
+  }
+}
+
+const editorialArticles = new Map([
+  ['/supabase-realtime-binary-state-sync/', ['Supabase Realtime이 바이너리를 품었다', 'supabase.com/changelog/']],
+  ['/spatialvlm-paper-review/', ['SpatialVLM은 어디까지 믿을 수 있나', 'arxiv.org/abs/2401.12168']],
+  ['/ai-mvp-before-model/', ['AI MVP, 모델부터 만들면 늦는다', 'design.google/library/simulating-intelligence']],
+]);
+for (const [route, expectedFragments] of editorialArticles) {
+  const content = await readFile(join(outputDirectory, routeFiles.get(route)), 'utf8');
+  for (const expected of expectedFragments) {
+    if (!content.includes(expected)) {
+      throw new Error(`${route}에 필수 편집 정보가 없습니다: ${expected}`);
+    }
   }
 }
 

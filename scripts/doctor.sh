@@ -45,7 +45,11 @@ for theme_file in \
   themes/odd-note/theme.json \
   themes/odd-note/assets/css/site.css \
   themes/odd-note/assets/js/site.js \
-  themes/odd-note/assets/images/og.png; do
+  themes/odd-note/assets/images/og.png \
+  themes/odd-note/assets/images/og-tech-business.png \
+  content/posts/supabase-realtime-binary-state-sync.html \
+  content/posts/spatialvlm-paper-review.html \
+  content/posts/ai-mvp-before-model.html; do
   if [ -s "$theme_file" ]; then
     ok "$theme_file 이 준비됐습니다."
   else
@@ -115,10 +119,28 @@ if [ -n "$wordpress_id" ]; then
     fail "Odd Note 테마 마운트를 확인하지 못했습니다."
   fi
 
+  if docker compose exec -T wordpress test -r /opt/odd-note/content/posts/ai-mvp-before-model.html >/dev/null 2>&1; then
+    ok "버전 관리되는 편집 글 원본이 WordPress에 연결됐습니다."
+  else
+    fail "편집 글 원본 마운트를 확인하지 못했습니다."
+  fi
+
   if docker compose exec -T wordpress php -r 'require "/var/www/html/wp-load.php"; exit(get_option("odd_note_bootstrap_state") === "complete" ? 0 : 1);' >/dev/null 2>&1; then
     ok "Odd Note 초기 콘텐츠 구성이 완료됐습니다."
   else
     fail "Odd Note 초기 콘텐츠 구성이 완료되지 않았습니다. make install을 실행하세요."
+  fi
+
+  if docker compose exec -T wordpress php -r 'require "/var/www/html/wp-load.php"; exit(get_option("odd_note_bootstrap_version") === "1.4.0" ? 0 : 1);' >/dev/null 2>&1; then
+    ok "Odd Note 콘텐츠 스키마가 1.4.0입니다."
+  else
+    fail "Odd Note 콘텐츠 스키마가 1.4.0이 아닙니다. make install을 실행하세요."
+  fi
+
+  if docker compose exec -T wordpress php -r 'require "/var/www/html/wp-load.php"; $expected = array("supabase-realtime-binary-state-sync" => "it-news", "spatialvlm-paper-review" => "ai-paper-analysis", "ai-mvp-before-model" => "business-knowledge"); foreach ($expected as $slug => $category) { $post = get_page_by_path($slug, OBJECT, "post"); if (!$post || $post->post_status !== "publish" || !has_category($category, $post)) { exit(1); } } exit(0);' >/dev/null 2>&1; then
+    ok "세 편집 분야의 대표 글이 올바른 카테고리에 공개됐습니다."
+  else
+    fail "세 편집 글의 공개 상태 또는 카테고리가 올바르지 않습니다."
   fi
 
   if docker compose exec -T wordpress php -r 'require "/var/www/html/wp-load.php"; exit(has_nav_menu("primary") && has_nav_menu("footer") ? 0 : 1);' >/dev/null 2>&1; then

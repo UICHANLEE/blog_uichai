@@ -48,7 +48,7 @@ echo "WordPress 파일 백업 중..."
 docker compose exec -T wordpress tar -C /var/www/html --exclude='./wp-content/cache/*' -czf - . > "$tmp_dir/wordpress-files.tar.gz"
 
 echo "운영 설정 백업 중..."
-tar -C "$project_root" -czf "$tmp_dir/configuration.tar.gz" compose.yaml .env config scripts themes README.md
+tar -C "$project_root" -czf "$tmp_dir/configuration.tar.gz" compose.yaml .env config content scripts themes README.md
 
 if command -v shasum >/dev/null 2>&1; then
   (

@@ -45,6 +45,16 @@ if ! tar -tzf "$backup_dir/configuration.tar.gz" | grep -q '^scripts/bootstrap-w
   exit 1
 fi
 
+for article in \
+  supabase-realtime-binary-state-sync \
+  spatialvlm-paper-review \
+  ai-mvp-before-model; do
+  if ! tar -tzf "$backup_dir/configuration.tar.gz" | grep -q "^content/posts/$article.html$"; then
+    echo "오류: 운영 설정 백업에 편집 글 원본이 없습니다: $article" >&2
+    exit 1
+  fi
+done
+
 if ! tar -tzf "$backup_dir/wordpress-files.tar.gz" | grep -q '^\./wp-content/themes/odd-note/style.css$'; then
   echo "오류: WordPress 파일 백업에 Odd Note 테마가 없습니다." >&2
   exit 1

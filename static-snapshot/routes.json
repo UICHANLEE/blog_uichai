@@ -17,9 +17,14 @@
       "indexable": true
     },
     {
+      "path": "/ai-mvp-before-model/",
+      "file": "ai-mvp-before-model/index.html",
+      "indexable": true
+    },
+    {
       "path": "/category/ai-paper-analysis/",
       "file": "category/ai-paper-analysis/index.html",
-      "indexable": false
+      "indexable": true
     },
     {
       "path": "/category/ai-tools/",
@@ -29,7 +34,7 @@
     {
       "path": "/category/business-knowledge/",
       "file": "category/business-knowledge/index.html",
-      "indexable": false
+      "indexable": true
     },
     {
       "path": "/category/home-server/",
@@ -39,7 +44,7 @@
     {
       "path": "/category/it-news/",
       "file": "category/it-news/index.html",
-      "indexable": false
+      "indexable": true
     },
     {
       "path": "/category/mac-workflow/",
@@ -82,9 +87,29 @@
       "indexable": true
     },
     {
+      "path": "/spatialvlm-paper-review/",
+      "file": "spatialvlm-paper-review/index.html",
+      "indexable": true
+    },
+    {
       "path": "/stories/",
       "file": "stories/index.html",
       "indexable": true
+    },
+    {
+      "path": "/supabase-realtime-binary-state-sync/",
+      "file": "supabase-realtime-binary-state-sync/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/tag/%ea%b3%a0%ea%b0%9d-%ea%b0%9c%eb%b0%9c/",
+      "file": "tag/고객-개발/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/%eb%a1%9c%eb%b3%b4%ed%8b%b1%ec%8a%a4/",
+      "file": "tag/로보틱스/index.html",
+      "indexable": false
     },
     {
       "path": "/tag/%eb%a7%a5%eb%b6%81/",
@@ -107,6 +132,11 @@
       "indexable": false
     },
     {
+      "path": "/tag/%ec%8b%a4%ec%8b%9c%ea%b0%84-%ec%95%84%ed%82%a4%ed%85%8d%ec%b2%98/",
+      "file": "tag/실시간-아키텍처/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/%ec%9a%b4%ec%98%81-%ec%b2%b4%ed%81%ac%eb%a6%ac%ec%8a%a4%ed%8a%b8/",
       "file": "tag/운영-체크리스트/index.html",
       "indexable": false
@@ -122,13 +152,33 @@
       "indexable": false
     },
     {
+      "path": "/tag/%ec%a0%9c%ed%92%88-%ea%b2%80%ec%a6%9d/",
+      "file": "tag/제품-검증/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/%ed%8c%a9%ed%8a%b8%ec%b2%b4%ed%81%ac/",
       "file": "tag/팩트체크/index.html",
       "indexable": false
     },
     {
+      "path": "/tag/%ed%94%84%eb%a1%9c%ed%86%a0%ed%83%80%ec%9e%85/",
+      "file": "tag/프로토타입/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/%ed%99%88%ec%84%9c%eb%b2%84/",
       "file": "tag/홈서버/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/1%ec%9d%b8-%ec%b0%bd%ec%97%85/",
+      "file": "tag/1인-창업/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/3d-%ea%b3%b5%ea%b0%84-%ec%b6%94%eb%a1%a0/",
+      "file": "tag/3d-공간-추론/index.html",
       "indexable": false
     },
     {
@@ -139,6 +189,16 @@
     {
       "path": "/tag/ai-%eb%94%94%ec%9e%90%ec%9d%b8/",
       "file": "tag/ai-디자인/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/ai-mvp/",
+      "file": "tag/ai-mvp/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/cvpr-2024/",
+      "file": "tag/cvpr-2024/index.html",
       "indexable": false
     },
     {
@@ -157,13 +217,43 @@
       "indexable": false
     },
     {
+      "path": "/tag/realtime/",
+      "file": "tag/realtime/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/redis/",
+      "file": "tag/redis/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/seo/",
       "file": "tag/seo/index.html",
       "indexable": false
     },
     {
+      "path": "/tag/spatialvlm/",
+      "file": "tag/spatialvlm/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/supabase/",
+      "file": "tag/supabase/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/vlm/",
+      "file": "tag/vlm/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/webp/",
       "file": "tag/webp/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/websocket/",
+      "file": "tag/websocket/index.html",
       "indexable": false
     },
     {

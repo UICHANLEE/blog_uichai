@@ -799,6 +799,120 @@ function odd_note_apply_editorial_focus( $owner_id ) {
 	}
 }
 
+/**
+ * Read one version-controlled editorial article body.
+ *
+ * @param string $slug Article slug and source filename stem.
+ * @return string
+ */
+function odd_note_editorial_content( $slug ) {
+	if ( ! preg_match( '/^[a-z0-9-]+$/', $slug ) ) {
+		odd_note_bootstrap_fail( '편집 글 슬러그 형식이 올바르지 않습니다.' );
+	}
+
+	$path = '/opt/odd-note/content/posts/' . $slug . '.html';
+	if ( ! is_readable( $path ) ) {
+		odd_note_bootstrap_fail( '편집 글 원본을 읽을 수 없습니다: ' . $slug );
+	}
+
+	$content = file_get_contents( $path );
+	if ( false === $content || '' === trim( $content ) ) {
+		odd_note_bootstrap_fail( '편집 글 원본이 비어 있습니다: ' . $slug );
+	}
+
+	return $content;
+}
+
+/**
+ * Publish one article per core editorial desk.
+ *
+ * @param int $owner_id Author user ID.
+ * @return array<string,int>
+ */
+function odd_note_publish_editorial_series( $owner_id ) {
+	$specs = array(
+		'supabase-realtime-binary-state-sync' => array(
+			'title'    => 'Supabase Realtime이 바이너리를 품었다: 그래도 WebSocket만 믿으면 안 되는 이유',
+			'excerpt'  => '2026년 6월 Supabase Broadcast에 바이너리 payload가 추가됐습니다. 전송은 가벼워졌지만 전달 보장은 별개입니다. 원본 상태, Broadcast 신호, 재연결 동기화와 polling 안전망을 나누는 기준을 정리했습니다.',
+			'category' => 'it-news',
+			'tags'     => array( 'Supabase', 'Realtime', 'WebSocket', 'Redis', '실시간 아키텍처' ),
+		),
+		'spatialvlm-paper-review' => array(
+			'title'    => '사진 한 장으로 사물 사이 거리를 재는 AI: SpatialVLM은 어디까지 믿을 수 있나',
+			'excerpt'  => 'SpatialVLM은 1천만 장의 이미지에서 20억 개 공간 질문을 합성해 VLM에 거리와 크기를 가르쳤습니다. 논문의 방법, 결과와 숫자 뒤에 숨은 한계를 함께 읽습니다.',
+			'category' => 'ai-paper-analysis',
+			'tags'     => array( 'SpatialVLM', 'VLM', 'CVPR 2024', '3D 공간 추론', '로보틱스' ),
+		),
+		'ai-mvp-before-model' => array(
+			'title'    => 'AI MVP, 모델부터 만들면 늦는다: 앱 리뷰 → 대기자 명단 → 가짜 AI의 검증 순서',
+			'excerpt'  => '모델 정확도를 높이기 전에 고객 문제와 핵심 행동부터 확인해야 합니다. 앱 리뷰에서 문제를 찾고, 대기자 명단으로 행동을 확인하고, mock AI로 핵심 경험을 검증하는 실전 프레임워크입니다.',
+			'category' => 'business-knowledge',
+			'tags'     => array( 'AI MVP', '제품 검증', '고객 개발', '프로토타입', '1인 창업' ),
+		),
+	);
+
+	// Validate every dependency before inserting the first post. This keeps a
+	// missing source file, category conflict or user-owned slug from producing a
+	// partially published series.
+	foreach ( $specs as $slug => &$spec ) {
+		$existing = get_page_by_path( $slug, OBJECT, 'post' );
+		if ( $existing && '1' !== get_post_meta( (int) $existing->ID, '_odd_note_bootstrap', true ) ) {
+			odd_note_bootstrap_fail( '같은 슬러그의 사용자 글이 있어 자동 발행을 중단했습니다: ' . $slug );
+		}
+
+		$category = get_term_by( 'slug', $spec['category'], 'category' );
+		if ( ! $category ) {
+			odd_note_bootstrap_fail( '편집 글 카테고리를 찾을 수 없습니다: ' . $spec['category'] );
+		}
+
+		$spec['category_id'] = (int) $category->term_id;
+		$spec['content']     = odd_note_editorial_content( $slug );
+	}
+	unset( $spec );
+
+	$post_ids = array();
+	foreach ( $specs as $slug => $spec ) {
+		$post_id = odd_note_bootstrap_post(
+			array(
+				'post_type'      => 'post',
+				'post_status'    => 'publish',
+				'post_name'      => $slug,
+				'post_title'     => $spec['title'],
+				'post_excerpt'   => $spec['excerpt'],
+				'post_content'   => $spec['content'],
+				'post_author'    => $owner_id,
+				'post_category'  => array( $spec['category_id'] ),
+				'comment_status' => 'closed',
+				'ping_status'    => 'closed',
+			)
+		);
+
+		wp_set_post_tags( $post_id, $spec['tags'], false );
+		update_post_meta( $post_id, '_odd_note_primary_category_id', $spec['category_id'] );
+		update_post_meta( $post_id, '_odd_note_editorial_revision', '1.4.0' );
+		$post_ids[ $slug ] = $post_id;
+	}
+
+	update_option( 'odd_note_editorial_post_ids', $post_ids, false );
+	return $post_ids;
+}
+
+/**
+ * Promote the new technology briefing when the original seed is still featured.
+ *
+ * @param int $it_post_id Technology briefing post ID.
+ * @return void
+ */
+function odd_note_promote_editorial_feature( $it_post_id ) {
+	$sticky_posts = array_map( 'intval', (array) get_option( 'sticky_posts', array() ) );
+	$legacy_post  = get_page_by_path( 'm1-pro-wordpress-home-server', OBJECT, 'post' );
+	$legacy_id    = $legacy_post ? (int) $legacy_post->ID : 0;
+
+	if ( empty( $sticky_posts ) || ( 1 === count( $sticky_posts ) && $legacy_id === $sticky_posts[0] ) ) {
+		update_option( 'sticky_posts', array( $it_post_id ) );
+	}
+}
+
 $admin_user     = odd_note_bootstrap_input( '관리자 아이디' );
 $admin_password = odd_note_bootstrap_input( '관리자 비밀번호' );
 $admin_email    = odd_note_bootstrap_input( '관리자 이메일' );
@@ -831,7 +945,7 @@ if (
 	odd_note_bootstrap_fail( '사이트 주소 형식이 올바르지 않습니다.' );
 }
 
-$target_version = '1.3.0';
+$target_version = '1.4.0';
 $installed      = is_blog_installed();
 $state          = $installed ? get_option( 'odd_note_bootstrap_state', '' ) : '';
 
@@ -860,6 +974,11 @@ if ( $installed && 'complete' === $state ) {
 
 		if ( version_compare( $current_version, '1.3.0', '<' ) ) {
 			odd_note_apply_editorial_focus( $owner_id );
+		}
+
+		if ( version_compare( $current_version, '1.4.0', '<' ) ) {
+			$editorial_ids = odd_note_publish_editorial_series( $owner_id );
+			odd_note_promote_editorial_feature( $editorial_ids['supabase-realtime-binary-state-sync'] );
 		}
 
 		update_option( 'odd_note_bootstrap_version', $target_version, false );
@@ -1302,8 +1421,9 @@ wp_set_post_tags( $ai_post_id, array( '인터랙션', '웹 접근성', '성능',
 
 odd_note_publish_ai_blog_workflow( $owner_id, $ai_tools_id );
 odd_note_publish_mac_image_workflow( $owner_id, $mac_workflow_id );
+$editorial_ids = odd_note_publish_editorial_series( $owner_id );
 
-update_option( 'sticky_posts', array( $home_server_post_id ) );
+update_option( 'sticky_posts', array( $editorial_ids['supabase-realtime-binary-state-sync'] ) );
 update_option( 'show_on_front', 'page' );
 update_option( 'page_on_front', $home_id );
 update_option( 'page_for_posts', $stories_id );
@@ -1347,4 +1467,4 @@ update_option( 'odd_note_bootstrap_version', $target_version, false );
 update_option( 'odd_note_bootstrap_state', 'complete', false );
 
 echo 'Odd Note 설치와 초기 콘텐츠 구성이 완료됐습니다.' . PHP_EOL;
-echo '페이지 6개, 카테고리 6개, 글 5개, 메뉴 2개를 준비했습니다.' . PHP_EOL;
+echo '페이지 6개, 카테고리 6개, 글 8개, 메뉴 2개를 준비했습니다.' . PHP_EOL;

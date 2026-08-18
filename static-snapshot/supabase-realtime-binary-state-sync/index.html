@@ -3,14 +3,14 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>맥에서 WordPress 이미지 용량 줄이기: 리사이즈·WebP 변환 워크플로 &#8211; Odd Note</title>
-<meta name="description" content="원본 보관부터 리사이즈, WebP·AVIF 비교, WordPress 업로드 후 확인까지 유료 플러그인 없이 반복해서 사용할 수 있는 이미지 최적화 과정을 정리했습니다.">
+	<title>Supabase Realtime이 바이너리를 품었다: 그래도 WebSocket만 믿으면 안 되는 이유 &#8211; Odd Note</title>
+<meta name="description" content="2026년 6월 Supabase Broadcast에 바이너리 payload가 추가됐습니다. 전송은 가벼워졌지만 전달 보장은 별개입니다. 원본 상태, Broadcast 신호, 재연결 동기화와 polling 안전망을 나누는 기준을 정리했습니다.">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Odd Note">
-<meta property="og:title" content="맥에서 WordPress 이미지 용량 줄이기: 리사이즈·WebP 변환 워크플로 &#8211; Odd Note">
-<meta property="og:description" content="원본 보관부터 리사이즈, WebP·AVIF 비교, WordPress 업로드 후 확인까지 유료 플러그인 없이 반복해서 사용할 수 있는 이미지 최적화 과정을 정리했습니다.">
-<meta property="og:url" content="https://odd-note.invalid/mac-wordpress-image-optimization-workflow/">
+<meta property="og:title" content="Supabase Realtime이 바이너리를 품었다: 그래도 WebSocket만 믿으면 안 되는 이유 &#8211; Odd Note">
+<meta property="og:description" content="2026년 6월 Supabase Broadcast에 바이너리 payload가 추가됐습니다. 전송은 가벼워졌지만 전달 보장은 별개입니다. 원본 상태, Broadcast 신호, 재연결 동기화와 polling 안전망을 나누는 기준을 정리했습니다.">
+<meta property="og:url" content="https://odd-note.invalid/supabase-realtime-binary-state-sync/">
 <meta property="og:image" content="https://odd-note.invalid/wp-content/themes/odd-note/assets/images/og-tech-business.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -37,13 +37,13 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 .is-small-text{font-size:.875em}.is-regular-text{font-size:1em}.is-large-text{font-size:2.25em}.is-larger-text{font-size:3em}.has-drop-cap:not(:focus):first-letter{float:left;font-size:8.4em;font-style:normal;font-weight:100;line-height:.68;margin:.05em .1em 0 0;text-transform:uppercase}body.rtl .has-drop-cap:not(:focus):first-letter{float:none;margin-left:.1em}p.has-drop-cap.has-background{overflow:hidden}:root :where(p.has-background){padding:1.25em 2.375em}:where(p.has-text-color:not(.has-link-color)) a{color:inherit}p.has-text-align-left[style*="writing-mode:vertical-lr"],p.has-text-align-right[style*="writing-mode:vertical-rl"]{rotate:180deg}
 /*# sourceURL=/wp-includes/blocks/paragraph/style.min.css */
 </style>
-<style id="wp-block-code-inline-css">
-.wp-block-code{box-sizing:border-box}.wp-block-code code{direction:ltr;display:block;font-family:inherit;overflow-wrap:break-word;text-align:initial;white-space:pre-wrap}
-/*# sourceURL=/wp-includes/blocks/code/style.min.css */
+<style id="wp-block-quote-inline-css">
+.wp-block-quote{box-sizing:border-box;overflow-wrap:break-word}.wp-block-quote.is-large:where(:not(.is-style-plain)),.wp-block-quote.is-style-large:where(:not(.is-style-plain)){margin-bottom:1em;padding:0 1em}.wp-block-quote.is-large:where(:not(.is-style-plain)) p,.wp-block-quote.is-style-large:where(:not(.is-style-plain)) p{font-size:1.5em;font-style:italic;line-height:1.6}.wp-block-quote.is-large:where(:not(.is-style-plain)) cite,.wp-block-quote.is-large:where(:not(.is-style-plain)) footer,.wp-block-quote.is-style-large:where(:not(.is-style-plain)) cite,.wp-block-quote.is-style-large:where(:not(.is-style-plain)) footer{font-size:1.125em;text-align:right}.wp-block-quote>cite{display:block}
+/*# sourceURL=/wp-includes/blocks/quote/style.min.css */
 </style>
-<style id="wp-block-table-inline-css">
-.wp-block-table{overflow-x:auto}.wp-block-table table{border-collapse:collapse;width:100%}.wp-block-table thead{border-bottom:3px solid}.wp-block-table tfoot{border-top:3px solid}.wp-block-table td,.wp-block-table th{border:1px solid;padding:.5em}.wp-block-table .has-fixed-layout{table-layout:fixed;width:100%}.wp-block-table .has-fixed-layout td,.wp-block-table .has-fixed-layout th{word-break:break-word}.wp-block-table.aligncenter,.wp-block-table.alignleft,.wp-block-table.alignright{display:table;width:auto}.wp-block-table.aligncenter td,.wp-block-table.aligncenter th,.wp-block-table.alignleft td,.wp-block-table.alignleft th,.wp-block-table.alignright td,.wp-block-table.alignright th{word-break:break-word}.wp-block-table .has-subtle-light-gray-background-color{background-color:#f3f4f5}.wp-block-table .has-subtle-pale-green-background-color{background-color:#e9fbe5}.wp-block-table .has-subtle-pale-blue-background-color{background-color:#e7f5fe}.wp-block-table .has-subtle-pale-pink-background-color{background-color:#fcf0ef}.wp-block-table.is-style-stripes{background-color:initial;border-collapse:inherit;border-spacing:0}.wp-block-table.is-style-stripes tbody tr:nth-child(odd){background-color:#f0f0f0}.wp-block-table.is-style-stripes.has-subtle-light-gray-background-color tbody tr:nth-child(odd){background-color:#f3f4f5}.wp-block-table.is-style-stripes.has-subtle-pale-green-background-color tbody tr:nth-child(odd){background-color:#e9fbe5}.wp-block-table.is-style-stripes.has-subtle-pale-blue-background-color tbody tr:nth-child(odd){background-color:#e7f5fe}.wp-block-table.is-style-stripes.has-subtle-pale-pink-background-color tbody tr:nth-child(odd){background-color:#fcf0ef}.wp-block-table.is-style-stripes td,.wp-block-table.is-style-stripes th{border-color:#0000}.wp-block-table.is-style-stripes{border-bottom:1px solid #f0f0f0}.wp-block-table .has-border-color td,.wp-block-table .has-border-color th,.wp-block-table .has-border-color tr,.wp-block-table .has-border-color>*{border-color:inherit}.wp-block-table table[style*=border-top-color] tr:first-child,.wp-block-table table[style*=border-top-color] tr:first-child td,.wp-block-table table[style*=border-top-color] tr:first-child th,.wp-block-table table[style*=border-top-color]>*,.wp-block-table table[style*=border-top-color]>* td,.wp-block-table table[style*=border-top-color]>* th{border-top-color:inherit}.wp-block-table table[style*=border-top-color] tr:not(:first-child){border-top-color:initial}.wp-block-table table[style*=border-right-color] td:last-child,.wp-block-table table[style*=border-right-color] th,.wp-block-table table[style*=border-right-color] tr,.wp-block-table table[style*=border-right-color]>*{border-right-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:last-child,.wp-block-table table[style*=border-bottom-color] tr:last-child td,.wp-block-table table[style*=border-bottom-color] tr:last-child th,.wp-block-table table[style*=border-bottom-color]>*,.wp-block-table table[style*=border-bottom-color]>* td,.wp-block-table table[style*=border-bottom-color]>* th{border-bottom-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:not(:last-child){border-bottom-color:initial}.wp-block-table table[style*=border-left-color] td:first-child,.wp-block-table table[style*=border-left-color] th,.wp-block-table table[style*=border-left-color] tr,.wp-block-table table[style*=border-left-color]>*{border-left-color:inherit}.wp-block-table table[style*=border-style] td,.wp-block-table table[style*=border-style] th,.wp-block-table table[style*=border-style] tr,.wp-block-table table[style*=border-style]>*{border-style:inherit}.wp-block-table table[style*=border-width] td,.wp-block-table table[style*=border-width] th,.wp-block-table table[style*=border-width] tr,.wp-block-table table[style*=border-width]>*{border-style:inherit;border-width:inherit}
-/*# sourceURL=/wp-includes/blocks/table/style.min.css */
+<style id="wp-block-separator-inline-css">
+@charset "UTF-8";.wp-block-separator{border:none;border-top:2px solid}:root :where(.wp-block-separator.is-style-dots){height:auto;line-height:1;text-align:center}:root :where(.wp-block-separator.is-style-dots):before{color:currentColor;content:"···";font-family:serif;font-size:1.5em;letter-spacing:2em;padding-left:2em}.wp-block-separator.is-style-dots{background:none!important;border:none!important}
+/*# sourceURL=/wp-includes/blocks/separator/style.min.css */
 </style>
 
 
@@ -55,10 +55,10 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 <link rel='stylesheet' id='odd-note-site-css' href='/wp-content/themes/odd-note/assets/css/site.css?ver=1786859575' media='all' />
 <meta name="theme-color" content="#0d0d12">
 <!-- ODD_NOTE_ROBOTS:indexable -->
-<link rel="canonical" href="https://odd-note.invalid/mac-wordpress-image-optimization-workflow/">
+<link rel="canonical" href="https://odd-note.invalid/supabase-realtime-binary-state-sync/">
 <link rel="alternate" type="application/rss+xml" title="Odd Note RSS" href="/feed.xml">
 </head>
-<body class="wp-singular post-template-default single single-post postid-24 single-format-standard wp-embed-responsive wp-theme-odd-note odd-note" data-mood="acid">
+<body class="wp-singular post-template-default single single-post postid-32 single-format-standard wp-embed-responsive wp-theme-odd-note odd-note" data-mood="acid">
 
 <a class="skip-link" href="#main-content">본문으로 바로가기</a>
 
@@ -81,7 +81,7 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 
 		<nav class="primary-nav" aria-label="주요 메뉴">
 			<ul id="menu-odd-note-primary-v2" class="site-menu"><li id="menu-item-27" class="menu-item menu-item-type-post_type menu-item-object-page current_page_parent menu-item-27"><a href="/stories/">전체 글</a></li>
-<li id="menu-item-28" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-28"><a href="/category/it-news/">IT 최신 뉴스</a></li>
+<li id="menu-item-28" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-28"><a href="/category/it-news/">IT 최신 뉴스</a></li>
 <li id="menu-item-29" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-29"><a href="/category/ai-paper-analysis/">AI 논문 분석</a></li>
 <li id="menu-item-30" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-30"><a href="/category/business-knowledge/">사업 지식</a></li>
 <li id="menu-item-31" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-31"><a href="/about/">소개</a></li>
@@ -102,21 +102,21 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 </header>
 
 <main id="main-content" class="single-page" tabindex="-1">
-					<article class="single-article post-24 post type-post status-publish format-standard hentry category-mac-workflow tag-macos tag-webp tag-wordpress- tag-23">
+					<article class="single-article post-32 post type-post status-publish format-standard hentry category-it-news tag-realtime tag-redis tag-supabase tag-websocket tag-33">
 			<header class="article-hero section-shell">
 				<div class="post-meta reveal">
-					<span>맥 워크플로</span>
-					<time datetime="2026-08-18T23:52:59+09:00">2026.08.18</time>
-					<span>5 min read</span>
+					<span>IT 최신 뉴스</span>
+					<time datetime="2026-08-19T08:11:20+09:00">2026.08.19</time>
+					<span>9 min read</span>
 				</div>
-				<h1 class="article-title reveal">맥에서 WordPress 이미지 용량 줄이기: 리사이즈·WebP 변환 워크플로</h1>
-									<p class="article-deck reveal">원본 보관부터 리사이즈, WebP·AVIF 비교, WordPress 업로드 후 확인까지 유료 플러그인 없이 반복해서 사용할 수 있는 이미지 최적화 과정을 정리했습니다.</p>
+				<h1 class="article-title reveal">Supabase Realtime이 바이너리를 품었다: 그래도 WebSocket만 믿으면 안 되는 이유</h1>
+									<p class="article-deck reveal">2026년 6월 Supabase Broadcast에 바이너리 payload가 추가됐습니다. 전송은 가벼워졌지만 전달 보장은 별개입니다. 원본 상태, Broadcast 신호, 재연결 동기화와 polling 안전망을 나누는 기준을 정리했습니다.</p>
 							</header>
 
 			<div class="article-visual section-shell reveal">
-									<div class="generative-cover generative-cover--article" style="--cover-seed: 6;">
-						<span class="generative-cover__word">맥 워크플로</span>
-						<span class="generative-cover__issue">NOTE 024</span>
+									<div class="generative-cover generative-cover--article" style="--cover-seed: 5;">
+						<span class="generative-cover__word">IT 최신 뉴스</span>
+						<span class="generative-cover__issue">NOTE 032</span>
 					</div>
 							</div>
 
@@ -129,129 +129,252 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 
 				<div class="article-content reveal">
 
-<p class="wp-block-paragraph">WordPress는 이미지를 올릴 때 여러 크기를 만들고 브라우저가 화면에 맞는 파일을 고르도록 도와줍니다. 그렇다고 카메라 원본이나 4K 스크린샷을 그대로 올려도 된다는 뜻은 아닙니다. 업로드 전에 실제 표시 크기로 줄이고 콘텐츠에 맞는 포맷을 고르면 유료 최적화 플러그인 없이도 전송량을 크게 줄일 수 있습니다.</p>
+<p class="article-lead wp-block-paragraph"><strong>2026년 6월 11일, Supabase는 Realtime Broadcast에서 바이너리 payload를 주고받을 수 있다고 발표했습니다.</strong> 그동안 주로 JSON 객체를 보내던 채널에 이제 <code>ArrayBuffer</code>, <code>Uint8Array</code>, 데이터베이스의 <code>bytea</code> 같은 이진 데이터를 그대로 실을 수 있게 된 것입니다.</p>
 
 
 
-<p class="wp-block-paragraph">이 글은 M1 Pro Mac과 WordPress 7.0.2 환경에서 확인한 결과를 바탕으로, <strong>원본 보관 → 리사이즈 → 포맷 변환 → WordPress 확인</strong>을 반복 가능한 작업으로 정리합니다.</p>
+<p class="wp-block-paragraph">센서 수치, 위치 좌표, 오디오 조각, JPEG·PNG 프레임처럼 본래 바이너리인 데이터를 다루는 개발자에게는 반가운 변화입니다. JSON 문자열이나 Base64로 바꾸었다가 다시 복원하는 과정을 줄일 수 있기 때문입니다. WebSocket 클라이언트뿐 아니라 REST API와 데이터베이스 함수에서도 바이너리 Broadcast를 보낼 수 있습니다.</p>
 
 
 
-<h2 class="wp-block-heading">1. 원본과 업로드본을 먼저 분리한다</h2>
+<p class="wp-block-paragraph">하지만 여기서 “이제 실시간 앱의 신뢰성 문제도 해결됐다”고 결론 내리면 중요한 부분을 놓칩니다. <strong>바이너리는 메시지를 효율적으로 운반하는 형식이지, 메시지가 반드시 도착하도록 보장하는 장치가 아닙니다.</strong></p>
 
 
 
-<p class="wp-block-paragraph">이미지 폴더를 <code>original</code>, <code>convert</code>, <code>upload-ready</code> 세 단계로 나눕니다. 원본은 건드리지 않고 복사본만 변환합니다. 그래야 압축 품질이 나쁘거나 잘못 잘랐을 때 다시 시작할 수 있고, WordPress 미디어 파일을 원본 보관소처럼 사용하는 실수도 피할 수 있습니다.</p>
+<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow">
+<p class="wp-block-paragraph">실시간 앱의 어려움은 메시지를 빨리 보내는 데 있지 않았다. 누군가 메시지를 놓쳐도 결국 모든 화면이 같은 상태에 도달하도록 만드는 데 있었다.</p>
+</blockquote>
 
 
 
-<h2 class="wp-block-heading">2. WordPress가 해주는 일과 못 해주는 일을 구분한다</h2>
+<h2 class="wp-block-heading">6월 11일 발표에서 실제로 달라진 것</h2>
 
 
 
-<p class="wp-block-paragraph">WordPress는 업로드한 이미지에서 여러 중간 크기를 만들고, 생성한 HTML에 <code>srcset</code>과 <code>sizes</code>를 추가합니다. 브라우저는 이 정보를 보고 화면 폭과 해상도에 적합한 파일을 선택할 수 있습니다. 자세한 동작은 <a href="https://developer.wordpress.org/apis/responsive-images/">WordPress 반응형 이미지 공식 문서</a>에서 확인할 수 있습니다.</p>
+<p class="wp-block-paragraph"><strong>여기까지는 Supabase 공식 발표로 확인된 사실입니다.</strong> JavaScript에서는 <code>ArrayBuffer</code>나 <code>ArrayBufferView</code>를 WebSocket으로 보낼 수 있고, REST API에서는 <code>Content-Type: application/octet-stream</code>을 사용합니다. 데이터베이스에서는 <code>realtime.send_binary()</code> 함수에 <code>bytea</code> 값을 전달할 수 있습니다.</p>
 
 
 
-<p class="wp-block-paragraph">WordPress는 기본적으로 PNG를 제외한 이미지의 한 변이 2,560px를 넘으면 축소본을 만들어 가장 큰 사용 이미지로 삼고 원본도 보관합니다. 다만 테마의 실제 표시 크기, 콘텐츠에 맞는 포맷, 시각 품질까지 판단하지는 않습니다. 본문에서 최대 1,200px로 표시할 사진이라면 6,000px 원본을 업로드 전에 적정 크기로 줄이는 편이 저장 공간과 백업 시간까지 아낍니다. 자세한 기본 동작은 <a href="https://make.wordpress.org/core/2019/10/09/introducing-handling-of-big-images-in-wordpress-5-3/">WordPress 대형 이미지 공식 안내</a>에서 확인할 수 있습니다.</p>
+<p class="wp-block-paragraph">활용처도 비교적 분명합니다. 온도·가속도·GPS 같은 수치를 반복해서 보내는 센서 스트림, 화면 캡처나 프레젠테이션 프레임을 실시간으로 공유하는 기능, 숫자가 촘촘하게 들어간 시계열처럼 JSON의 텍스트 표현이 부담이 되는 상황입니다. 필드 이름과 구분 기호를 반복하는 대신 송신자와 수신자가 합의한 형식으로 값을 고정 길이 바이트에 담을 수 있습니다.</p>
 
 
 
-<h2 class="wp-block-heading">3. 이미지 종류에 따라 포맷을 고른다</h2>
+<p class="wp-block-paragraph">지원 버전은 반드시 확인해야 합니다. <strong>2026년 8월 19일 기준</strong> 공식 변경 기록은 WebSocket 바이너리 지원에 <code>supabase-js 2.91.0</code> 이상 또는 <code>supabase-swift 2.44.0</code> 이상을 요구합니다. JavaScript의 REST <code>httpSend</code>는 <code>supabase-js 2.107.0</code> 이상이 필요합니다. 지원하지 않는 구버전 SDK에서는 바이너리 메시지가 명확한 오류 없이 조용히 버려질 수 있다고 경고합니다.</p>
 
 
 
-<ul class="wp-block-list"><li><strong>사진:</strong> JPEG, WebP, AVIF를 같은 화면 크기로 비교합니다.</li><li><strong>작은 글자가 있는 UI 스크린샷:</strong> PNG와 WebP를 100% 확대해 글자 번짐을 확인합니다.</li><li><strong>투명 배경 이미지:</strong> 알파 채널이 필요한지 확인하고 WebP 또는 PNG를 비교합니다.</li><li><strong>로고와 단순 도형:</strong> 출처가 안전한 벡터 원본이 있다면 SVG가 적합할 수 있지만, WordPress 업로드 정책과 보안 설정을 먼저 확인합니다.</li></ul>
+<p class="wp-block-paragraph">앱 버전이 여러 개 공존하는 서비스라면 곧바로 전환하기보다 클라이언트가 바이너리를 받을 수 있는지 확인하는 capability handshake나 기능 플래그가 필요합니다. 혼합 환경에서는 JSON fallback을 잠시 유지하는 편이 안전합니다.</p>
 
 
 
-<p class="wp-block-paragraph">‘가장 최신 포맷’이 매번 가장 작은 것은 아닙니다. 같은 품질 숫자도 포맷 사이에서 같은 시각 품질을 뜻하지 않으므로 파일 크기와 실제 화면을 함께 봐야 합니다.</p>
+<h2 class="wp-block-heading">모든 payload를 바이너리로 바꿀 필요는 없다</h2>
 
 
 
-<h2 class="wp-block-heading">4. 한두 장은 Finder 빠른 동작으로 처리한다</h2>
+<p class="wp-block-paragraph"><strong>여기부터는 공식 기능을 바탕으로 한 설계 판단입니다.</strong> 화면 모드가 <code>waiting</code>에서 <code>live</code>로 바뀌었다는 작은 이벤트는 JSON으로 보내도 충분히 작고 로그에서 읽기도 쉽습니다. 반대로 초당 여러 차례 발생하는 센서 값이나 이미지 프레임은 바이너리의 이점이 커집니다.</p>
 
 
 
-<p class="wp-block-paragraph">Finder에서 이미지를 선택하고 <strong>빠른 동작 → 이미지 변환</strong>을 사용하면 별도 앱 없이 크기와 포맷을 바꿀 수 있습니다. Apple의 <a href="https://support.apple.com/guide/mac-help/perform-quick-actions-in-the-finder-on-mac-mchl97ff9142/mac">Finder 빠른 동작 안내</a>는 HEIC 사진을 JPEG나 PNG로 바꾸는 예를 제공합니다. 현재 Mac의 지원 포맷은 파일 종류와 확장 기능에 따라 달라질 수 있으므로 WebP가 기본으로 된다고 단정하지 않습니다.</p>
+<p class="wp-block-paragraph">바이너리는 크기를 줄이는 대신 사람이 바로 읽기 어려운 protocol을 만듭니다. 첫 바이트는 메시지 종류, 다음 바이트는 protocol 버전, 이어지는 값은 sequence와 실제 payload라는 식의 계약이 필요합니다. 송신자와 수신자의 버전이 어긋나면 JSON보다 조용하고 복잡한 오류가 생길 수 있습니다. 따라서 “쓸 수 있는가?”보다 <strong>전송 빈도와 크기가 protocol 복잡성을 감수할 만큼 큰가?</strong>를 먼저 물어야 합니다.</p>
 
 
 
-<h2 class="wp-block-heading">5. 반복 변환은 cwebp 명령으로 고정한다</h2>
+<p class="wp-block-paragraph">한도도 함께 봐야 합니다. 2026년 8월 19일 Realtime Limits 문서의 기본값은 Free 요금제에서 동시 연결 200개, 초당 메시지 100개, Broadcast payload 256KB입니다. Pro는 각각 500개, 500개, 3,000KB입니다. 한도는 요금제와 프로젝트 설정에 따라 바뀔 수 있으므로 실제 배포 전 최신 문서를 다시 확인해야 합니다.</p>
 
 
 
-<p class="wp-block-paragraph">WebP 변환을 반복한다면 Google의 <code>cwebp</code> 도구를 사용해 규칙을 명령으로 남길 수 있습니다. <a href="https://formulae.brew.sh/formula/webp">Homebrew의 WebP formula</a>로 설치한 뒤, 가로 사진은 너비를 1,600px로, 세로 사진은 높이를 1,600px로 지정할 수 있습니다. 품질은 82로 설정하고 메타데이터는 복사하지 않는 예시입니다.</p>
+<p class="wp-block-paragraph">큰 이미지나 영상을 보관해야 한다면 Broadcast에 계속 밀어 넣기보다 객체 저장소에 올린 뒤 작은 식별자나 URL만 알리는 편이 낫습니다. 바이너리 지원은 Realtime을 범용 파일 전송 서비스로 바꾼 것이 아닙니다.</p>
 
 
 
-<pre class="wp-block-code"><code>brew install webp
+<h2 class="wp-block-heading">여러 화면을 동시에 바꾸는 앱에서 배운 것</h2>
 
-# 가로 사진: 너비 1,600px, 높이는 비율에 맞춰 계산
-cwebp -preset photo -q 82 -resize 1600 0 -metadata none input.jpg -o output.webp
 
-# 세로 사진: 높이 1,600px, 너비는 비율에 맞춰 계산
-cwebp -preset photo -q 82 -resize 0 1600 -metadata none input.jpg -o output.webp</code></pre>
 
+<p class="wp-block-paragraph">여러 모바일 화면을 한 관리 신호에 맞춰 전환하는 웹 앱을 설계한 적이 있습니다. 사용자는 각자의 휴대폰으로 접속하고, 관리자가 상태를 바꾸면 모든 화면이 가능한 한 빠르게 같은 모드로 이동해야 했습니다. 조직명과 행사 정보는 공개하지 않고, 여기서는 재사용할 수 있는 아키텍처만 설명합니다.</p>
 
 
-<p class="wp-block-paragraph"><code>-q</code>는 0부터 100 사이의 손실 압축 품질, <code>-resize</code>는 크기 변경, <code>-metadata none</code>은 메타데이터 제거 옵션입니다. <code>-resize 1600 0</code>은 긴 변을 자동으로 찾는 명령이 아니라 너비를 지정하는 명령입니다. 따라서 먼저 이미지 방향과 크기를 확인하고, 이미 1,600px보다 작은 파일은 확대하지 않도록 변환 대상에서 제외합니다. 투명 이미지나 글자가 많은 화면에는 같은 값을 그대로 적용하지 말고 <a href="https://developers.google.com/speed/webp/docs/cwebp">cwebp 공식 옵션</a>의 <code>-lossless</code>, <code>-preset text</code> 등을 별도로 시험합니다.</p>
 
+<p class="wp-block-paragraph">처음 떠올리기 쉬운 방법은 간단합니다. 관리자가 버튼을 누르면 WebSocket 채널에 <code>mode_changed</code> 이벤트를 보내고, 모든 클라이언트가 이벤트를 받아 화면을 바꾸는 것입니다. 연결이 유지되는 동안은 빠르고 코드도 짧습니다.</p>
 
 
-<h2 class="wp-block-heading">6. 실제 Odd Note 이미지로 비교해 봤다</h2>
 
+<p class="wp-block-paragraph">문제는 실제 휴대폰이 이상적인 WebSocket 클라이언트처럼 행동하지 않는다는 점입니다. 화면을 잠갔다가 돌아올 수 있고, 와이파이와 이동통신망 사이를 오갈 수 있으며, 브라우저가 백그라운드 탭의 실행을 늦출 수도 있습니다. 연결이 끊긴 순간에 상태 변경 이벤트가 지나가면 그 기기만 이전 화면에 머물 수 있습니다.</p>
 
 
-<p class="wp-block-paragraph">2026년 8월 18일, 이 사이트의 1,200×630 공유 카드 PNG를 WordPress의 Imagick 편집기로 변환했습니다. 원본은 992,289바이트였고 JPEG·WebP·AVIF는 모두 품질 82로 저장했습니다.</p>
 
+<p class="wp-block-paragraph">서버리스 함수의 프로세스 메모리도 모든 요청이 공유하는 영속 상태처럼 취급할 수 없습니다. 그래서 최종 구조는 WebSocket을 저장소가 아니라 <strong>변경을 빠르게 알리는 신호선</strong>으로 취급했습니다.</p>
 
 
-<figure class="wp-block-table"><table><thead><tr><th>포맷</th><th>파일 크기</th></tr></thead><tbody><tr><td>PNG 원본</td><td>992,289 B</td></tr><tr><td>JPEG</td><td>76,432 B</td></tr><tr><td>WebP</td><td>51,928 B</td></tr><tr><td>AVIF</td><td>56,071 B</td></tr></tbody></table></figure>
 
+<h2 class="wp-block-heading">1. Redis를 상태의 원본으로 둔다</h2>
 
 
-<p class="wp-block-paragraph">이 한 장에서는 WebP가 AVIF보다 작았습니다. 다만 같은 품질 숫자가 동일한 시각 품질을 보장하지 않으므로 이 표만으로 포맷의 우열을 정할 수는 없습니다. 실제 글에 쓸 사진과 글자가 있는 스크린샷을 각각 변환해 모바일 화면과 100% 확대 상태에서 확인해야 합니다.</p>
 
+<p class="wp-block-paragraph">관리자가 화면 모드를 변경하면 먼저 Redis에 최종 상태를 기록합니다. 상태에는 현재 모드뿐 아니라 증가하는 <code>version</code>과 변경 시각을 함께 둡니다. 저장이 성공한 뒤에만 Broadcast 이벤트를 보냅니다. 이벤트는 성공했지만 상태 저장은 실패하는 순서를 피하기 위해서입니다.</p>
 
 
-<h2 class="wp-block-heading">7. AVIF는 서버 지원부터 확인한다</h2>
 
+<p class="wp-block-paragraph">Redis가 절대적인 정답이라는 뜻은 아닙니다. 트랜잭션과 영속성이 더 중요한 서비스라면 Postgres가 원본이 될 수 있습니다. 핵심은 모든 클라이언트가 다시 물어볼 수 있는 <strong>권위 있는 현재 상태</strong>가 하나 존재한다는 점입니다.</p>
 
 
-<p class="wp-block-paragraph">WordPress는 6.5부터 AVIF 업로드를 지원하지만 서버의 GD 또는 Imagick 라이브러리가 AVIF를 처리할 수 있어야 합니다. 관리자 화면의 <strong>도구 → 사이트 건강 → 정보 → 미디어 처리</strong>에서 지원 포맷을 확인합니다. 이 Odd Note 서버는 점검 당시 Imagick을 사용했고 WebP와 AVIF를 모두 지원했습니다. 환경별 차이는 <a href="https://make.wordpress.org/core/2024/02/23/wordpress-6-5-adds-avif-support/">WordPress AVIF 공식 안내</a>를 참고합니다.</p>
 
+<p class="wp-block-paragraph">상태 변경 명령은 같은 요청이 두 번 도착해도 안전하도록 만듭니다. 이벤트 ID나 목표 version을 사용하면 네트워크 재시도로 같은 명령이 중복되어도 이미 처리한 상태를 다시 망가뜨리지 않습니다. 유실을 복구하려고 재시도를 넣는 순간 중복 처리도 함께 설계해야 합니다.</p>
 
 
-<h2 class="wp-block-heading">8. 업로드 후 네 가지를 다시 본다</h2>
 
+<h2 class="wp-block-heading">2. Broadcast는 전체 상태가 아니라 신호를 보낸다</h2>
 
 
-<ol class="wp-block-list"><li>미디어 정보에 기대한 픽셀 크기와 포맷이 표시되는가?</li><li>본문 HTML에 적절한 <code>srcset</code>과 <code>sizes</code>가 생성됐는가?</li><li>첫 화면에서 가장 큰 대표 이미지를 불필요하게 지연 로딩하지 않았는가?</li><li>모바일 네트워크에서 실제 전송 파일이 원본보다 작은가?</li></ol>
 
+<p class="wp-block-paragraph">Broadcast에는 전체 상태보다 “상태가 version 42로 변경됐다”는 작은 신호를 담습니다. 클라이언트는 자신이 알고 있는 version과 비교합니다. 바로 다음 version이라면 최소 정보로 화면을 갱신하고, 중간 version을 건너뛰었다면 원본 상태를 다시 조회합니다.</p>
 
 
-<p class="wp-block-paragraph">최적화 플러그인을 추가했다면 같은 이미지를 두 번 압축하지 않는지도 확인합니다. 파일 크기 감소는 로딩 경험을 개선할 수 있지만 검색 순위나 PageSpeed 점수 상승을 보장하지는 않습니다.</p>
 
+<p class="wp-block-paragraph">동일한 이벤트가 두 번 도착해도 이미 처리한 version이면 무시할 수 있습니다. 늦게 도착한 과거 이벤트도 버릴 수 있습니다. 반대로 현재보다 두 단계 이상 앞선 이벤트가 오면 메시지를 놓쳤다고 판단해 전체 동기화를 실행합니다.</p>
 
 
-<h2 class="wp-block-heading">발행 전 이미지 체크리스트</h2>
 
+<p class="wp-block-paragraph">바이너리는 여기서 선택적으로 사용합니다. 화면 전환처럼 작은 제어 신호는 JSON이 디버깅에 편합니다. 좌표, 타이머 tick, 다량의 수치나 축소 이미지 프레임을 반복한다면 바이너리가 의미를 가집니다. 형식이 달라져도 <code>type</code>, <code>version</code>, <code>sequence</code>라는 의미 계약은 유지해야 합니다.</p>
 
 
-<ul class="wp-block-list"><li>원본과 업로드본을 다른 폴더에 보관했다.</li><li>실제 표시 크기보다 지나치게 큰 파일을 줄였다.</li><li>사진과 스크린샷을 서로 다른 기준으로 비교했다.</li><li>파일명과 대체 텍스트가 이미지 내용을 설명한다.</li><li>WebP·AVIF 서버 지원을 사이트 건강에서 확인했다.</li><li>모바일과 100% 확대 화면에서 품질을 확인했다.</li><li>변환 전후 크기와 작업 규칙을 기록했다.</li></ul>
 
+<h2 class="wp-block-heading">3. 재연결하면 전체 상태를 다시 맞춘다</h2>
 
 
-<p class="wp-block-paragraph"><strong>결론:</strong> 이미지 최적화는 포맷 하나를 고르는 일이 아니라, 실제 표시 크기·콘텐츠별 품질·WordPress 반응형 이미지·측정을 하나의 반복 가능한 Mac 워크플로로 묶는 일입니다.</p>
+
+<p class="wp-block-paragraph">WebSocket이 다시 연결됐다는 사실만으로 동기화가 끝난 것은 아닙니다. 끊어진 동안 어떤 이벤트를 놓쳤는지 확인해야 합니다. 클라이언트가 채널에 재구독하거나 백그라운드에서 돌아오면 원본 상태를 한 번 읽고 자신의 version과 비교합니다.</p>
+
+
+
+<p class="wp-block-paragraph">구독과 snapshot 조회 사이의 race condition도 고려해야 합니다. 먼저 snapshot을 읽고 나중에 구독하면 그 짧은 사이의 이벤트를 놓칠 수 있습니다. 실용적인 방법은 채널을 먼저 구독한 뒤 snapshot을 읽고, 그동안 도착한 이벤트를 version 기준으로 정리하는 것입니다. 어느 순서를 택하든 마지막에는 원본과 클라이언트의 version이 같은지 확인해야 합니다.</p>
+
+
+
+<h2 class="wp-block-heading">4. 연결이 실패하면 jitter가 있는 polling으로 내려간다</h2>
+
+
+
+<p class="wp-block-paragraph">재연결이 바로 되지 않을 때는 polling을 안전망으로 사용했습니다. 연결 실패 상태의 클라이언트는 짧은 간격으로 상태를 조회하되, 모든 기기가 정확히 같은 시점에 요청하지 않도록 작은 무작위 지연, 즉 jitter를 더합니다. WebSocket이 회복되면 polling을 중단하거나 훨씬 느린 상태 확인으로 바꿉니다.</p>
+
+
+
+<p class="wp-block-paragraph">jitter가 없으면 네트워크가 복구된 순간 모든 기기가 동시에 서버를 두드리는 thundering herd가 생길 수 있습니다. 장애가 오래 지속되면 간격을 점차 늘리는 backoff도 필요합니다. 특정한 polling 주기보다 중요한 원칙은 실시간 채널이 실패해도 상태를 확인할 두 번째 경로가 있다는 것입니다.</p>
+
+
+
+<h2 class="wp-block-heading">Broadcast Replay가 있으니 polling은 없어도 될까?</h2>
+
+
+
+<p class="wp-block-paragraph">Supabase에는 연결이 끊긴 동안의 일부 메시지를 다시 가져오는 Broadcast Replay도 있습니다. 다만 2026년 8월 공식 문서상 private channel에서 <strong>Database가 보낸 Broadcast</strong>만 replay 대상입니다. 클라이언트끼리 직접 보낸 모든 메시지를 자동 보관하는 범용 event log가 아닙니다.</p>
+
+
+
+<p class="wp-block-paragraph">기본 보관 한도는 72시간이고 한 요청에서 가져올 수 있는 메시지는 최대 25개입니다. 메시지는 일별 partition에 저장되어 실제로는 최대 약 4일 남을 수 있지만, 애플리케이션이 그 추가 시간을 보장처럼 사용해서는 안 됩니다.</p>
+
+
+
+<p class="wp-block-paragraph">Replay는 짧은 연결 중단 뒤 최근 맥락을 복원하는 데 유용하지만 전체 상태 저장소를 대체하지 않습니다. 이벤트가 25개보다 많거나 보관 기간을 지났거나 client Broadcast를 썼다면 replay만으로 현재 상태를 재구성할 수 없습니다. Redis나 Postgres의 snapshot을 다시 읽는 경로가 여전히 필요합니다.</p>
+
+
+
+<p class="wp-block-paragraph">Supabase도 공식 기술 글에서 Realtime은 live UI를 위한 best-effort 전달이고, 연결이 끊긴 동안의 변경을 일반적인 queue처럼 재전송하지 않는다고 구분합니다. 내구성 있는 분석 데이터 이동에는 at-least-once 전달을 지향하는 Pipelines 같은 별도 도구가 필요합니다. 둘은 경쟁 기능이 아니라 목적이 다른 기능입니다.</p>
+
+
+
+<h2 class="wp-block-heading">바이너리 도입 전 체크리스트</h2>
+
+
+
+<ul class="wp-block-list">
+<li>작고 낮은 빈도의 명령은 JSON이 더 단순하지 않은가?</li>
+
+
+<li>모든 활성 클라이언트 SDK가 바이너리를 지원하는가?</li>
+
+
+<li>기능 플래그와 JSON fallback으로 점진 배포할 수 있는가?</li>
+
+
+<li>메시지 종류, protocol version, sequence, byte order를 문서화했는가?</li>
+
+
+<li>바이너리를 암호화로 착각하지 않고 인증과 권한을 별도로 적용했는가?</li>
+
+
+<li>payload 크기뿐 아니라 초당 메시지와 수신자 fan-out을 계산했는가?</li>
+
+
+<li>Redis나 데이터베이스에 현재 상태와 version이 남는가?</li>
+
+
+<li>같은 이벤트가 중복되거나 순서가 바뀌어도 안전한가?</li>
+
+
+<li>재연결 직후 full-state sync를 수행하는가?</li>
+
+
+<li>jitter와 backoff가 있는 fallback이 있는가?</li>
+
+
+<li>네트워크 전환, 화면 잠금, 구버전 클라이언트와 메시지 유실을 시험했는가?</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">좋은 실시간 시스템은 메시지를 놓쳐도 회복한다</h2>
+
+
+
+<p class="wp-block-paragraph">Supabase Realtime의 바이너리 지원은 의미 있는 업데이트입니다. JSON과 잘 맞지 않던 센서, 이미지 프레임, 고빈도 수치를 같은 Broadcast 인프라에서 더 자연스럽게 처리할 수 있게 됐습니다.</p>
+
+
+
+<p class="wp-block-paragraph">하지만 payload가 바뀌어도 네트워크 단절, 메시지 순서, 재연결 공백은 사라지지 않습니다. 제가 택한 답은 <strong>Redis는 현재 상태의 원본, Broadcast는 빠른 신호, 재연결 시 전체 상태 동기화, WebSocket 장애 시 jitter가 있는 polling</strong>이었습니다. 바이너리는 이 구조의 속도를 개선할 수 있지만 구조 자체를 대신하지는 않습니다.</p>
+
+
+
+<p class="wp-block-paragraph">실시간 시스템의 품질은 모든 메시지가 완벽하게 도착하는 순간보다, 메시지 몇 개가 사라진 뒤에도 모든 사용자가 결국 같은 상태로 돌아오는 순간에 드러납니다.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity" />
+
+
+
+<h3 class="wp-block-heading">자료와 확인 범위</h3>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://supabase.com/changelog/46834-realtime-broadcast-now-supports-binary-payloads">Supabase Changelog — Realtime Broadcast now supports binary payloads</a></li>
+
+
+<li><a href="https://supabase.com/docs/guides/realtime/broadcast">Supabase Docs — Realtime Broadcast와 Replay</a></li>
+
+
+<li><a href="https://supabase.com/docs/guides/realtime/limits">Supabase Docs — Realtime Limits</a></li>
+
+
+<li><a href="https://supabase.com/blog/realtime-or-pipelines-how-to-choose-the-right-tool">Supabase Blog — Realtime or Pipelines?</a></li>
+
+
+<li><a href="https://vercel.com/docs/functions">Vercel Docs — Functions</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><em>공식 기능·한도는 2026년 8월 19일 확인했습니다. 설계 사례는 개인 개발 노트에서 조직·행사·경로·식별자를 제거해 일반화했으며, 특정 규모의 운영 성공을 주장하지 않습니다.</em></p>
+
 									</div>
 			</div>
 
 			<footer class="article-footer section-shell reveal">
-				<div class="article-tags"><a href="/tag/macos/" rel="tag">macOS</a> <a href="/tag/webp/" rel="tag">WebP</a> <a href="/tag/wordpress-%ec%9d%b4%eb%af%b8%ec%a7%80/" rel="tag">WordPress 이미지</a> <a href="/tag/%ec%84%b1%eb%8a%a5-%ec%b5%9c%ec%a0%81%ed%99%94/" rel="tag">성능 최적화</a></div>
+				<div class="article-tags"><a href="/tag/realtime/" rel="tag">Realtime</a> <a href="/tag/redis/" rel="tag">Redis</a> <a href="/tag/supabase/" rel="tag">Supabase</a> <a href="/tag/websocket/" rel="tag">WebSocket</a> <a href="/tag/%ec%8b%a4%ec%8b%9c%ea%b0%84-%ec%95%84%ed%82%a4%ed%85%8d%ec%b2%98/" rel="tag">실시간 아키텍처</a></div>
 				<nav class="post-navigation" aria-label="다른 글">
-					<div><a href="/ai-blog-writing-workflow/" rel="prev"><span>이전 글</span>수익형 블로그에 AI를 쓰는 7단계: 검색 의도부터 팩트체크까지</a></div>
-					<div><a href="/supabase-realtime-binary-state-sync/" rel="next"><span>다음 글</span>Supabase Realtime이 바이너리를 품었다: 그래도 WebSocket만 믿으면 안 되는 이유</a></div>
+					<div><a href="/mac-wordpress-image-optimization-workflow/" rel="prev"><span>이전 글</span>맥에서 WordPress 이미지 용량 줄이기: 리사이즈·WebP 변환 워크플로</a></div>
+					<div><a href="/spatialvlm-paper-review/" rel="next"><span>다음 글</span>사진 한 장으로 사물 사이 거리를 재는 AI: SpatialVLM은 어디까지 믿을 수 있나</a></div>
 				</nav>
 			</footer>
 
