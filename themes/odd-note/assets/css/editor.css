@@ -1,0 +1,37 @@
+body {
+	background: #0d0d12;
+	color: #f3efe5;
+	font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+	font-size: 18px;
+	line-height: 1.8;
+}
+
+.editor-styles-wrapper {
+	padding-inline: 24px;
+}
+
+.editor-styles-wrapper .wp-block {
+	max-width: 760px;
+}
+
+.editor-styles-wrapper .wp-block[data-align="wide"] {
+	max-width: 1280px;
+}
+
+.editor-styles-wrapper a {
+	color: #d8ff45;
+}
+
+.editor-styles-wrapper h1,
+.editor-styles-wrapper h2,
+.editor-styles-wrapper h3 {
+	letter-spacing: -0.04em;
+	line-height: 1.15;
+}
+
+.editor-styles-wrapper blockquote {
+	border-left: 3px solid #d8ff45;
+	font-family: "Iowan Old Style", "Noto Serif KR", Georgia, serif;
+	font-size: 1.45em;
+	font-style: italic;
+}

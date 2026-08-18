@@ -1,0 +1,15 @@
+.DS_Store
+.env
+
+secrets/*
+!secrets/.gitkeep
+!secrets/*.example
+
+backups/*
+!backups/.gitkeep
+
+.env.local
+.vercel/
+public/
+.public-build/
+.static-snapshot-*/

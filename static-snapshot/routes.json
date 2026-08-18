@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "path": "/",
+      "file": "index.html",
+      "indexable": true
+    },
+    {
+      "path": "/about/",
+      "file": "about/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/ai-blog-writing-workflow/",
+      "file": "ai-blog-writing-workflow/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/category/ai-tools/",
+      "file": "category/ai-tools/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/category/home-server/",
+      "file": "category/home-server/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/category/mac-workflow/",
+      "file": "category/mac-workflow/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/contact/",
+      "file": "contact/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/disclosure/",
+      "file": "disclosure/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/interactive-blog-without-sacrificing-speed/",
+      "file": "interactive-blog-without-sacrificing-speed/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/m1-pro-wordpress-home-server/",
+      "file": "m1-pro-wordpress-home-server/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/mac-wordpress-image-optimization-workflow/",
+      "file": "mac-wordpress-image-optimization-workflow/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/macbook-always-on-server-checklist/",
+      "file": "macbook-always-on-server-checklist/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/privacy/",
+      "file": "privacy/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/stories/",
+      "file": "stories/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/tag/%eb%a7%a5%eb%b6%81/",
+      "file": "tag/맥북/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/%ec%84%b1%eb%8a%a5-%ec%b5%9c%ec%a0%81%ed%99%94/",
+      "file": "tag/성능-최적화/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/%ec%84%b1%eb%8a%a5/",
+      "file": "tag/성능/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/%ec%88%98%ec%9d%b5%ed%98%95-%eb%b8%94%eb%a1%9c%ea%b7%b8/",
+      "file": "tag/수익형-블로그/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/%ec%9a%b4%ec%98%81-%ec%b2%b4%ed%81%ac%eb%a6%ac%ec%8a%a4%ed%8a%b8/",
+      "file": "tag/운영-체크리스트/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/%ec%9b%b9-%ec%a0%91%ea%b7%bc%ec%84%b1/",
+      "file": "tag/웹-접근성/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/%ec%9d%b8%ed%84%b0%eb%9e%99%ec%85%98/",
+      "file": "tag/인터랙션/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/%ed%8c%a9%ed%8a%b8%ec%b2%b4%ed%81%ac/",
+      "file": "tag/팩트체크/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/%ed%99%88%ec%84%9c%eb%b2%84/",
+      "file": "tag/홈서버/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/ai-%ea%b8%80%ec%93%b0%ea%b8%b0/",
+      "file": "tag/ai-글쓰기/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/ai-%eb%94%94%ec%9e%90%ec%9d%b8/",
+      "file": "tag/ai-디자인/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/docker/",
+      "file": "tag/docker/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/m1-pro/",
+      "file": "tag/m1-pro/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/macos/",
+      "file": "tag/macos/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/seo/",
+      "file": "tag/seo/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/webp/",
+      "file": "tag/webp/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/wordpress-%ec%9d%b4%eb%af%b8%ec%a7%80/",
+      "file": "tag/wordpress-이미지/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/wordpress/",
+      "file": "tag/wordpress/index.html",
+      "indexable": false
+    }
+  ]
+}

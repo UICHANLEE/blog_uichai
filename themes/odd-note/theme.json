@@ -1,0 +1,65 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "version": 3,
+  "settings": {
+    "appearanceTools": true,
+    "layout": {
+      "contentSize": "760px",
+      "wideSize": "1280px"
+    },
+    "color": {
+      "custom": true,
+      "palette": [
+        { "slug": "ink", "name": "Ink", "color": "#0d0d12" },
+        { "slug": "paper", "name": "Paper", "color": "#f3efe5" },
+        { "slug": "acid", "name": "Acid", "color": "#d8ff45" },
+        { "slug": "coral", "name": "Coral", "color": "#ff694f" },
+        { "slug": "sky", "name": "Sky", "color": "#8bd9ff" }
+      ]
+    },
+    "spacing": {
+      "units": [ "px", "rem", "em", "vw", "vh", "%" ]
+    },
+    "typography": {
+      "fluid": true,
+      "fontFamilies": [
+        {
+          "slug": "sans",
+          "name": "System Sans",
+          "fontFamily": "-apple-system, BlinkMacSystemFont, \"Apple SD Gothic Neo\", \"Noto Sans KR\", sans-serif"
+        },
+        {
+          "slug": "serif",
+          "name": "Editorial Serif",
+          "fontFamily": "\"Iowan Old Style\", \"Noto Serif KR\", Georgia, serif"
+        }
+      ]
+    }
+  },
+  "styles": {
+    "color": {
+      "background": "#0d0d12",
+      "text": "#f3efe5"
+    },
+    "spacing": {
+      "blockGap": "1.5rem"
+    },
+    "typography": {
+      "fontFamily": "var(--wp--preset--font-family--sans)",
+      "lineHeight": "1.65"
+    },
+    "elements": {
+      "heading": {
+        "typography": {
+          "fontWeight": "700",
+          "lineHeight": "1.05"
+        }
+      },
+      "link": {
+        "color": {
+          "text": "#d8ff45"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "odd-note-static",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "export": "node scripts/export-static.mjs",
+    "build": "node scripts/build-static.mjs && node scripts/verify-static.mjs",
+    "build:static": "node scripts/build-static.mjs",
+    "verify:static": "node scripts/verify-static.mjs",
+    "preview": "python3 -m http.server 8899 -d public"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

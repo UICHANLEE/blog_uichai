@@ -1,0 +1,182 @@
+name: ${COMPOSE_PROJECT_NAME:-revenue-blog}
+
+services:
+  database:
+    image: mariadb:12.3.2
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 1m
+    environment:
+      TZ: ${TZ:-Asia/Seoul}
+      MARIADB_DATABASE: ${WORDPRESS_DB_NAME:-wordpress}
+      MARIADB_USER: ${WORDPRESS_DB_USER:-wordpress}
+      MARIADB_PASSWORD_FILE: /run/secrets/db_password
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-name-resolve
+    volumes:
+      - db_data:/var/lib/mysql
+    secrets:
+      - db_password
+      - db_root_password
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 1m
+    pids_limit: 256
+    mem_limit: 1g
+    security_opt:
+      - no-new-privileges:true
+
+  wordpress:
+    image: wordpress:7.0.2-php8.3-apache
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-Asia/Seoul}
+      WORDPRESS_DB_HOST: database:3306
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:-wordpress}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER:-wordpress}
+      WORDPRESS_DB_PASSWORD_FILE: /run/secrets/db_password
+      WORDPRESS_PUBLIC_URL: ${WORDPRESS_PUBLIC_URL:-}
+      WORDPRESS_CONFIG_EXTRA: |
+        if (isset($$_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower(trim(explode(',', $$_SERVER['HTTP_X_FORWARDED_PROTO'])[0])) === 'https') {
+            $$_SERVER['HTTPS'] = 'on';
+        }
+        $$_public_url = getenv('WORDPRESS_PUBLIC_URL');
+        if ($$_public_url) {
+            $$_public_url = rtrim($$_public_url, '/');
+            define('WP_HOME', $$_public_url);
+            define('WP_SITEURL', $$_public_url);
+            define('FORCE_SSL_ADMIN', strncmp($$_public_url, 'https://', 8) === 0);
+        }
+        define('DISALLOW_FILE_EDIT', true);
+        define('WP_AUTO_UPDATE_CORE', 'minor');
+        define('WP_DEFAULT_THEME', 'odd-note');
+        define('WP_MEMORY_LIMIT', '256M');
+        define('WP_MAX_MEMORY_LIMIT', '512M');
+        define('WP_POST_REVISIONS', 10);
+        define('EMPTY_TRASH_DAYS', 14);
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./config/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
+      - ./config/apache/security.conf:/etc/apache2/conf-enabled/zz-security.conf:ro
+      - type: bind
+        source: ./themes/odd-note
+        target: /var/www/html/wp-content/themes/odd-note
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./scripts/bootstrap-wordpress.php
+        target: /opt/odd-note/bootstrap-wordpress.php
+        read_only: true
+        bind:
+          create_host_path: false
+    secrets:
+      - db_password
+    ports:
+      - "127.0.0.1:${WORDPRESS_PORT:-8090}:80"
+    expose:
+      - "80"
+    networks:
+      - frontend
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "php -r '$$s=@fsockopen(\"127.0.0.1\",80,$$e,$$m,3); exit($$s?0:1);'"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    pids_limit: 384
+    mem_limit: 1536m
+    security_opt:
+      - no-new-privileges:true
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.7.2
+    profiles:
+      - tunnel
+    restart: unless-stopped
+    depends_on:
+      wordpress:
+        condition: service_healthy
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --metrics
+      - 0.0.0.0:2000
+      - run
+      - --token-file
+      - /run/secrets/cloudflare_tunnel_token
+    secrets:
+      - cloudflare_tunnel_token
+    networks:
+      - frontend
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "0.0.0.0:2000", "ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 256m
+
+  quick-tunnel:
+    image: cloudflare/cloudflared:2026.7.2
+    profiles:
+      - quick-tunnel
+    restart: "no"
+    depends_on:
+      wordpress:
+        condition: service_healthy
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --url
+      - http://wordpress:80
+    networks:
+      - frontend
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 256m
+
+volumes:
+  db_data:
+  wordpress_data:
+
+networks:
+  frontend:
+  backend:
+    internal: true
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  db_root_password:
+    file: ./secrets/db_root_password.txt
+  cloudflare_tunnel_token:
+    file: ./secrets/cloudflare_tunnel_token.txt
