@@ -25,8 +25,8 @@
       "fontFamilies": [
         {
           "slug": "sans",
-          "name": "System Sans",
-          "fontFamily": "-apple-system, BlinkMacSystemFont, \"Apple SD Gothic Neo\", \"Noto Sans KR\", sans-serif"
+          "name": "Pretendard Variable",
+          "fontFamily": "\"Pretendard Variable\", Pretendard, -apple-system, BlinkMacSystemFont, \"Apple SD Gothic Neo\", \"Noto Sans KR\", sans-serif"
         },
         {
           "slug": "serif",

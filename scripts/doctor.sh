@@ -44,6 +44,10 @@ for theme_file in \
   themes/odd-note/front-page.php \
   themes/odd-note/theme.json \
   themes/odd-note/assets/css/site.css \
+  themes/odd-note/assets/fonts/pretendard/pretendardvariable-dynamic-subset.css \
+  themes/odd-note/assets/fonts/pretendard/LICENSE \
+  themes/odd-note/assets/fonts/pretendard/woff2/PretendardVariable.subset.0.woff2 \
+  themes/odd-note/assets/fonts/pretendard/woff2/PretendardVariable.subset.91.woff2 \
   themes/odd-note/assets/js/site.js \
   themes/odd-note/assets/images/og.png \
   themes/odd-note/assets/images/og-tech-business.png \

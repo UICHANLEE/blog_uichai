@@ -33,7 +33,12 @@ function odd_note_setup() {
 		)
 	);
 
-	add_editor_style( 'assets/css/editor.css' );
+	add_editor_style(
+		array(
+			'assets/fonts/pretendard/pretendardvariable-dynamic-subset.css',
+			'assets/css/editor.css',
+		)
+	);
 
 	register_nav_menus(
 		array(
@@ -65,9 +70,16 @@ function odd_note_asset_version( $relative_path ) {
  */
 function odd_note_enqueue_assets() {
 	wp_enqueue_style(
+		'odd-note-fonts',
+		get_theme_file_uri( 'assets/fonts/pretendard/pretendardvariable-dynamic-subset.css' ),
+		array(),
+		odd_note_asset_version( 'assets/fonts/pretendard/pretendardvariable-dynamic-subset.css' )
+	);
+
+	wp_enqueue_style(
 		'odd-note-site',
 		get_theme_file_uri( 'assets/css/site.css' ),
-		array(),
+		array( 'odd-note-fonts' ),
 		odd_note_asset_version( 'assets/css/site.css' )
 	);
 
@@ -212,7 +224,7 @@ function odd_note_about_url() {
  * A useful menu before the user creates one.
  */
 function odd_note_primary_menu_fallback() {
-	echo '<ul class="site-menu">';
+	echo '<ul id="primary-menu" class="site-menu">';
 	echo '<li><a href="' . esc_url( odd_note_posts_url() ) . '">' . esc_html__( '전체 글', 'odd-note' ) . '</a></li>';
 
 	foreach ( array( 'it-news', 'ai-paper-analysis', 'business-knowledge' ) as $slug ) {

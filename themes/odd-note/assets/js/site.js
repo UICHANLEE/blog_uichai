@@ -12,6 +12,11 @@
 
 	const reducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' );
 	const finePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' );
+	const mobileHeader = window.matchMedia( '(max-width: 860px)' );
+	const siteHeader = document.querySelector( '[data-site-header]' );
+	const menuButton = document.querySelector( '[data-menu-toggle]' );
+	const menuLabel = menuButton?.querySelector( '.menu-toggle__label' );
+	const primaryNavigation = document.querySelector( '#site-primary-navigation' );
 	const experienceControls = document.querySelector( '[data-experience-controls]' );
 	const motionButton = document.querySelector( '[data-motion-toggle]' );
 	const motionLabel = document.querySelector( '[data-motion-label]' );
@@ -45,6 +50,53 @@
 
 	function effectsAllowed() {
 		return ! reducedMotion.matches && ! userMotionOff;
+	}
+
+	function setMenuState( open ) {
+		if ( ! siteHeader || ! menuButton ) {
+			return;
+		}
+
+		const expanded = Boolean( open && mobileHeader.matches );
+		siteHeader.classList.toggle( 'is-menu-open', expanded );
+		menuButton.setAttribute( 'aria-expanded', String( expanded ) );
+		menuButton.setAttribute( 'aria-label', expanded ? '메뉴 닫기' : '메뉴 열기' );
+		if ( menuLabel ) {
+			menuLabel.textContent = expanded ? 'Close' : 'Menu';
+		}
+	}
+
+	function bindMobileMenu() {
+		if ( ! siteHeader || ! menuButton || ! primaryNavigation ) {
+			return;
+		}
+
+		menuButton.hidden = false;
+		menuButton.addEventListener( 'click', () => {
+			setMenuState( menuButton.getAttribute( 'aria-expanded' ) !== 'true' );
+		} );
+
+		primaryNavigation.addEventListener( 'click', ( event ) => {
+			if ( event.target.closest?.( 'a' ) ) {
+				setMenuState( false );
+			}
+		} );
+
+		document.addEventListener( 'keydown', ( event ) => {
+			if ( event.key === 'Escape' && menuButton.getAttribute( 'aria-expanded' ) === 'true' ) {
+				setMenuState( false );
+				menuButton.focus();
+			}
+		} );
+
+		document.addEventListener( 'pointerdown', ( event ) => {
+			if ( menuButton.getAttribute( 'aria-expanded' ) === 'true' && ! siteHeader.contains( event.target ) ) {
+				setMenuState( false );
+			}
+		}, { passive: true } );
+
+		mobileHeader.addEventListener( 'change', () => setMenuState( false ) );
+		setMenuState( false );
 	}
 
 	function setMood( mood ) {
@@ -480,6 +532,7 @@
 
 	reducedMotion.addEventListener( 'change', updateMotionState );
 	finePointer.addEventListener( 'change', updateMotionState );
+	bindMobileMenu();
 	bindPointerStages();
 	bindMagneticItems();
 	bindTiltCards();

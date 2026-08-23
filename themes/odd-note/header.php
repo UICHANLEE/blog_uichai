@@ -37,12 +37,17 @@
 			<span class="site-brand__name"><?php bloginfo( 'name' ); ?></span>
 		</a>
 
-		<nav class="primary-nav" aria-label="<?php esc_attr_e( '주요 메뉴', 'odd-note' ); ?>">
+		<button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-primary-navigation" data-menu-toggle hidden>
+			<span class="menu-toggle__label" lang="en"><?php esc_html_e( 'Menu', 'odd-note' ); ?></span>
+		</button>
+
+		<nav id="site-primary-navigation" class="primary-nav" aria-label="<?php esc_attr_e( '주요 메뉴', 'odd-note' ); ?>">
 			<?php
 			wp_nav_menu(
 				array(
 					'theme_location' => 'primary',
 					'container'      => false,
+					'menu_id'        => 'primary-menu',
 					'menu_class'     => 'site-menu',
 					'fallback_cb'    => 'odd_note_primary_menu_fallback',
 					'depth'          => 1,

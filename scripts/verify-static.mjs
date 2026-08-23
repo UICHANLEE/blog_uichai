@@ -87,10 +87,25 @@ for (const requiredPath of [
   'sitemap.xml',
   'robots.txt',
   'wp-content/themes/odd-note/assets/css/site.css',
+  'wp-content/themes/odd-note/assets/fonts/pretendard/pretendardvariable-dynamic-subset.css',
+  'wp-content/themes/odd-note/assets/fonts/pretendard/LICENSE',
+  'wp-content/themes/odd-note/assets/fonts/pretendard/woff2/PretendardVariable.subset.0.woff2',
+  'wp-content/themes/odd-note/assets/fonts/pretendard/woff2/PretendardVariable.subset.91.woff2',
   'wp-content/themes/odd-note/assets/js/site.js',
   'wp-content/themes/odd-note/assets/images/og-tech-business.png',
 ]) {
   await access(join(outputDirectory, requiredPath));
+}
+
+const fontCss = await readFile(
+  join(outputDirectory, 'wp-content/themes/odd-note/assets/fonts/pretendard/pretendardvariable-dynamic-subset.css'),
+  'utf8',
+);
+if (!fontCss.includes("font-family:'Pretendard Variable'") || !fontCss.includes('./woff2/')) {
+  throw new Error('자체 호스팅 Pretendard Variable 선언이 올바르지 않습니다.');
+}
+if (fontCss.includes('cdn.jsdelivr.net') || fontCss.includes('../../../packages/')) {
+  throw new Error('Pretendard CSS에 외부 또는 배포 불가능한 폰트 경로가 남아 있습니다.');
 }
 
 const home = await readFile(join(outputDirectory, 'index.html'), 'utf8');
