@@ -70,6 +70,7 @@ for (const requiredRoute of [
   '/supabase-realtime-binary-state-sync/',
   '/spatialvlm-paper-review/',
   '/ai-mvp-before-model/',
+  '/ai-cv-sota-briefing-2026-08-23/',
 ]) {
   if (!routeFiles.has(requiredRoute)) {
     throw new Error(`필수 카테고리 경로가 없습니다: ${requiredRoute}`);
@@ -95,11 +96,20 @@ for (const editorialFocus of ['IT 최신 뉴스', 'AI 논문 분석', '사업 �
     throw new Error(`첫 화면에서 핵심 편집 주제를 확인할 수 없습니다: ${editorialFocus}`);
   }
 }
+if (!home.includes('AI CV SOTA 브리핑')) {
+  throw new Error('첫 화면에서 최신 AI CV 브리핑을 확인할 수 없습니다.');
+}
 
 const editorialArticles = new Map([
   ['/supabase-realtime-binary-state-sync/', ['Supabase Realtime이 바이너리를 품었다', 'supabase.com/changelog/']],
   ['/spatialvlm-paper-review/', ['SpatialVLM은 어디까지 믿을 수 있나', 'arxiv.org/abs/2401.12168']],
   ['/ai-mvp-before-model/', ['AI MVP, 모델부터 만들면 늦는다', 'design.google/library/simulating-intelligence']],
+  ['/ai-cv-sota-briefing-2026-08-23/', [
+    'AI CV SOTA 브리핑',
+    'arxiv.org/abs/2608.20122',
+    'arxiv.org/abs/2608.19987',
+    'arxiv.org/abs/2608.20308',
+  ]],
 ]);
 for (const [route, expectedFragments] of editorialArticles) {
   const content = await readFile(join(outputDirectory, routeFiles.get(route)), 'utf8');

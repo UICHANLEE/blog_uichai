@@ -17,6 +17,11 @@
       "indexable": true
     },
     {
+      "path": "/ai-cv-sota-briefing-2026-08-23/",
+      "file": "ai-cv-sota-briefing-2026-08-23/index.html",
+      "indexable": true
+    },
+    {
       "path": "/ai-mvp-before-model/",
       "file": "ai-mvp-before-model/index.html",
       "indexable": true
@@ -182,6 +187,11 @@
       "indexable": false
     },
     {
+      "path": "/tag/3d-hand-reconstruction/",
+      "file": "tag/3d-hand-reconstruction/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/ai-%ea%b8%80%ec%93%b0%ea%b8%b0/",
       "file": "tag/ai-글쓰기/index.html",
       "indexable": false
@@ -197,6 +207,16 @@
       "indexable": false
     },
     {
+      "path": "/tag/armorocr/",
+      "file": "tag/armorocr/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/computer-vision/",
+      "file": "tag/computer-vision/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/cvpr-2024/",
       "file": "tag/cvpr-2024/index.html",
       "indexable": false
@@ -204,6 +224,11 @@
     {
       "path": "/tag/docker/",
       "file": "tag/docker/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/dreamhand/",
+      "file": "tag/dreamhand/index.html",
       "indexable": false
     },
     {
@@ -237,8 +262,18 @@
       "indexable": false
     },
     {
+      "path": "/tag/step/",
+      "file": "tag/step/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/supabase/",
       "file": "tag/supabase/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/video-anomaly-detection/",
+      "file": "tag/video-anomaly-detection/index.html",
       "indexable": false
     },
     {

@@ -84,7 +84,8 @@
 					}
 				} );
 			},
-			{ rootMargin: '0px 0px -8% 0px', threshold: 0.08 }
+			// A low ratio also reveals tall article bodies on narrow viewports.
+			{ rootMargin: '0px 0px -8% 0px', threshold: 0.01 }
 		);
 
 		items.forEach( ( item ) => revealObserver.observe( item ) );

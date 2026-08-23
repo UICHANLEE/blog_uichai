@@ -898,6 +898,55 @@ function odd_note_publish_editorial_series( $owner_id ) {
 }
 
 /**
+ * Publish the dated computer-vision research briefing.
+ *
+ * @param int $owner_id Author user ID.
+ * @return int
+ */
+function odd_note_publish_ai_cv_briefing( $owner_id ) {
+	$slug     = 'ai-cv-sota-briefing-2026-08-23';
+	$existing = get_page_by_path( $slug, OBJECT, 'post' );
+
+	if ( $existing && '1' !== get_post_meta( (int) $existing->ID, '_odd_note_bootstrap', true ) ) {
+		odd_note_bootstrap_fail( '같은 슬러그의 사용자 글이 있어 자동 발행을 중단했습니다: ' . $slug );
+	}
+
+	$category = get_term_by( 'slug', 'ai-paper-analysis', 'category' );
+	if ( ! $category ) {
+		odd_note_bootstrap_fail( 'AI 논문 분석 카테고리를 찾을 수 없습니다.' );
+	}
+
+	$post_id = odd_note_bootstrap_post(
+		array(
+			'post_type'      => 'post',
+			'post_status'    => 'publish',
+			'post_name'      => $slug,
+			'post_title'     => 'AI CV SOTA 브리핑 — ArmorOCR·STEP·DreamHand (2026.08.23)',
+			'post_excerpt'   => '사람은 읽지만 VLM은 놓치는 OCR, 1ms 아래의 포즈 이상탐지, 비디오 확산 모델을 3D 손 인코더로 바꾼 연구까지. 최신 CV 논문 세 편의 성과와 공개 상태, 실무 한계를 함께 읽습니다.',
+			'post_content'   => odd_note_editorial_content( $slug ),
+			'post_author'    => $owner_id,
+			'post_category'  => array( (int) $category->term_id ),
+			'comment_status' => 'closed',
+			'ping_status'    => 'closed',
+		)
+	);
+
+	wp_set_post_tags(
+		$post_id,
+		array( 'Computer Vision', 'ArmorOCR', 'STEP', 'DreamHand', 'VLM', 'Video Anomaly Detection', '3D Hand Reconstruction' ),
+		false
+	);
+	update_post_meta( $post_id, '_odd_note_primary_category_id', (int) $category->term_id );
+	update_post_meta( $post_id, '_odd_note_editorial_revision', '1.5.0' );
+
+	$post_ids          = (array) get_option( 'odd_note_editorial_post_ids', array() );
+	$post_ids[ $slug ] = $post_id;
+	update_option( 'odd_note_editorial_post_ids', $post_ids, false );
+
+	return $post_id;
+}
+
+/**
  * Promote the new technology briefing when the original seed is still featured.
  *
  * @param int $it_post_id Technology briefing post ID.
@@ -945,7 +994,7 @@ if (
 	odd_note_bootstrap_fail( '사이트 주소 형식이 올바르지 않습니다.' );
 }
 
-$target_version = '1.4.0';
+$target_version = '1.5.0';
 $installed      = is_blog_installed();
 $state          = $installed ? get_option( 'odd_note_bootstrap_state', '' ) : '';
 
@@ -979,6 +1028,10 @@ if ( $installed && 'complete' === $state ) {
 		if ( version_compare( $current_version, '1.4.0', '<' ) ) {
 			$editorial_ids = odd_note_publish_editorial_series( $owner_id );
 			odd_note_promote_editorial_feature( $editorial_ids['supabase-realtime-binary-state-sync'] );
+		}
+
+		if ( version_compare( $current_version, '1.5.0', '<' ) ) {
+			odd_note_publish_ai_cv_briefing( $owner_id );
 		}
 
 		update_option( 'odd_note_bootstrap_version', $target_version, false );
@@ -1422,6 +1475,7 @@ wp_set_post_tags( $ai_post_id, array( '인터랙션', '웹 접근성', '성능',
 odd_note_publish_ai_blog_workflow( $owner_id, $ai_tools_id );
 odd_note_publish_mac_image_workflow( $owner_id, $mac_workflow_id );
 $editorial_ids = odd_note_publish_editorial_series( $owner_id );
+odd_note_publish_ai_cv_briefing( $owner_id );
 
 update_option( 'sticky_posts', array( $editorial_ids['supabase-realtime-binary-state-sync'] ) );
 update_option( 'show_on_front', 'page' );
@@ -1467,4 +1521,4 @@ update_option( 'odd_note_bootstrap_version', $target_version, false );
 update_option( 'odd_note_bootstrap_state', 'complete', false );
 
 echo 'Odd Note 설치와 초기 콘텐츠 구성이 완료됐습니다.' . PHP_EOL;
-echo '페이지 6개, 카테고리 6개, 글 8개, 메뉴 2개를 준비했습니다.' . PHP_EOL;
+echo '페이지 6개, 카테고리 6개, 글 9개, 메뉴 2개를 준비했습니다.' . PHP_EOL;
