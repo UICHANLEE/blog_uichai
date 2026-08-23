@@ -1,0 +1,439 @@
+<!-- wp:paragraph {"className":"article-lead"} -->
+<p class="article-lead"><strong>손가락이 물체에 가려지고, 두 손이 겹치고, 손 전체가 화면 밖으로 사라져도 3D 움직임을 이어갈 수 있을까?</strong> DreamHand는 영상을 만들도록 학습된 대형 Video Diffusion Model을 생성기가 아니라 <strong>결정론적 3D geometry encoder</strong>로 재사용한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>노이즈를 여러 번 제거하며 영상을 생성하지 않는다. 원본 clip의 clean latent를 Wan DiT 중간까지만 한 번 통과시키고, 과거와 미래를 함께 보는 decoder가 양손 MANO 파라미터와 카메라 좌표계의 3D 궤적을 복원한다. 이 글에서는 입력·출력 경계, 7-source 학습 데이터, 5개 평가셋 결과, out-of-sight 지표의 의미와 offline 한계를 자세히 본다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>DreamHand의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>기본 30fps·81-frame의 1인칭 RGB clip. 표준 설정은 마지막 translation solve에 camera intrinsics K를 사용.</td></tr><tr><td><strong>Process</strong></td><td>Wan VAE → clean latent → DiT block 15 → Ray Head + 양방향 decoder → MANO heads + mixed-PnP.</td></tr><tr><td><strong>Output</strong></td><td>프레임별 왼손·오른손의 MANO orientation·articulation·카메라 좌표 translation·존재·가시성과 clip-level shape.</td></tr><tr><td><strong>하지 않는 일</strong></td><td>세계 좌표 camera motion은 출력하지 않으며, 미래 frame 없는 online tracking 모델도 아니다.</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">1. 어떤 문제를 풀려는 논문인가</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>1인칭 카메라로 요리, 조립, 도구 사용을 촬영하면 손은 끊임없이 가려진다. frame-by-frame detector가 손 영역을 찾고 crop한 뒤 3D pose를 추정하는 전통적인 pipeline은 손 검출이 끊기는 순간 뒤 단계에 전달할 정보도 사라진다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>DreamHand는 원시 RGB clip에서 왼손과 오른손을 고정 slot으로 함께 추적한다. 손이 부분적으로 가려지거나 화면 밖으로 나간 frame에서도 출력을 유지하고, 정규화된 손 모양뿐 아니라 카메라 좌표계에서 실제 scale을 가진 translation을 구한다. 별도의 hand detector와 crop pipeline을 사용하지 않는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>다만 “보이지 않는 손을 본다”는 표현은 정확하지 않다. DreamHand는 없는 pixel을 관측하는 것이 아니라 같은 clip의 과거·미래 frame과 학습된 video prior로 그 사이 자세를 추론한다. 논문이 강한 이유와 실시간에 쓸 수 없는 이유가 모두 이 양방향 문맥에서 나온다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">2. Input — 어떤 영상을 넣는가</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">기본 입력은 81-frame RGB clip</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>입력 V는 시간순 RGB frame의 집합이다. 핵심 평가 단위는 30fps 영상 81 frame, 약 2.7초다. 학습에서는 full recording에서 무작위 81-frame window를 뽑고, 평가는 baseline과 공유하는 고정 segment를 쓴다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>데이터셋마다 해상도가 다르다. ARCTIC은 672×480, HOT3D는 480×480을 사용하고 H2O·OakInk2는 width 832에 맞춰 처리한다. 모델은 손 crop이 아닌 frame 전체를 보기 때문에 물체, 반대편 손, 주변 장면과 시간 문맥을 함께 이용할 수 있다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">카메라 내재 파라미터 K는 어디에 쓰이나</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>표준 DreamHand에서 K는 비디오 backbone 입력 token으로 들어가는 것은 아니지만, 마지막 3D translation solve에서 2D 관절이 가리키는 camera ray를 계산할 때 사용된다. K-free 모델은 추론 시 K를 받지 않고 자체 Ray Head가 예측한 ray를 쓴다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>K-free도 calibration을 전혀 모른 채 학습한 모델은 아니다. 훈련 때 ground-truth camera calibration으로 ray field와 reprojection을 감독하며, 표준 설정과 마찬가지로 pretrained Wan에서 출발하되 <strong>별도의 task-specific model</strong>로 학습한다. 즉 실행 중 켜는 옵션이 아니라 서로 다른 두 모델이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">3. Output — 정확히 무엇이 나오나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>각 frame과 각 손에 대해 다음 값을 출력한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>Global orientation R:</strong> 카메라에 대한 손 전체 방향</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>Articulation theta:</strong> 각 손가락 관절의 회전</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>Camera-frame translation tau:</strong> tx, ty, tz로 표현한 손의 카메라 좌표 위치</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>Existence와 visibility:</strong> 해당 손이 존재하는지, 화면에 보이는지</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>Shape beta:</strong> 손별로 clip 전체에서 공유하는 MANO shape</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>MANO layer가 이 파라미터를 hand mesh와 21개 관절로 바꾼다. 중간 head는 2D joint anchor와 wrist-relative 3D joint도 예측한다. shape를 frame마다 독립적으로 만들지 않고 clip에서 한 번 정해 손 크기가 시간축으로 출렁이는 현상을 줄인다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">World-space trajectory는 출력이 아니다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>DreamHand의 translation은 <strong>카메라 좌표계</strong>다. camera 자체의 세계 좌표 위치와 움직임은 추정하지 않는다. 논문의 일부 world-space 시각화에는 데이터셋이 제공한 ground-truth camera pose가 사용됐다. 실제 로봇 imitation data로 세계 좌표 궤적이 필요하면 SLAM이나 별도 camera tracking을 결합해야 한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">4. Process — 생성 모델을 3D 인코더로 바꾸는 여섯 단계</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 1. Wan VAE가 RGB clip을 압축</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>동결된 Wan VAE encoder가 영상을 video latent로 바꾼다. 81 RGB frame은 21 latent frame으로 압축된다. 시간축은 4배, 공간축은 16배 줄어든다. 예를 들어 672×480 ARCTIC 입력은 latent frame마다 42×30 grid가 되고 각 cell은 3,072차원 feature를 가진다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 2. 노이즈 없는 latent를 DiT에 한 번 통과</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>일반 video diffusion generation은 noisy latent에서 여러 차례 denoising하며 새 pixel을 만든다. DreamHand는 sigma=0의 clean latent를 사용하고 Wan2.2-Fun-5B-Control의 low-noise DiT를 한 번만 실행한다. 같은 입력은 같은 feature를 만드는 deterministic perception 경로다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>저자 비교의 ViDiHand가 12~25회 sampling을 수행하는 것과 달리 iterative generation이 없다. “확산 모델을 사용한다”와 “확산 sampling을 수행한다”는 다른 말이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 3. 30개 DiT block을 끝까지 실행하지 않는다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>feature는 zero-based block 15의 출력에서 가져온다. 따라서 실제 실행되는 것은 30개 중 첫 <strong>16개 block</strong>이다. 나머지 14개 block과 generation head를 건너뛰어 저자 계산으로 forward 비용을 약 절반 줄인다. “15개 block만 실행”보다 “block 15 출력, 16/30 실행”이 정확하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 4. LoRA가 생성 feature를 geometry feature로 적응</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Wan backbone의 base weight는 동결하고 attention·feed-forward projection에 rank 64, alpha 64의 LoRA를 삽입한다. patch embedding도 학습하며, Ray Head와 hand decoder는 새로 만든다. 3D supervision의 gradient가 LoRA를 통해 video prior를 손 geometry task에 맞춘다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>LoRA라고 해서 전체 시스템이 작은 것은 아니다. 기반 backbone 자체가 약 5B 규모이며 실행 경로상 학습되는 파라미터가 약 100.1M이어도 대형 Wan weight를 메모리에 올려야 한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 5. 48개 query의 양방향 decoder</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>latent frame마다 48개 query를 둔다. 왼손·오른손 token 2개, 21 joint × 2 hand token 42개, 계산 공간으로 쓰는 register token 4개다. 네 층에서 spatial cross-attention과 temporal self-attention을 번갈아 수행한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>공간 attention은 각 frame의 latent grid에서 관절 단서를 찾고, 시간 attention은 clip 전체에서 손의 흐름을 연결한다. causal mask가 없으므로 한 frame은 과거뿐 아니라 미래 frame도 참조한다. latent-rate 출력은 원래 frame rate로 선형 보간된다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 6. Ray Head와 mixed-PnP로 카메라 위치 계산</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Ray Head는 latent grid cell마다 camera 방향의 unit ray를 예측한다. 한 clip 안에서 camera intrinsics가 일정하다고 보고 시간축으로 평균한 ray field를 사용한다. Camera Head는 전체 translation을 직접 회귀하지 않고 log-depth에서 양수 tz를 예측한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>이후 2D joint anchor, wrist-relative 3D joint, bearing을 묶은 weighted least squares로 tx와 ty를 푼다. 표준 모델은 K에서 bearing을 만들고 K-free는 예측 ray를 sampling한다. 유효 joint가 6개보다 적거나 reprojection residual이 너무 크면 예측 depth의 wrist ray를 역투영하는 fallback을 쓴다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">5. 학습 데이터: 7개 source를 어떻게 섞었나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>데이터</th><th>학습 원본</th><th>Batch 비중</th><th>평가 segment</th><th>역할·조건</th></tr></thead><tbody><tr><td><strong>ARCTIC</strong></td><td>267 recordings</td><td>14%</td><td>291</td><td>In-domain, subject s05 test</td></tr><tr><td><strong>HOT3D</strong></td><td>126 recordings</td><td>18%</td><td>437</td><td>In-domain, recording-level split</td></tr><tr><td><strong>H2O</strong></td><td>114 recordings</td><td>10%</td><td>355</td><td>In-domain, subject 4 test, 일부 pseudo-GT</td></tr><tr><td><strong>OakInk2</strong></td><td>550 recordings</td><td>14%</td><td>202</td><td>In-domain, sequence-level split</td></tr><tr><td>Re:InterHand</td><td>43 clips</td><td>16%</td><td>—</td><td>학습 전용 synthetic·relit video</td></tr><tr><td>FreiHAND</td><td>32,560 images</td><td>14%</td><td>—</td><td>이미지를 static 5-frame clip으로 복제</td></tr><tr><td>RHD</td><td>41,251 images</td><td>14%</td><td>—</td><td>MANO fit이 없어 compatible head만 감독</td></tr><tr><td><strong>HOI4D</strong></td><td>학습 제외</td><td>0%</td><td>498</td><td>완전 held-out zero-shot 평가</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>표준 모델과 K-free 모델은 같은 7-source mixture로 각각 20,000 step 학습한다. 표준 모델은 16개 A100, effective batch 64이고 K-free는 8개 A100, batch 32다. 모든 out-of-sight hand도 mask하지 않고 ground-truth pose로 감독해 손이 보이지 않는 동안에도 좌·우 fixed slot이 출력을 유지하도록 가르친다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">비교 공정성에서 주의할 점</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>HOI4D만 완전한 zero-shot 평가다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>ARCTIC과 H2O는 subject-disjoint지만 HOT3D는 recording-level, OakInk2는 sequence-level split이다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>HOI4D를 제외한 ARCTIC·HOT3D·H2O·OakInk2 네 평가셋은 DreamHand 학습 분포에 포함된다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>모든 baseline은 공개 checkpoint 그대로 평가했고 baseline별 학습 데이터 분포를 통제하거나 같은 split으로 재학습하지 않았다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>H2O와 HOI4D annotation 일부는 pseudo-ground-truth MANO다.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>따라서 ARCTIC·HOT3D·H2O·OakInk2의 결과에는 DreamHand가 해당 데이터 분포를 학습한 in-domain 조건과 baseline별 미통제 학습 분포가 함께 섞인다. 특히 H2O·OakInk2의 큰 차이는 저자도 upper bound 성격으로 경고한다. 가장 명확한 외부 일반화 평가는 학습에서 완전히 제외한 HOI4D zero-shot이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">6. 평가 지표를 읽는 법</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>지표</th><th>의미</th><th>낮을수록/높을수록</th></tr></thead><tbody><tr><td>FAcc</td><td>양손 false positive·negative가 하나도 없는 frame 비율</td><td>높을수록 좋음</td></tr><tr><td>Recall / F1</td><td>손 단위 detection</td><td>높을수록 좋음</td></tr><tr><td>MPJPE-p</td><td>Wrist 정렬 후 21개 joint 평균 오차, miss penalty 포함</td><td>낮을수록 좋음</td></tr><tr><td>PA-p</td><td>Procrustes 정렬 후 joint 오차, miss penalty 포함</td><td>낮을수록 좋음</td></tr><tr><td>EPE2D-p</td><td>화면 안 joint의 2D pixel 오차</td><td>낮을수록 좋음</td></tr><tr><td>GO-p</td><td>Global hand orientation 각도 오차</td><td>낮을수록 좋음</td></tr><tr><td>CT-p</td><td>Camera-frame translation 오차</td><td>낮을수록 좋음</td></tr><tr><td>Jitter</td><td>Camera-frame joint의 시간축 2차 차분</td><td>낮을수록 부드러움</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p><code>-p</code>는 detection failure에 penalty를 준다는 뜻이다. 어려운 손을 아예 출력하지 않아 관절 오차만 낮추는 편법을 막기 위해 놓친 on-screen hand에 canonical MANO hand 기반 오차를 부과한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">OOS 지표가 말하는 것과 말하지 않는 것</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>MPJPE-OOS는 화면 밖 hand-frame만, MPJPE+OOS는 화면 안과 밖을 frame 수로 가중 평균한다. 둘 다 <strong>wrist-aligned</strong>다. 즉 손가락 articulation과 global orientation의 연속성을 보여주지만, 화면 밖 손의 절대 위치나 depth를 맞혔다는 증거는 아니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>“사라진 손의 자세를 시간적으로 이어간다”와 “사라진 손이 공간의 정확히 어디에 있는지 안다”는 다른 주장이다. 논문은 후자를 직접 평가하는 OOS absolute-position 표를 제공하지 않는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">7. 공식 비교 결과</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">MPJPE-p 기준 기존 최상 baseline과 비교</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>데이터셋</th><th>기존 최상</th><th>DreamHand</th><th>오차 감소</th><th>평가 성격</th></tr></thead><tbody><tr><td>ARCTIC</td><td>21.668mm</td><td><strong>15.256mm</strong></td><td>29.6%</td><td>In-domain</td></tr><tr><td>HOT3D</td><td>21.514mm</td><td><strong>12.888mm</strong></td><td>40.1%</td><td>In-domain</td></tr><tr><td>HOI4D</td><td>30.090mm</td><td><strong>23.031mm</strong></td><td>23.5%</td><td>Zero-shot</td></tr><tr><td>H2O</td><td>16.219mm</td><td><strong>9.223mm</strong></td><td>43.1%</td><td>In-domain·일부 pseudo-GT</td></tr><tr><td>OakInk2</td><td>26.520mm</td><td><strong>8.988mm</strong></td><td>66.1%</td><td>In-domain</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>논문의 “45 of 48”은 48개 benchmark가 아니다. 5개 데이터셋 표에 존재하는 주요 metric cell 48개 중 표준 DreamHand가 기존 최고 baseline보다 좋은 cell이 45개라는 뜻이다. ARCTIC 10/10, HOT3D 10/10, HOI4D 7/9, H2O 8/9, OakInk2 10/10이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>놓친 세 항목은 HOI4D FAcc·F1과 H2O CT-p다. 따라서 “5개 데이터셋의 48개 주요 지표 비교 중 45개에서 기존 최고치를 넘었다”가 정확한 표현이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Out-of-sight 결과</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>데이터셋·모델</th><th>화면 안 MPJPE mm</th><th>화면 밖 MPJPE mm</th><th>전체 MPJPE+OOS mm</th></tr></thead><tbody><tr><td>ARCTIC ViDiHand</td><td>22.311</td><td>149.113</td><td>31.045</td></tr><tr><td><strong>ARCTIC DreamHand</strong></td><td><strong>15.423</strong></td><td><strong>35.165</strong></td><td><strong>16.783</strong></td></tr><tr><td>HOT3D ViDiHand</td><td>21.513</td><td>151.703</td><td>44.440</td></tr><tr><td><strong>HOT3D DreamHand</strong></td><td><strong>12.703</strong></td><td><strong>38.649</strong></td><td><strong>17.273</strong></td></tr><tr><td>OakInk2 ViDiHand</td><td>38.109</td><td>162.053</td><td>56.047</td></tr><tr><td><strong>OakInk2 DreamHand</strong></td><td><strong>7.449</strong></td><td><strong>13.131</strong></td><td><strong>8.272</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>ARCTIC 전체 혼합 오차는 31.045→16.783mm로 약 45.9%, HOT3D는 44.440→17.273mm로 약 61.1% 감소한다. 화면 밖 구간만 보면 ARCTIC 149.113→35.165, HOT3D 151.703→38.649mm다. 다만 모두 wrist 정렬 후 수치라는 경계를 다시 기억해야 한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">표준 모델과 K-free의 차이</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>HOT3D</th><th>표준 K-given</th><th>K-free</th></tr></thead><tbody><tr><td>FAcc</td><td><strong>0.986</strong></td><td>0.752</td></tr><tr><td>MPJPE-p</td><td><strong>12.888mm</strong></td><td>18.039mm</td></tr><tr><td>EPE2D-p</td><td><strong>6.418px</strong></td><td>15.755px</td></tr><tr><td>CT-p</td><td><strong>0.025m</strong></td><td>0.044m</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>ARCTIC과 H2O에서는 K-free MPJPE가 표준과 거의 비슷하지만 wide-FOV HOT3D에서는 크게 나빠진다. 논문은 화면 가장자리 ray error를 원인으로 분석한다. 성공적으로 matching된 HOT3D hand만 보면 root-relative MPJPE가 12.68 대 12.75mm로 비슷해, 손가락 자세보다 잘못된 camera placement 때문에 detection matching에서 탈락한 영향이 크다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>카메라 calibration을 확보할 수 있고 fisheye·wide-FOV를 쓴다면 표준 설정이 안전하다. K-free는 calibration 없는 기록도 처리할 수 있다는 유연성을 얻는 대신 coverage와 translation risk를 감수하는 선택이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">8. Ablation이 보여주는 핵심</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Video Diffusion feature가 정말 도움이 됐나</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>Feature source</th><th>MPJPE-p</th><th>PA-p</th><th>Jitter</th><th>OOS MPJPE</th></tr></thead><tbody><tr><td><strong>LoRA 적용 Wan</strong></td><td><strong>16.95</strong></td><td><strong>8.16</strong></td><td><strong>2.69</strong></td><td><strong>41.5</strong></td></tr><tr><td>Wan, LoRA 제거</td><td>23.10</td><td>10.83</td><td>3.35</td><td>50.1</td></tr><tr><td>Frozen V-JEPA 2</td><td>17.81</td><td>8.74</td><td>4.56</td><td>66.1</td></tr><tr><td>Frozen VideoMAE</td><td>22.53</td><td>10.42</td><td>5.60</td><td>77.6</td></tr><tr><td>VAE latent</td><td>32.50</td><td>12.89</td><td>3.35</td><td>79.3</td></tr><tr><td>Raw RGB</td><td>46.50</td><td>16.93</td><td>4.37</td><td>98.3</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>이 표는 축소된 ARCTIC-only 10K-step recipe라 main 결과와 직접 숫자를 섞으면 안 된다. LoRA-adapted Wan과 frozen V-JEPA의 비교에는 task adaptation 유무도 섞여 있다. 그래도 frozen-to-frozen에서도 Wan without LoRA의 OOS 50.1이 V-JEPA 66.1보다 낮아 video diffusion prior가 가림 구간에 유용하다는 근거를 제공한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Clean latent와 tap depth</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>sigma=0 clean latent는 MPJPE-p 15.26mm, sigma=0.5 noisy latent는 17.66mm였고 CT도 0.021 대 0.034m로 clean이 좋았다. 그러나 noise level 두 개와 seed 하나씩의 비교이므로 모든 noise schedule에 일반화할 수는 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>Tap point</th><th>실행 block 수</th><th>MPJPE-p</th></tr></thead><tbody><tr><td>Block 10</td><td>11/30</td><td>17.77mm</td></tr><tr><td><strong>Block 15</strong></td><td><strong>16/30</strong></td><td><strong>16.10mm</strong></td></tr><tr><td>Block 20</td><td>21/30</td><td>15.93mm</td></tr><tr><td>Block 24</td><td>25/30</td><td>15.95mm</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>block 15보다 5~9개 block을 더 실행해도 MPJPE 개선은 최대 0.17mm다. 저자들이 중간 tap을 비용 대비 좋은 지점으로 선택한 근거다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Decoder와 camera solver</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>joint query를 없애면 MPJPE가 15.264→17.144mm, rotary temporal position encoding을 absolute로 바꾸면 17.787mm로 나빠진다. mixed-PnP를 제거한 구성은 16.134mm, translation을 직접 회귀하면 15.546mm였다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>다만 미래 문맥을 제거한 causal decoder와의 직접 ablation은 없다. 전체 향상을 “bidirectional attention 하나의 효과”라고 단정할 근거는 부족하고, Wan feature·LoRA·고정 hand slot·joint query·OOS supervision이 함께 작동한 결과로 보는 편이 맞다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">9. 속도: 63.1 FPS인데 왜 실시간이 아닌가</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>A100 한 장에서 저자 보고 throughput은 DreamHand 63.1 FPS, K-free 63.3 FPS, ViDiHand accuracy 설정 1.91 FPS다. 약 33배 차이고 전체 실행 시간의 72%는 VAE encoding이 차지한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>측정은 decode된 81 frame이 host memory에 있는 시점부터 MANO parameter가 host로 돌아올 때까지다. 모델 loading, video decoding, rendering과 file I/O는 제외된다. 그리고 63.1 FPS는 <strong>처리량</strong>이지 online latency가 아니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>모델이 2.7초 clip 전체와 미래 frame을 필요로 하므로 현재 frame을 즉시 제어기에 넘길 수 없다. 논문도 recorded video에서 manipulation data를 추출하는 offline model로 설명하며 closed-loop controller가 아니라고 명시한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>전체 recording을 한 번에 넣는 실험도 가능하지만 ARCTIC MPJPE-p는 15.26→17.99mm로 약 18% 나빠지고, 대신 jitter는 2.700→2.585로 조금 줄었다. 긴 영상 운영에는 overlapping window, hand identity와 shape carry-over가 추가로 필요하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">10. 이 논문의 장점</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>생성 prior를 perception에 재사용한다.</strong> pixel을 만들지 않고 video diffusion 중간 feature를 3D geometry로 읽는다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>반복 sampling이 없다.</strong> clean latent의 single deterministic forward pass다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>검출 실패에도 출력을 유지한다.</strong> 왼손·오른손 fixed slot과 OOS supervision이 가림 구간을 연결한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>시간적으로 안정된 손 shape를 만든다.</strong> beta를 clip 단위로 공유한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>camera-frame metric translation을 함께 낸다.</strong> wrist-relative pose에 그치지 않는다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>여러 egocentric hand dataset을 하나의 MANO 출력으로 통합한다.</strong></li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">11. 한계</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>미래 frame을 보는 offline 구조라 streaming·closed-loop teleoperation에 바로 쓸 수 없다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>OOS headline metric은 wrist-aligned라 화면 밖 손의 절대 위치를 입증하지 않는다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>세계 좌표 camera motion은 출력하지 않는다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>K-free는 wide-FOV 화면 가장자리에서 translation과 detection coverage가 크게 나빠진다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>HOI4D 외 네 평가셋은 DreamHand in-domain이며, 공개 checkpoint를 그대로 쓴 baseline의 학습 분포는 통제되지 않았다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>일부 데이터셋은 pseudo-ground-truth MANO annotation을 사용한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>Backbone이 약 5B 규모이고 저자 학습에는 표준 16개·K-free 8개 A100이 사용돼 계산 비용이 크다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>코드와 checkpoint가 없어 저자 결과를 독립 재현할 수 없다.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">12. 실무에서 어디에 쓸 수 있나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>가장 가까운 용도는 실시간 robot control보다 <strong>녹화된 1인칭 작업 영상의 데이터화</strong>다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>요리·조립 영상에서 MANO와 joint trajectory 추출</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>로봇 imitation-learning demonstration 전처리</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>손이 자주 가려지는 작업 영상의 offline 동작 분석</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>사람 hand mesh를 로봇 손 관절로 retargeting하는 입력 생성</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>논문은 Inspire Hand retargeting을 정성적으로 보이지만 이 trajectory로 실제 robot policy 성능이 향상됐는지는 실험하지 않았다. 세계 좌표가 필요하면 SLAM을 결합하고, 긴 recording은 overlapping clip을 연결하며, OOS 구간에는 uncertainty를 함께 표시하는 후처리가 필요하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>M1 Pro 같은 개인 장비에서의 성능은 아직 판단할 수 없다. 공식 구현과 checkpoint가 없고 backbone이 약 5B 규모라 memory requirement와 Apple Silicon throughput을 측정할 근거가 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">13. 코드·가중치·라이선스 상태</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p><a href="https://ggxxii.github.io/dreamhand/">공식 프로젝트 페이지</a>와 <a href="https://github.com/ggxxii/dreamhand">GitHub</a>는 공개됐다. 2026년 8월 23일 기준 저장소에는 README, assets와 MIT LICENSE만 있고 inference code, training·data preparation script, K-given·K-free checkpoint는 모두 TODO다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>향후 DreamHand code를 MIT로 공개할 예정이지만 Wan backbone weight, VideoX-Fun, MANO와 각 데이터셋은 별도 제3자 라이선스를 따른다. 저장소의 MIT가 학습 데이터와 기반 model weight까지 재라이선스하는 것은 아니다. 논문 자체는 arXiv non-exclusive distribution license다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">원문</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><a href="https://arxiv.org/abs/2608.20308">arXiv 초록과 메타데이터</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://arxiv.org/html/2608.20308v1">arXiv HTML 전문</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://arxiv.org/pdf/2608.20308">논문 PDF</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://ggxxii.github.io/dreamhand/">공식 프로젝트 페이지</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://github.com/ggxxii/dreamhand">공식 GitHub</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://github.com/ggxxii/dreamhand/blob/main/LICENSE">GitHub LICENSE</a></li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p><em>공식 arXiv v1, 프로젝트 페이지와 저장소를 2026년 8월 23일 확인했습니다. 수치는 저자가 제공한 공통 evaluator 결과이며 독립 재현 결과가 아닙니다. “OOS 복원”은 wrist-relative 자세 연속성을 중심으로 해석했습니다.</em></p>
+<!-- /wp:paragraph -->

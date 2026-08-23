@@ -1,0 +1,445 @@
+<!-- wp:paragraph {"className":"article-lead"} -->
+<p class="article-lead"><strong>정상적인 사람 움직임만 보고, 처음 보는 이상행동을 찾을 수 있을까?</strong> STEP은 RGB 화면 대신 사람의 2D 관절 시계열을 입력받아 정상 분포에서 얼마나 벗어났는지를 energy로 계산한다. 새로움은 거대한 비디오 모델이 아니라, 관절 좌표를 먼저 <strong>PCA로 압축하고 whitening한 공간에서 noise를 주입</strong>한다는 데 있다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>논문은 UBnormal Full에서 90.1% AUROC와 GTX 1080의 1,026 FPS를 보고한다. 그러나 90.1은 모든 이상행동의 정확도가 아니고, 1,026 FPS에도 영상 decoding·사람 검출·AlphaPose·tracking 비용이 빠져 있다. 이 글은 input, output, process와 데이터셋 조건을 분해해 그 숫자가 실제로 무엇을 뜻하는지 분석한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>STEP의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>한 사람을 추적한 18개 2D 관절의 최근 12-frame 시퀀스와 관절 confidence.</td></tr><tr><td><strong>Process</strong></td><td>정규화 → PCA 48차원 → whitening → multi-scale energy model → confidence-aware Agg-Max → 시간 smoothing.</td></tr><tr><td><strong>Output</strong></td><td>사람별 연속 anomaly score와 이를 결합한 frame-level score. 이상행동 class 이름은 출력하지 않는다.</td></tr><tr><td><strong>학습 조건</strong></td><td>정상 pose sequence만 사용하는 one-class 학습.</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">1. STEP이 해결하려는 문제</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>일반적인 one-class Video Anomaly Detection은 학습 때 정상 영상만 제공한다. 싸움, 낙상, 자전거 탑승 같은 anomaly label을 외우는 것이 아니라 “이 장면에서 평소 사람들은 어떻게 움직이는가”를 학습하고, 테스트 동작이 그 분포에서 멀면 경보를 올린다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>STEP은 정상 분포의 <strong>음의 로그 밀도 E(x)=-log p(x)</strong>에 해당하는 scalar energy를 근사한다. 자주 본 걷기나 정지는 낮은 energy, 드문 자세 변화는 높은 energy가 된다. 재구성 오차와 달리 이상 입력도 autoencoder가 잘 복원해 버리는 문제를 피하려는 접근이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">왜 raw 관절에 Gaussian noise를 넣으면 안 되나</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Denoising Score Matching으로 energy model을 학습하려면 정상 입력 주변에 Gaussian noise를 넣는다. 그런데 각 관절의 x·y 좌표를 독립적으로 흔들면 팔과 다리 길이가 프레임마다 달라지고, 좌우 관절의 상관관계가 깨지며, 시간축에서 사람이 떨리는 비현실적인 skeleton이 생긴다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>시간 창이 길어질수록 입력 차원이 커져 문제가 심해진다. 논문의 raw-coordinate MULDE 재현은 window T=2에서 80.7%였지만 T=32에서는 70.6% AUROC로 떨어졌다. 모델이 정상과 anomaly의 경계보다 실제 사람에게 존재하지 않는 noisy pose를 설명하는 데 용량을 쓰게 된다는 것이 저자들의 진단이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">2. Input — 모델이 실제로 받는 데이터</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">한 사람의 2D pose sequence</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>입력 X는 2 × V × T tensor다. 2는 이미지상의 x·y 좌표, V는 관절 수, T는 현재 frame과 앞선 frame을 포함한 시간 창이다. 실험은 AlphaPose의 18-point skeleton과 기본 T=12를 사용하므로 펼친 raw vector는 2 × 18 × 12 = <strong>432차원</strong>이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>좌표와 함께 각 joint의 pose-estimator confidence를 유지한다. 한 sequence의 관절 confidence 평균을 0~1 사이 c(x)로 만들고 학습 loss와 최종 anomaly score에 사용한다. 가림이나 motion blur 때문에 pose가 흔들린 구간을 정상 움직임의 대표 사례로 강하게 학습하거나, tracking failure 자체를 anomaly로 오인하는 문제를 줄이기 위해서다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">원본 RGB는 STEP scorer의 입력이 아니다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>실제 전체 시스템에서는 원본 영상에서 먼저 사람을 검출하고 AlphaPose로 관절을 얻고, 같은 사람의 track을 시간축으로 연결해야 한다. 하지만 논문의 STEP network는 <strong>이미 추출·추적된 pose</strong>부터 시작한다. RGB appearance, 옷, 얼굴, 배경은 downstream energy model에 들어가지 않는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>이 구분은 속도와 privacy를 모두 해석할 때 중요하다. STEP이 RGB를 저장하지 않아도 upstream detector는 여전히 원본 frame을 처리한다. 따라서 skeleton-only downstream은 개인정보 노출을 줄일 수 있는 설계 요소이지, 그 자체로 익명성이나 개인정보 보호를 보장하는 기술은 아니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">3. Output — 무엇을 예측하고 무엇은 예측하지 않나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Residual MLP는 whitened PCA vector와 noise scale sigma를 받아 <strong>scalar energy</strong> 하나를 출력한다. 기본 설정은 10개 noise scale이므로 한 sequence를 clean 상태로 10번 평가하고, scale별 학습 통계로 표준화한 뒤 가장 큰 값을 선택한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>그 값에 pose confidence를 곱한 것이 사람별 anomaly score다. 값이 클수록 정상 학습 분포에서 멀다는 뜻이다. 논문은 사람별 score를 frame-level score로 모아 AUROC를 계산하고 시간축 Gaussian smoothing을 적용한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>출력은 <strong>연속 점수</strong>이며 보정된 anomaly 확률이 아니다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>“싸움”, “낙상”, “절도” 같은 class label을 출력하지 않는다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>어느 pose track이 높은 점수를 냈는지는 알 수 있지만, 사건 원인을 자연어로 설명하지 않는다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>논문은 서비스용 threshold나 시간당 오경보 수를 제시하지 않는다.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>보충자료는 사람별 multi-scale score에 Agg-Max를 사용한다고 설명하지만 여러 사람의 점수를 하나의 frame score로 합치는 정확한 수식은 본문에 완전하게 적혀 있지 않다. 공식 코드도 비어 있어 흔히 쓰는 “사람 중 최댓값”이라고 단정하기보다는 공개 구현에서 확인해야 한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">4. Process — pose에서 frame anomaly score까지</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 1. 관절 추출, tracking, 정규화</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>AlphaPose가 18개 관절과 confidence를 추출하고 사람별 track을 만든다. STEP은 SeeKer·STG-NF와 같은 사전 추출 pose와 per-segment standardization을 사용해 비교 조건을 맞춘다. 결측 관절과 ID switch의 세부 처리는 코드가 공개되어야 정확히 확인할 수 있다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 2. 정상 sequence로 PCA basis 학습</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>정상 훈련 pose만 모아 평균과 covariance를 계산하고 상위 K=48 principal component를 남긴다. 432차원 raw sequence가 48차원 latent가 되므로 차원이 약 9분의 1로 줄어든다. 이 basis는 팔·다리 관절을 독립적으로 흔드는 축보다 정상 데이터에서 자주 함께 변한 motion pattern을 따른다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 3. Whitening</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>PCA projection 뒤 각 principal component를 그 eigenvalue의 제곱근으로 나눈다. 즉 PC마다 분산을 약 1로 맞춘다. 그렇지 않으면 같은 isotropic noise가 저분산 축에는 너무 크고 고분산 축에는 너무 작아져 scale의 의미가 달라진다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>PCA가 bone length 같은 인체 물리 제약을 명시적으로 보장하는 것은 아니다. 논문이 보인 것은 raw-coordinate noise보다 정상 데이터의 주요 변동 축을 따르는, 경험적으로 더 그럴듯한 perturbation이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 4. 10개 scale의 noise로 DSM 학습</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>0.1에서 1.0 사이를 기하급수적으로 나눈 10개 sigma 중 하나를 선택해 whitened latent에 Gaussian noise를 더한다. 네 개 hidden residual block, width 1,024의 sigma-conditioned MLP가 scalar energy를 만든다. Denoising Score Matching은 energy gradient가 clean latent에서 noisy point 바깥쪽을 가리키는 target을 근사하도록 학습하며, <strong>clean latent 방향을 가리키는 것은 그 반대인 negative energy gradient, 즉 score</strong>다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>sequence confidence c(x)가 loss 전체를 가중한다. 낮은 confidence 샘플을 모두 삭제하는 hard filtering이 아니라, 정보는 남기되 energy landscape에 미치는 힘을 줄이는 soft weighting이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 5. Test-time Agg-Max</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>테스트에서는 noise를 새로 넣지 않고 clean PCA latent를 10개 sigma condition으로 평가한다. scale마다 energy의 평균과 분산이 다르므로 정상 훈련 통계로 z-score처럼 표준화하고 최댓값을 고른다. 저자 설명대로라면 “어느 scale에서든 강한 이상 신호가 있으면 잡는다”는 OR 연산에 가깝다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 6. Confidence와 시간 smoothing</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Agg-Max 결과에 c(x)를 곱해 low-quality pose의 경보를 약하게 하고, frame score에 1D Gaussian smoothing을 적용한다. smoothing은 benchmark 점수를 높이지만 미래 또는 주변 frame을 이용하므로 지연이 생긴다. 논문이 구분한 조건 중 실제 zero-delay에 가장 가까운 것은 <strong>Online Raw</strong>다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">5. 학습 설정</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>항목</th><th>설정</th></tr></thead><tbody><tr><td>Temporal window</td><td>T=12</td></tr><tr><td>PCA dimension</td><td>K=48</td></tr><tr><td>Noise scales</td><td>10개, 0.1~1.0 geometric</td></tr><tr><td>Energy network</td><td>4 hidden residual blocks, width 1,024</td></tr><tr><td>Optimizer</td><td>AdamW, weight decay 1e-2, beta=(0.5, 0.9)</td></tr><tr><td>Batch / Epoch</td><td>1,024 / 최대 400 epoch</td></tr><tr><td>Learning rate</td><td>UBnormal 5e-4, ShanghaiTech 2e-4</td></tr><tr><td>Schedule</td><td>1 epoch warmup 후 cosine annealing</td></tr><tr><td>EMA</td><td>0.999, 평가는 EMA model</td></tr><tr><td>학습 데이터</td><td>각 데이터셋의 normal training sequence만</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>UBnormal은 validation AUROC로 early stopping하고, ShanghaiTech와 MSAD는 400 epoch 종료 시 평가한다. 대표 결과는 20회 독립 학습의 평균과 표준편차지만, 많은 ablation과 보충 실험은 fixed seed 단일 모델이다. 표마다 90.1, 90.3, 90.4, 90.6이 등장하는 이유 중 하나이므로 서로 바꾸어 인용하면 안 된다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">6. 어떤 데이터셋을 사용했나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>데이터셋</th><th>규모</th><th>성격</th><th>STEP이 보는 것</th></tr></thead><tbody><tr><td><strong>ShanghaiTech</strong></td><td>Train 330 / Test 107 videos, 13 scenes</td><td>실제 CCTV. 싸움·강도·자전거 등</td><td>정상 train pose로 학습, full·human-related 평가</td></tr><tr><td><strong>UBnormal</strong></td><td>543 videos: 268 train / 64 val / 211 test, 29 scenes</td><td>Photorealistic synthetic. 사람·환경 anomaly</td><td>정상 train pose, val early stopping, full·HR 평가</td></tr><tr><td><strong>MSAD</strong></td><td>720 videos, 14 scenes, 11 anomaly categories</td><td>별도 실제 영상 benchmark</td><td>정상 360개로 학습, held-out 360개 평가</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Full과 Human-Related는 왜 나누나</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Full에는 불, 폭발, 낙하물처럼 사람이 아닌 사건도 포함될 수 있다. Human-Related split은 싸움, 낙상, 강도처럼 사람의 pose 변화에 나타날 가능성이 있는 anomaly를 중심으로 다시 평가한다. pose-only 모델이 구조적으로 볼 수 없는 사건을 별도로 해석하기 위한 구분이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>MSAD의 human-related category는 Assault, Fighting, People Falling, Robbery, Shooting, Traffic Accident, Vandalism이고, Explosion, Fire, Object Falling, Water Incident는 non-HR로 분류된다. Full MSAD에서 성능이 크게 낮아지는 이유가 여기 있다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">평가 protocol</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>모든 테스트 frame을 합쳐 계산하는 frame-level micro AUROC</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>video별 score normalization 없음</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>대표 결과에 temporal Gaussian smoothing 사용</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>보충자료에서 class imbalance에 민감한 Average Precision도 보고</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>Online은 과거 window로 현재 frame scoring, Backtrack은 완성된 window score를 앞선 frame에도 소급</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">7. 비교 결과 분석</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>ShanghaiTech Full AUROC %</th><th>ShanghaiTech HR AUROC %</th><th>UBnormal Full AUROC %</th><th>UBnormal HR AUROC %</th></tr></thead><tbody><tr><td>MULDE Pose</td><td>78.5</td><td>—</td><td>80.6</td><td>—</td></tr><tr><td>STG-NF</td><td>85.9</td><td>87.4</td><td>71.8</td><td>71.5</td></tr><tr><td>SeeKer</td><td>85.5</td><td>86.9</td><td>77.9</td><td>78.9</td></tr><tr><td><strong>STEP</strong></td><td><strong>86.2 ± 0.1</strong></td><td><strong>87.7 ± 0.1</strong></td><td><strong>90.1 ± 0.4</strong></td><td><strong>90.9 ± 0.4</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">UBnormal: 논문의 가장 강한 결과</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>UBnormal Full에서 STEP 90.1은 비교된 기존 skeleton-only 최고 SeeKer 77.9보다 <strong>12.2 percentage points</strong> 높다. Human-Related도 90.9 대 78.9로 12.0%p 차이다. 초록의 12.2%를 상대 개선율로 쓰면 안 된다. 90.1-77.9의 절대 차이이며, 상대 개선율은 별도로 계산하면 약 15.7%다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">ShanghaiTech: 최고 수준이지만 차이는 0.3%p</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>ShanghaiTech Full은 STG-NF 85.9에서 STEP 86.2, HR은 87.4에서 87.7로 둘 다 0.3%p 개선이다. 기존 방법의 반복 실험 표준편차와 유의성 검정도 없다. 따라서 UBnormal과 같은 “큰 폭의 경신”이 아니라 skeleton-only 비교에서 근소하게 높고 전체 방법 중 최고 수준이라고 표현하는 편이 정확하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Average Precision</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>데이터셋·AP %</th><th>STG-NF</th><th>SeeKer</th><th>STEP</th></tr></thead><tbody><tr><td>UBnormal Full</td><td>62.7</td><td>80.3</td><td><strong>91.6</strong></td></tr><tr><td>UBnormal HR</td><td>67.2</td><td>79.8</td><td><strong>91.7</strong></td></tr><tr><td>ShanghaiTech Full</td><td>77.6</td><td>80.0</td><td><strong>84.3</strong></td></tr><tr><td>ShanghaiTech HR</td><td>81.4</td><td>81.5</td><td><strong>85.2</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>AP라는 다른 metric에서도 개선 방향이 유지된 것은 class imbalance가 있는 평가를 보완하는 근거다. 통계적으로 우연이 아님을 검정한 결과는 아니다. 또한 이 보충 표의 STEP 결과는 main 20-run mean과 다른 단일 결과를 사용할 수 있어 숫자를 서로 섞지 않아야 한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">MSAD: 74.1과 59.6을 함께 봐야 한다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>평가 방식</th><th>Backtrack Raw</th><th>Backtrack Smooth</th><th>Online Raw</th><th>Online Smooth</th></tr></thead><tbody><tr><td>Full MSAD</td><td>57.6</td><td>59.9</td><td>56.4</td><td><strong>59.6</strong></td></tr><tr><td>MSAD-HR ST-Style</td><td>71.7</td><td>72.8</td><td>69.9</td><td>71.6</td></tr><tr><td>MSAD-HR UB-Style</td><td>73.9</td><td><strong>75.4</strong></td><td>72.2</td><td><strong>74.1</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>자주 인용되는 74.1은 <strong>UB-Style Human-Related, Online, smoothing</strong> 조건이다. 기존 STG-NF 55.7과 SeeKer 61.1이 어느 HR split style인지 명시되지 않아 완전히 같은 조건의 직접 비교로 단정할 수도 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Full MSAD Online Smooth는 59.6이다. 불·폭발·낙하물처럼 사람이 없는 사건에는 skeleton 입력 자체가 없고, 사람이 있어도 자세가 정상인 context anomaly에는 skeleton은 존재하지만 사건 신호가 약하다. 이 결과는 pose-only의 한계를 솔직하게 보여준다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Cross-dataset transfer</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>학습 → 테스트</th><th>AUROC</th></tr></thead><tbody><tr><td>ShanghaiTech → UBnormal</td><td>82.4</td></tr><tr><td>UBnormal → ShanghaiTech</td><td>77.2</td></tr><tr><td>두 데이터 공동 학습 → UBnormal</td><td>88.9</td></tr><tr><td>두 데이터 공동 학습 → ShanghaiTech</td><td>86.0</td></tr><tr><td>각자 in-domain fixed-seed</td><td>UBnormal 90.6 / ShanghaiTech 86.3</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>배경 pixel을 보지 않아 어느 정도 domain transfer가 되지만 in-domain보다 분명히 낮다. “카메라와 환경에 독립적”이라는 증거가 아니라, appearance-based 모델보다 scene dependency를 줄일 가능성을 보여주는 결과다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">8. Ablation: 무엇이 성능을 만들었나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">긴 시간 창에서 PCA가 붕괴를 막는다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>구성</th><th>T=2</th><th>T=12</th><th>T=32</th></tr></thead><tbody><tr><td>Raw coordinates</td><td>80.7</td><td>72.2</td><td>70.6</td></tr><tr><td>Raw + confidence</td><td>87.2</td><td>81.3</td><td>73.1</td></tr><tr><td>PCA K=48, confidence 없음</td><td>82.1</td><td>84.0</td><td>81.3</td></tr><tr><td><strong>PCA K=48 + confidence</strong></td><td><strong>88.8</strong></td><td><strong>90.4</strong></td><td><strong>88.3</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>confidence만 넣으면 짧은 window 성능은 좋아져도 T=32 붕괴를 막지 못한다. PCA만 넣으면 긴 window가 안정되고, 둘을 함께 써야 T=12의 최고 성능과 T=32의 높은 유지력이 나온다. 논문 중심 주장을 가장 직접적으로 지지하는 표다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Whitening과 soft confidence weighting</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>구성</th><th>ShanghaiTech</th><th>UBnormal</th></tr></thead><tbody><tr><td>Full STEP</td><td><strong>86.3</strong></td><td><strong>90.4</strong></td></tr><tr><td>Vanilla MLP</td><td>85.6</td><td>89.3</td></tr><tr><td>Whitening 제거</td><td>85.5</td><td>88.2</td></tr><tr><td>Confidence &lt; 0.2 hard filter</td><td>86.0</td><td>89.6</td></tr><tr><td>Confidence &lt; 0.4 hard filter</td><td>84.3</td><td>85.9</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>whitening 제거는 UBnormal을 2.2%p 낮춘다. confidence 0.4 미만을 모두 버리면 4.5%p 내려간다. 부분 가림이나 빠른 정상 동작까지 학습 데이터에서 삭제하는 것보다 품질에 따라 부드럽게 가중하는 편이 좋았다는 의미다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">PCA 대 Autoencoder</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>Projection</th><th>정상 데이터만 사전학습</th><th>Anomaly 포함 사전학습</th></tr></thead><tbody><tr><td><strong>PCA</strong></td><td><strong>90.5</strong></td><td><strong>90.5</strong></td></tr><tr><td>AE</td><td>89.5</td><td>90.1</td></tr><tr><td>VAE</td><td>84.9</td><td>86.2</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>이 설정에서는 단순 PCA가 AE와 VAE보다 좋았다. 정상 데이터만 학습한 nonlinear encoder가 anomaly까지 정상 latent에 접어 넣을 수 있다는 것이 저자 해석이다. 다만 한 architecture와 설정의 결과이므로 “PCA는 모든 autoencoder보다 우수하다”로 일반화할 수는 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">9. 속도: 1,026 FPS에 포함된 것과 빠진 것</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>한 frame의 사람 수</th><th>Latency</th><th>Throughput</th><th>Peak memory</th></tr></thead><tbody><tr><td>1</td><td>0.86ms</td><td>1,167 FPS</td><td>21.5MB</td></tr><tr><td>10</td><td>0.93ms</td><td>1,077 FPS</td><td>22.8MB</td></tr><tr><td><strong>50</strong></td><td><strong>0.97ms</strong></td><td><strong>1,026 FPS</strong></td><td><strong>32.6MB</strong></td></tr><tr><td>100</td><td>1.62ms</td><td>618 FPS</td><td>44.9MB</td></tr><tr><td>500</td><td>7.45ms</td><td>134 FPS</td><td>143.2MB</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>GTX 1080 측정에는 raw pose → PCA → whitening → 10개 energy 평가 → 표준화 → Agg-Max → frame score가 포함된다. 아래 항목은 제외된다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>영상 decoding</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>사람 검출</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>AlphaPose inference</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>pose tracking</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>따라서 정확한 문장은 “pose가 이미 추출·추적된 뒤 STEP scorer는 GTX 1080에서 50명 기준 0.97ms”다. 원본 CCTV부터 1,026 FPS라는 뜻이 아니다. M1 Pro 성능도 논문에 없고 코드가 공개되지 않아 현재 측정할 수 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">10. 이 논문의 장점</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>정상 데이터만으로 학습한다.</strong> 가능한 모든 anomaly class를 수집할 필요가 없다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>문제 진단과 해결이 직접 연결된다.</strong> raw noise의 골격 붕괴를 PCA-space noise로 바꿨다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>긴 sequence를 작은 고정 차원으로 만든다.</strong> T가 늘어도 energy model 입력은 K=48이다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>pose 품질을 부드럽게 반영한다.</strong> 낮은 confidence를 전부 버리지 않고 학습·추론 가중치로 쓴다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>downstream 계산이 매우 작다.</strong> pose가 준비된 이후 수백 명을 batch로 빠르게 scoring한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>appearance 의존성을 줄인다.</strong> 배경·조명보다 사람의 motion structure에 집중한다.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">11. 한계</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>pose detector가 사람을 놓치거나 완전히 가려지면 STEP 입력도 없다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>불, 폭발, 낙하물, 방치 물건처럼 사람 pose가 없는 anomaly를 탐지하지 못한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>물건 교환이나 절도처럼 자세만 보면 정상인 context anomaly에 약할 수 있다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>사람을 독립 track으로 다루므로 복잡한 다인 관계를 충분히 표현하지 못할 수 있다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>backward walking처럼 드물지만 정상인 행동도 높은 energy를 낼 수 있다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>confidence를 최종 점수에도 곱하므로 실제 anomaly 순간 pose 품질이 낮으면 경보가 약해질 수 있다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>대표 smoothing 결과는 zero-delay가 아니다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>AUROC는 운영 threshold, 시간당 false alarm, 경보 피로도를 알려주지 않는다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>PCA는 명시적인 인체 kinematic constraint가 아니다.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">12. 실무 적용 판단</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>작업자 안전, 매장·시설 CCTV에서 사람의 행동 변화를 빠르게 screening하는 <strong>후보 구조로 검토할 수 있다.</strong> 공식 코드, end-to-end latency와 운영 threshold·시간당 오경보 검증 전에는 실서비스 적합성을 확정할 수 없다. STEP 하나로 모든 사건을 맡기기보다 visual detector와 역할을 나눠야 한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list {"ordered":true} -->
+<ol class="wp-block-list"><!-- wp:list-item -->
+<li>현장 장비에서 사람 검출·pose 추출·tracking</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>사람별 T=12 ring buffer 유지</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>동일한 coordinate normalization과 PCA·whitening 적용</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>10개 scale을 batch inference하고 confidence-aware Agg-Max 계산</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>지연 허용 시 smoothing, 카메라별 threshold 보정</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>화재·물체·상황 anomaly는 별도 RGB/object detector로 보완</li>
+<!-- /wp:list-item --></ol>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>privacy가 중요하면 pose를 현장 장비에서 만들고 raw frame을 즉시 폐기하는 시스템 정책이 함께 필요하다. 공식 코드가 공개되면 결측 joint, tracker ID switch, 사람 간 frame-score 결합, smoothing kernel과 입력 FPS를 먼저 확인해야 한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">13. 코드·가중치·라이선스 상태</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p><a href="https://github.com/jakubmicorek/STEP">공식 GitHub 주소</a>는 <a href="https://jakubmicorek.github.io/STEP-demo/">프로젝트 페이지</a>와 arXiv에서 연결된다. 그러나 2026년 8월 23일 현재 저장소는 commit·branch가 없는 빈 저장소다. 학습 코드, inference 코드, config, pretrained weight, 설치 문서와 software license가 모두 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><a href="https://arxiv.org/abs/2608.19987">논문</a>은 CC BY 4.0이지만 그 라이선스가 아직 존재하지 않는 software에 자동으로 적용되는 것은 아니다. 현재는 방법을 참고해 재구현할 수 있을 뿐, 저자 결과를 같은 코드로 독립 재현할 수 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">원문</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><a href="https://arxiv.org/abs/2608.19987">arXiv 초록과 메타데이터</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://arxiv.org/html/2608.19987v1">arXiv HTML 본문과 Supplement</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://arxiv.org/pdf/2608.19987">논문 PDF</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://jakubmicorek.github.io/STEP-demo/">공식 프로젝트 페이지</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://github.com/jakubmicorek/STEP">공식 GitHub</a></li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p><em>공식 arXiv v1, Supplement, 프로젝트 페이지와 저장소를 2026년 8월 23일 확인했습니다. 저자 공개 자료 기준 ECCV 2026 accepted이며, 수치는 독립 재현 결과가 아닙니다.</em></p>
+<!-- /wp:paragraph -->

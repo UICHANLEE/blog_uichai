@@ -71,6 +71,9 @@ for (const requiredRoute of [
   '/spatialvlm-paper-review/',
   '/ai-mvp-before-model/',
   '/ai-cv-sota-briefing-2026-08-23/',
+  '/armorocr-adversarial-ocr-paper-analysis/',
+  '/step-pose-video-anomaly-detection-paper-analysis/',
+  '/dreamhand-video-diffusion-3d-hand-paper-analysis/',
 ]) {
   if (!routeFiles.has(requiredRoute)) {
     throw new Error(`필수 카테고리 경로가 없습니다: ${requiredRoute}`);
@@ -99,6 +102,11 @@ for (const editorialFocus of ['IT 최신 뉴스', 'AI 논문 분석', '사업 �
 if (!home.includes('AI CV SOTA 브리핑')) {
   throw new Error('첫 화면에서 최신 AI CV 브리핑을 확인할 수 없습니다.');
 }
+for (const deepDiveTitle of ['ArmorOCR 논문 분석', 'STEP 논문 분석', 'DreamHand 논문 분석']) {
+  if (!home.includes(deepDiveTitle)) {
+    throw new Error(`첫 화면에서 독립 심층 분석 글을 확인할 수 없습니다: ${deepDiveTitle}`);
+  }
+}
 if (!home.includes('<link rel="icon" href="data:image/svg+xml,')) {
   throw new Error('기본 사이트 아이콘 fallback이 없습니다.');
 }
@@ -112,6 +120,27 @@ const editorialArticles = new Map([
     'arxiv.org/abs/2608.20122',
     'arxiv.org/abs/2608.19987',
     'arxiv.org/abs/2608.20308',
+  ]],
+  ['/armorocr-adversarial-ocr-paper-analysis/', [
+    'ArmorOCR 논문 분석',
+    '<strong>Input</strong>',
+    '<strong>Output</strong>',
+    'arxiv.org/abs/2608.20122',
+    'AdvSpot',
+  ]],
+  ['/step-pose-video-anomaly-detection-paper-analysis/', [
+    'STEP 논문 분석',
+    '<strong>Input</strong>',
+    '<strong>Output</strong>',
+    'arxiv.org/abs/2608.19987',
+    'UBnormal',
+  ]],
+  ['/dreamhand-video-diffusion-3d-hand-paper-analysis/', [
+    'DreamHand 논문 분석',
+    '<strong>Input</strong>',
+    '<strong>Output</strong>',
+    'arxiv.org/abs/2608.20308',
+    'HOT3D',
   ]],
 ]);
 for (const [route, expectedFragments] of editorialArticles) {

@@ -27,6 +27,11 @@
       "indexable": true
     },
     {
+      "path": "/armorocr-adversarial-ocr-paper-analysis/",
+      "file": "armorocr-adversarial-ocr-paper-analysis/index.html",
+      "indexable": true
+    },
+    {
       "path": "/category/ai-paper-analysis/",
       "file": "category/ai-paper-analysis/index.html",
       "indexable": true
@@ -67,6 +72,11 @@
       "indexable": true
     },
     {
+      "path": "/dreamhand-video-diffusion-3d-hand-paper-analysis/",
+      "file": "dreamhand-video-diffusion-3d-hand-paper-analysis/index.html",
+      "indexable": true
+    },
+    {
       "path": "/interactive-blog-without-sacrificing-speed/",
       "file": "interactive-blog-without-sacrificing-speed/index.html",
       "indexable": true
@@ -97,8 +107,18 @@
       "indexable": true
     },
     {
+      "path": "/step-pose-video-anomaly-detection-paper-analysis/",
+      "file": "step-pose-video-anomaly-detection-paper-analysis/index.html",
+      "indexable": true
+    },
+    {
       "path": "/stories/",
       "file": "stories/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/stories/page/2/",
+      "file": "stories/page/2/index.html",
       "indexable": true
     },
     {
@@ -192,8 +212,18 @@
       "indexable": false
     },
     {
+      "path": "/tag/advspot/",
+      "file": "tag/advspot/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/ai-%ea%b8%80%ec%93%b0%ea%b8%b0/",
       "file": "tag/ai-글쓰기/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/ai-%eb%85%bc%eb%ac%b8-%eb%b6%84%ec%84%9d/",
+      "file": "tag/ai-논문-분석/index.html",
       "indexable": false
     },
     {
@@ -232,6 +262,36 @@
       "indexable": false
     },
     {
+      "path": "/tag/eccv-2026/",
+      "file": "tag/eccv-2026/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/egocentric-video/",
+      "file": "tag/egocentric-video/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/embodied-ai/",
+      "file": "tag/embodied-ai/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/energy-based-model/",
+      "file": "tag/energy-based-model/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/grpo/",
+      "file": "tag/grpo/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/human-pose/",
+      "file": "tag/human-pose/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/m1-pro/",
       "file": "tag/m1-pro/index.html",
       "indexable": false
@@ -239,6 +299,26 @@
     {
       "path": "/tag/macos/",
       "file": "tag/macos/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/mano/",
+      "file": "tag/mano/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/ocr/",
+      "file": "tag/ocr/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/pca/",
+      "file": "tag/pca/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/qwen3-vl/",
+      "file": "tag/qwen3-vl/index.html",
       "indexable": false
     },
     {
@@ -274,6 +354,11 @@
     {
       "path": "/tag/video-anomaly-detection/",
       "file": "tag/video-anomaly-detection/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/video-diffusion-model/",
+      "file": "tag/video-diffusion-model/index.html",
       "indexable": false
     },
     {

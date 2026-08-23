@@ -7,7 +7,7 @@
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>여기서 <strong>SOTA</strong>는 모든 컴퓨터 비전 문제의 절대 1등이라는 뜻이 아니다. 각 논문이 선택한 데이터셋·평가 규칙·비교군 안에서 보고한 최고 성능이다. 새 벤치마크, 저자 평가 코드 미공개, in-domain 학습처럼 해석을 바꾸는 조건까지 함께 읽어야 한다.</p>
+<p>여기서 <strong>SOTA</strong>는 모든 컴퓨터 비전 문제의 절대 1등이라는 뜻이 아니다. 각 논문이 선택한 데이터셋·평가 규칙·비교군 안에서 보고한 최고 성능이다. 새 벤치마크의 데이터 미공개, 완전한 평가 패키지 부재, in-domain 학습처럼 해석을 바꾸는 조건까지 함께 읽어야 한다.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:table -->
@@ -39,7 +39,7 @@
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>2단계에서는 GRPO로 네 가지 능력을 따로 보상한다. text-to-bbox localization, bbox-to-text recognition, full spotting, grounded VQA다. 핵심은 추론 시 crop이나 회전 도구를 다시 호출하지 않는 <strong>원본 이미지 single pass</strong>라는 점이다. tool-assisted OCR보다 배포 경로를 단순하게 만들려는 설계다.</p>
+<p>2단계에서는 GRPO로 네 가지 능력을 따로 보상한다. text-to-bbox localization, bbox-to-text recognition, full spotting, grounded VQA다. 핵심은 추론 시 <strong>원본 이미지로 모델을 한 번만 호출하고 별도 crop·회전 도구를 사용하지 않는다</strong>는 점이다. tool-assisted OCR보다 배포 경로를 단순하게 만들려는 설계다.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:heading {"level":3} -->
@@ -55,11 +55,11 @@
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>그러나 AdvSpot은 논문 저자들이 새로 구축한 390-image 벤치마크이고 데이터와 평가 코드도 아직 공개되지 않았다. 55.7%를 범용 OCR 정확도나 독립 재현된 SOTA로 읽으면 안 된다. 또한 평균 성능은 올랐지만 tiny text처럼 ArmorOCR이 다른 모델보다 낮은 세부 유형도 있다.</p>
+<p>그러나 AdvSpot은 논문 저자들이 새로 구축한 390-image 벤치마크다. 기본 accuracy·IoU evaluator는 <code>advspot_infer.py</code>에 공개됐지만 이미지·annotation과 완전한 평가 패키지는 아직 없다. 55.7%를 범용 OCR 정확도나 독립 재현된 SOTA로 읽으면 안 된다. 또한 평균 성능은 올랐지만 tiny text처럼 ArmorOCR이 다른 모델보다 낮은 세부 유형도 있다.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p><strong>공개 상태:</strong> 공식 GitHub에는 <code>infer.py</code>, <code>advspot_infer.py</code>와 네 개 예제가 있다. training code는 없고 ArmorOCR 가중치는 “uploaded soon”, AdvSpot 데이터와 평가 스크립트도 “coming soon”이다. 논문은 CC BY 4.0이지만 저장소에는 별도 LICENSE가 확인되지 않는다. Qwen3-VL 기반 가중치가 공개되면 그 모델의 이용 조건도 함께 확인해야 한다.</p>
+<p><strong>공개 상태:</strong> 공식 GitHub에는 <code>infer.py</code>, 기본 metric을 계산하는 <code>advspot_infer.py</code>와 네 개 예제가 있다. training code는 없고 ArmorOCR 가중치는 “uploaded soon”, AdvSpot 이미지·annotation과 완전한 평가 패키지는 “coming soon”이다. 논문은 CC BY 4.0이지만 저장소에는 별도 LICENSE가 확인되지 않는다. Qwen3-VL 기반 가중치가 공개되면 그 모델의 이용 조건도 함께 확인해야 한다.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->

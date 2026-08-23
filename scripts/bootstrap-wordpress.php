@@ -937,13 +937,84 @@ function odd_note_publish_ai_cv_briefing( $owner_id ) {
 		false
 	);
 	update_post_meta( $post_id, '_odd_note_primary_category_id', (int) $category->term_id );
-	update_post_meta( $post_id, '_odd_note_editorial_revision', '1.5.0' );
+	update_post_meta( $post_id, '_odd_note_editorial_revision', '1.6.1' );
 
 	$post_ids          = (array) get_option( 'odd_note_editorial_post_ids', array() );
 	$post_ids[ $slug ] = $post_id;
 	update_option( 'odd_note_editorial_post_ids', $post_ids, false );
 
 	return $post_id;
+}
+
+/**
+ * Publish one standalone deep dive for each paper in the CV briefing.
+ *
+ * @param int $owner_id Author user ID.
+ * @return array<string,int>
+ */
+function odd_note_publish_ai_cv_deep_dives( $owner_id ) {
+	$specs = array(
+		'armorocr-adversarial-ocr-paper-analysis' => array(
+			'title'   => 'ArmorOCR 논문 분석: 사람이 읽는 글자를 VLM도 읽게 만드는 입력·출력·학습 과정',
+			'excerpt' => '원본 이미지 한 장을 받는 Qwen3-VL-8B가 privileged-view self-distillation과 네 가지 GRPO 보상으로 위치·인식·spotting·VQA를 학습하는 과정을 데이터셋과 비교 결과까지 분석합니다.',
+			'tags'    => array( 'ArmorOCR', 'VLM', 'OCR', 'Qwen3-VL', 'GRPO', 'AdvSpot', 'AI 논문 분석' ),
+		),
+		'step-pose-video-anomaly-detection-paper-analysis' => array(
+			'title'   => 'STEP 논문 분석: 포즈 시퀀스를 PCA 공간에서 학습해 영상 이상행동을 찾는 법',
+			'excerpt' => '18개 관절의 12-frame 입력을 PCA·whitening·energy model로 처리하는 전 과정과 ShanghaiTech·UBnormal·MSAD 결과, 1,026 FPS 수치의 정확한 범위를 분석합니다.',
+			'tags'    => array( 'STEP', 'Video Anomaly Detection', 'Human Pose', 'PCA', 'Energy-Based Model', 'ECCV 2026', 'AI 논문 분석' ),
+		),
+		'dreamhand-video-diffusion-3d-hand-paper-analysis' => array(
+			'title'   => 'DreamHand 논문 분석: 비디오 확산 모델로 가려진 손의 3D 움직임을 복원하는 법',
+			'excerpt' => '81-frame RGB clip을 Wan의 clean latent와 양방향 decoder로 처리해 양손 MANO 궤적을 만드는 과정, 7-source 학습 데이터와 OOS·K-free 결과의 의미를 분석합니다.',
+			'tags'    => array( 'DreamHand', 'Video Diffusion Model', '3D Hand Reconstruction', 'MANO', 'Egocentric Video', 'Embodied AI', 'AI 논문 분석' ),
+		),
+	);
+
+	$category = get_term_by( 'slug', 'ai-paper-analysis', 'category' );
+	if ( ! $category ) {
+		odd_note_bootstrap_fail( 'AI 논문 분석 카테고리를 찾을 수 없습니다.' );
+	}
+
+	// Validate the complete series before publishing the first post, so a
+	// missing source or user-owned slug cannot leave a partial migration.
+	foreach ( $specs as $slug => &$spec ) {
+		$existing = get_page_by_path( $slug, OBJECT, 'post' );
+		if ( $existing && '1' !== get_post_meta( (int) $existing->ID, '_odd_note_bootstrap', true ) ) {
+			odd_note_bootstrap_fail( '같은 슬러그의 사용자 글이 있어 자동 발행을 중단했습니다: ' . $slug );
+		}
+
+		$spec['content'] = odd_note_editorial_content( $slug );
+	}
+	unset( $spec );
+
+	$post_ids = (array) get_option( 'odd_note_editorial_post_ids', array() );
+	$created  = array();
+	foreach ( $specs as $slug => $spec ) {
+		$post_id = odd_note_bootstrap_post(
+			array(
+				'post_type'      => 'post',
+				'post_status'    => 'publish',
+				'post_name'      => $slug,
+				'post_title'     => $spec['title'],
+				'post_excerpt'   => $spec['excerpt'],
+				'post_content'   => $spec['content'],
+				'post_author'    => $owner_id,
+				'post_category'  => array( (int) $category->term_id ),
+				'comment_status' => 'closed',
+				'ping_status'    => 'closed',
+			)
+		);
+
+		wp_set_post_tags( $post_id, $spec['tags'], false );
+		update_post_meta( $post_id, '_odd_note_primary_category_id', (int) $category->term_id );
+		update_post_meta( $post_id, '_odd_note_editorial_revision', '1.6.1' );
+		$post_ids[ $slug ] = $post_id;
+		$created[ $slug ]  = $post_id;
+	}
+
+	update_option( 'odd_note_editorial_post_ids', $post_ids, false );
+	return $created;
 }
 
 /**
@@ -994,7 +1065,7 @@ if (
 	odd_note_bootstrap_fail( '사이트 주소 형식이 올바르지 않습니다.' );
 }
 
-$target_version = '1.5.0';
+$target_version = '1.6.1';
 $installed      = is_blog_installed();
 $state          = $installed ? get_option( 'odd_note_bootstrap_state', '' ) : '';
 
@@ -1032,6 +1103,13 @@ if ( $installed && 'complete' === $state ) {
 
 		if ( version_compare( $current_version, '1.5.0', '<' ) ) {
 			odd_note_publish_ai_cv_briefing( $owner_id );
+		}
+
+		if ( version_compare( $current_version, '1.6.1', '<' ) ) {
+			if ( version_compare( $current_version, '1.5.0', '>=' ) ) {
+				odd_note_publish_ai_cv_briefing( $owner_id );
+			}
+			odd_note_publish_ai_cv_deep_dives( $owner_id );
 		}
 
 		update_option( 'odd_note_bootstrap_version', $target_version, false );
@@ -1476,6 +1554,7 @@ odd_note_publish_ai_blog_workflow( $owner_id, $ai_tools_id );
 odd_note_publish_mac_image_workflow( $owner_id, $mac_workflow_id );
 $editorial_ids = odd_note_publish_editorial_series( $owner_id );
 odd_note_publish_ai_cv_briefing( $owner_id );
+odd_note_publish_ai_cv_deep_dives( $owner_id );
 
 update_option( 'sticky_posts', array( $editorial_ids['supabase-realtime-binary-state-sync'] ) );
 update_option( 'show_on_front', 'page' );
@@ -1521,4 +1600,4 @@ update_option( 'odd_note_bootstrap_version', $target_version, false );
 update_option( 'odd_note_bootstrap_state', 'complete', false );
 
 echo 'Odd Note 설치와 초기 콘텐츠 구성이 완료됐습니다.' . PHP_EOL;
-echo '페이지 6개, 카테고리 6개, 글 9개, 메뉴 2개를 준비했습니다.' . PHP_EOL;
+echo '페이지 6개, 카테고리 6개, 글 12개, 메뉴 2개를 준비했습니다.' . PHP_EOL;

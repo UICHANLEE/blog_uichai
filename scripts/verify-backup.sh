@@ -49,7 +49,10 @@ for article in \
   supabase-realtime-binary-state-sync \
   spatialvlm-paper-review \
   ai-mvp-before-model \
-  ai-cv-sota-briefing-2026-08-23; do
+  ai-cv-sota-briefing-2026-08-23 \
+  armorocr-adversarial-ocr-paper-analysis \
+  step-pose-video-anomaly-detection-paper-analysis \
+  dreamhand-video-diffusion-3d-hand-paper-analysis; do
   if ! tar -tzf "$backup_dir/configuration.tar.gz" | grep -q "^content/posts/$article.html$"; then
     echo "오류: 운영 설정 백업에 편집 글 원본이 없습니다: $article" >&2
     exit 1

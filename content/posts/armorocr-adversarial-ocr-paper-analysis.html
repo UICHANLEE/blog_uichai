@@ -1,0 +1,369 @@
+<!-- wp:paragraph {"className":"article-lead"} -->
+<p class="article-lead"><strong>사람에게는 분명히 보이는데 VLM만 읽지 못하는 글자</strong>가 있다. 회전된 안내문, 거울처럼 뒤집힌 라벨, 점과 선으로 만든 문자, 배경 무늬에 섞인 작은 문구가 대표적이다. ArmorOCR은 이 실패를 외부 OCR 도구나 반복 crop으로 우회하지 않고, <strong>Qwen3-VL-8B 자체의 한 번의 추론</strong>으로 줄이려는 post-training 연구다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>이 글은 논문의 주장보다 구현 경계를 먼저 본다. 모델에 무엇이 들어가고 무엇이 나오며, 학습할 때만 허용된 정보는 무엇인지, 50K·70K 합성 데이터가 각각 어떤 역할을 하는지, AdvSpot의 55.7%를 어디까지 믿을 수 있는지 순서대로 분석한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>ArmorOCR의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>추론 시 원본 이미지와 task prompt 또는 질문. crop·회전·미러링 도구를 별도로 호출하지 않는다.</td></tr><tr><td><strong>Process</strong></td><td>1단계 privileged-view self-distillation → 2단계 네 가지 OCR·grounding 보상을 이용한 GRPO.</td></tr><tr><td><strong>Output</strong></td><td>과제에 따라 bounding box, transcription, box와 text의 묶음, 또는 이미지 영역에 근거한 VQA 답변.</td></tr><tr><td><strong>핵심 결과</strong></td><td>저자 제작 AdvSpot에서 Qwen3-VL-8B 31.2% → ArmorOCR 55.7% VQA 정확도.</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">1. 이 논문이 풀려는 문제</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>일반 OCR은 글자가 선명하고 수평이며 충분히 클 때 강하다. 최근 VLM은 OCR뿐 아니라 이미지 속 글자를 근거로 질문에도 답하지만, 사람이 맥락을 이용해 쉽게 복원하는 비정상적인 표현에서는 여전히 자주 실패한다. ArmorOCR은 이를 <strong>adversarial OCR</strong>로 묶는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>공간 변형:</strong> 회전, 미러링, 지나치게 작은 글자</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>글리프 변형:</strong> 손글씨, 장식적인 서체</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>시각 인코딩:</strong> 기호, 점, 선으로 구성한 문자</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>맥락 혼합:</strong> AIGC 이미지에 융합된 글자, 낮은 대비, 패턴 overlay</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>촬영 열화:</strong> capture artifact와 후처리로 손상된 텍스트</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>중요한 차이는 단순히 문자열을 맞히는 것에 그치지 않는다는 점이다. 어떤 영역을 읽었는지 찾고, 그 영역의 글자를 인식하고, 여러 영역을 각각 묶고, 질문에 해당하는 영역을 근거로 답해야 한다. 즉 <strong>localization·recognition·spotting·grounded VQA</strong>가 한 모델 안에 들어간다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">2. 입력: 학습과 추론에서 보는 화면이 다르다</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">추론 입력은 원본 이미지와 질문뿐</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>AdvSpot의 한 샘플에는 이미지, 지각 유형, 정답 bounding box, transcription, 질문과 답이 함께 저장된다. 그러나 평가할 때 모델이 받는 것은 <strong>원본 이미지와 질문 또는 task prompt</strong>다. 정답 box나 원문은 물론, 텍스트를 잘 보이게 돌리거나 확대한 보조 화면도 받지 않는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>이 조건이 ArmorOCR의 실무적 정체성을 결정한다. VACoT처럼 추론 중 여러 변형 화면을 만들고 모델을 반복 호출하는 구조가 아니라, 학습이 끝난 뒤에는 원본 이미지로 한 번의 model invocation만 수행한다. Autoregressive decoder 내부의 token 생성이 한 번이라는 뜻이 아니라 <strong>별도 crop·회전·도구 호출이 없다</strong>는 뜻이다. 따라서 실제 API에 붙일 때 별도의 crop orchestrator가 필요하지 않는다는 것이 저자들이 강조한 장점이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">교사는 학습할 때만 privileged view를 본다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>첫 학습 단계에서는 조건이 달라진다. student는 끝까지 원본 이미지만 보지만, frozen teacher는 resize·stretch·rotate·flip·compression으로 만든 후보 중 글자가 가장 잘 읽히는 화면을 본다. 어느 화면이 가장 유리한지는 더 큰 Qwen3-VL-235B-A22B judge가 선택한다. teacher에는 OCR prior와 목표 텍스트도 함께 제공된다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>따라서 이 단계의 목적은 “추론 때도 이미지를 돌려 보자”가 아니다. 보조 화면에서 teacher가 얻은 지각 evidence를 원본만 보는 8B student의 파라미터 안으로 옮기는 것이다. 이 비대칭을 놓치면 ArmorOCR을 단순한 image augmentation 연구로 잘못 이해하게 된다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">3. 출력: 한 종류의 OCR 결과가 아니다</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>과제</th><th>모델 입력</th><th>요구 출력</th><th>학습 보상</th></tr></thead><tbody><tr><td>Text-to-box</td><td>이미지 + 찾을 문자열</td><td>해당 문자열의 bounding box</td><td>정답 box와의 IoU</td></tr><tr><td>Box-to-text</td><td>이미지 + 영역 좌표</td><td>영역 안 transcription</td><td>정규화 Levenshtein 유사도</td></tr><tr><td>Full spotting</td><td>이미지 + spotting prompt</td><td>모든 box와 text의 쌍</td><td>위치·문자열 matching 후 pair F1</td></tr><tr><td>Grounded VQA</td><td>이미지 + 자연어 질문</td><td>문제 영역을 읽어 만든 답</td><td>정답 문자열 포함 여부</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>추론 출력은 확률 한 개가 아니라 task에 맞춘 구조화 응답이다. spotting에서는 각 box와 transcription이 짝을 이루어야 하고, VQA에서는 위치를 찾은 뒤 질문에 답해야 한다. 즉 “글자를 읽었다”와 “질문에 맞는 글자를 찾아 사용했다”를 분리해 평가할 수 있다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>AdvSpot VQA evaluator는 예측과 정답을 소문자화하고 공백·구두점 등을 제거한 뒤, 정규화된 reference answer 전체가 예측문 안에 연속된 부분 문자열로 들어가면 맞는 것으로 판정한다. 생성형 답변의 표면 차이를 일부 허용하는 간단한 규칙이지만, 의미가 같은 다른 표현을 인정하는 평가기는 아니다. 따라서 55.7%는 이 정확한 판정 규칙 아래의 수치다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">4. Process 1 — Observation-Transferred Self-Distillation</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>첫 단계의 이름은 OTSD, Observation-Transferred Self-Distillation이다. 기반 모델은 Qwen3-VL-8B-Instruct이고 teacher와 student가 같은 계열 backbone을 사용한다. teacher는 고정하고 student의 language model, aligner와 vision transformer를 학습한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list {"ordered":true} -->
+<ol class="wp-block-list"><!-- wp:list-item -->
+<li>한 합성 샘플에서 원본 이미지와 여러 transformation view를 만든다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>235B judge가 텍스트를 가장 알아보기 쉬운 privileged view를 고른다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>student는 원본 이미지로 <code>&lt;analyze&gt;</code>와 <code>&lt;answer&gt;</code>가 있는 trajectory를 직접 sampling한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>teacher는 선택된 보조 화면과 OCR 정보를 바탕으로 같은 token 위치의 분포를 계산한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>student가 만든 on-policy trajectory 위에서 teacher의 판단을 distillation한다.</li>
+<!-- /wp:list-item --></ol>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>reasoning 구간에는 student와 teacher가 크게 다를 때 한쪽 분포만 강제로 따라가며 학습이 불안정해지는 것을 줄이기 위해 confidence-gated generalized Jensen–Shannon divergence를 쓴다. 최종 answer token에는 forward KL을 적용하고, 응답 구조를 위한 특수 token은 loss에서 제외한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>학습 규모는 합성 샘플 50K, 2 epoch다. 논문은 PPU-810E 16개, learning rate 1e-6, bf16, ZeRO-2, 최대 4,096 image token과 8,192 sequence length를 보고한다. “8B라 가볍게 fine-tuning할 수 있다”라고 부르기에는 여전히 큰 학습이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">5. Process 2 — 네 가지 능력을 GRPO로 분리해서 보상</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>첫 단계가 “보는 법”을 전달한다면, 두 번째 단계는 본 것을 정확한 형식으로 내보내게 만든다. 더 어려운 합성 샘플 70K를 사용해 GRPO로 최적화하고, prompt마다 8개 rollout을 생성한다. 논문 설정은 3 epoch, PPU accelerator 128개, KL coefficient 0.04다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Localization reward</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>문자열이 주어졌을 때 model box와 정답 box의 Intersection over Union을 보상으로 쓴다. 문자열을 맞혀도 위치가 틀리면 높은 점수를 받을 수 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Recognition reward</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>box가 주어졌을 때 예측 문자열과 정답 사이의 normalized Levenshtein similarity를 쓴다. 한두 글자 오타와 완전한 오답을 구분해 연속적인 학습 신호를 준다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Spotting reward</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>예측한 box·text와 정답 쌍을 greedy matching한다. IoU가 0.5 이상이고 edit-distance 조건을 만족해야 한 쌍으로 인정한 뒤 pair-level F1을 보상한다. 많은 box를 무작정 내거나, 글자만 나열해서는 높은 점수를 받기 어렵다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Grounded VQA reward</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>예측문과 정답을 소문자화하고 공백·구두점 등을 제거한 뒤, 정규화된 정답 문자열이 포함되는지를 본다. ablation에서 이 보상을 제거하면 VQA 정확도가 55.7에서 50.1로 내려가 네 보상 중 최종 질의응답에 가장 직접적인 영향을 보였다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">6. 학습 데이터는 어떻게 만들었나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>OTSD 50K와 GRPO 70K는 공개 OCR benchmark를 그대로 학습한 것이 아니라 합성 pipeline에서 만든 데이터다. LLM이 생성한 문구와 Faker 기반 문자열을 작은 canvas에 렌더링하면서 bounding box를 기록하고, layout과 충돌을 검사한 뒤 AIGC fusion·ASCII·dot·line·회전 같은 적대적 변형을 적용한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list {"ordered":true} -->
+<ol class="wp-block-list"><!-- wp:list-item -->
+<li>다양한 의미·형식의 텍스트 생성</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>mini canvas에 렌더링하고 정확한 box 기록</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>AIGC fusion·ASCII art 등을 포함한 여러 adversarial 시각 변환</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>사람이 읽을 수 있도록 대비와 구조를 복원</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>Qwen3-VL-235B가 원문이 훼손되지 않았는지 검증</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>기반 Qwen3-VL-8B가 이미 쉽게 푸는 샘플은 제거</li>
+<!-- /wp:list-item --></ol>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>마지막 필터 때문에 학습 데이터는 의도적으로 현재 8B 모델의 실패 영역에 몰린다. hard-example post-training에는 적합하지만, 실제 자연 이미지의 분포와 다를 수 있고 일반 OCR이 소폭 하락한 원인 중 하나일 가능성이 있다. 논문 결과만으로 그 인과를 확정할 수는 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">7. 평가 데이터셋: 무엇을 어디에서 검증했나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>데이터셋</th><th>규모·목적</th><th>평가 내용</th><th>해석상 주의</th></tr></thead><tbody><tr><td><strong>AdvSpot</strong></td><td>390 images, 397 grounded QA pairs, 5 범주·13 유형</td><td>VQA accuracy와 localization IoU</td><td>저자들이 새로 만든 소규모 benchmark. 기본 evaluator는 공개됐지만 데이터·완전한 평가 패키지는 미공개.</td></tr><tr><td><strong>AdvOCR</strong></td><td>100 images, real·synthetic split</td><td>Qwen3-30B-A3B-2507 judge의 Pass@1 판정</td><td>ArmorOCR은 synthetic에서 강하지만 real에서는 VACoT 공식 보고값보다 낮다.</td></tr><tr><td><strong>SmuggleBench</strong></td><td>전체 benchmark 1,700 images, 6 hidden-text 유형</td><td>Perceptual Blindness subset의 TER</td><td>논문은 실제 사용 subset의 정확한 크기를 적지 않았다.</td></tr><tr><td><strong>OCRBench</strong></td><td>일반 OCR 종합 benchmark</td><td>표준 OCR 능력 보존 여부</td><td>기반 모델보다 0.7점 하락.</td></tr><tr><td><strong>CCOCR</strong></td><td>다국어·종합 OCR</td><td>일반 OCR 능력 보존 여부</td><td>기반 모델보다 1.8점 하락.</td></tr><tr><td><strong>OCRBench-v2</strong></td><td>확장형 OCR benchmark</td><td>일반 OCR 능력 보존 여부</td><td>기반 모델보다 0.7점 하락.</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">AdvSpot은 어떤 benchmark인가</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>연구진은 수만 장의 후보 이미지에서 adversarial text를 수집하고, 두 annotator의 합의를 거쳐 box와 transcription을 만든 뒤 grounded question을 생성했다. 질문과 답은 다시 두 차례 전문가 검토를 거쳤다고 설명한다. 기존 hidden-text benchmark와 달리 어느 영역을 읽었는지도 측정할 수 있다는 것이 장점이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>반대로 390장은 범용 OCR을 대표하기에 작고, 제작자와 평가자가 같은 논문 팀이다. 공식 <code>advspot_infer.py</code>에는 정규화 substring accuracy, 평균 bbox IoU와 label별 metric을 계산하는 기본 evaluator가 공개됐다. 그러나 이미지·annotation과 완전한 평가 패키지가 없어 외부 연구자가 중복 샘플, annotation 품질, prompt 민감도를 감사하거나 점수를 재현할 수는 없다. 따라서 AdvSpot 성능은 <strong>유망한 저자 보고 결과</strong>이지 독립 재현된 범용 SOTA가 아니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">8. 비교 결과와 숫자의 의미</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">AdvSpot: 평균 개선은 크다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>모델</th><th>VQA Accuracy</th><th>Localization IoU</th></tr></thead><tbody><tr><td>Qwen3-VL-8B-Instruct 기반</td><td>31.2%</td><td>49.1%</td></tr><tr><td>Qwen3-VL-32B-Instruct</td><td>35.3%</td><td>51.9%</td></tr><tr><td><strong>ArmorOCR 8B</strong></td><td><strong>55.7%</strong></td><td><strong>63.3%</strong></td></tr><tr><td>기반 8B 대비 변화</td><td><strong>+24.5%p</strong></td><td><strong>+14.2%p</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>8B post-trained model이 더 큰 일반 VLM보다 평균에서 크게 앞선 점은 분명하다. 특히 symbol 52.5%, dot 53.3%, line 60.0%, AIGC fusion 75.0%, pattern overlay 48.6%처럼 합성 pipeline이 직접 겨냥한 유형에서 강한 결과가 보인다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>부록의 더 넓은 model zoo까지 포함하면 accuracy 차이는 ArmorOCR 55.7% 대 Gemini-3-Flash 45.6%로 10.1%p지만, localization IoU는 63.3% 대 63.0%로 0.3%p에 불과하다. 따라서 확장 비교에서도 평균 답 정확도는 뚜렷한 1위지만, 위치 정확도까지 압도적이라고 표현하면 과장이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>하지만 모든 유형의 1등은 아니다. tiny text에서 ArmorOCR 56.7%보다 Gemini 계열 비교값 86.7%가 높고, stylized text는 30.0%로 비교된 Qwen 235B의 46.7%보다 낮다. post-processing에서도 ArmorOCR 56.7%보다 Gemini의 76.7%가 높다. “adversarial OCR 전체를 해결했다”보다는 <strong>평균과 일부 취약 유형을 크게 끌어올렸다</strong>가 정확하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">AdvOCR: 평균 1점 우위 안에 상반된 split이 있다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>Real Pass@1</th><th>Synthetic Pass@1</th><th>평균</th></tr></thead><tbody><tr><td>Qwen3-VL-8B 기반</td><td>30.0%</td><td>12.0%</td><td>21.0%</td></tr><tr><td>VACoT, tool-assisted 공식 보고값</td><td><strong>62.0%</strong></td><td>48.0%</td><td>55.0%</td></tr><tr><td>ArmorOCR</td><td>44.0%</td><td><strong>68.0%</strong></td><td><strong>56.0%</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>Pass@1은 Qwen3-30B-A3B-2507 judge 판정이다. ArmorOCR 평균은 논문이 인용한 VACoT 공식 보고값보다 1%p 높지만 내용은 균일하지 않다. synthetic에서는 20%p 앞서고 real에서는 18%p 뒤진다. VACoT를 같은 환경에서 저자들이 재실행한 head-to-head 결과도 아니다. 따라서 “tool-assisted 방법을 전반적으로 능가했다”가 아니라 <strong>합성 적대 유형에서 큰 우위가 평균을 끌어올렸다</strong>고 읽어야 한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">SmuggleBench와 일반 OCR</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>평가</th><th>기반 8B</th><th>비교 기준</th><th>ArmorOCR</th></tr></thead><tbody><tr><td>SmuggleBench Perceptual Blindness TER</td><td>13.3%</td><td>Smuggle-CoT 16.4%</td><td><strong>17.1%</strong></td></tr><tr><td>OCRBench</td><td><strong>73.2</strong></td><td>—</td><td>72.5</td></tr><tr><td>CCOCR</td><td><strong>91.2</strong></td><td>—</td><td>89.4</td></tr><tr><td>OCRBench-v2</td><td><strong>63.9</strong></td><td>—</td><td>63.2</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>SmuggleBench Perceptual Blindness subset의 TER 우위는 0.7%p로 작다. 반면 일반 OCR 세 평가에서는 모두 기반 모델보다 소폭 낮다. 저자 표현처럼 “대체로 유지”되었다고 말할 수는 있지만, 적대적 OCR 강화가 일반 OCR까지 함께 개선했다고 쓸 수는 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">9. Ablation으로 본 실제 기여</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>구성</th><th>AdvSpot IoU</th><th>AdvSpot VQA Acc.</th></tr></thead><tbody><tr><td>기반 Qwen3-VL-8B</td><td>49.1%</td><td>31.2%</td></tr><tr><td>GRPO만 적용</td><td>61.2%</td><td>39.8%</td></tr><tr><td>OTSD만 적용</td><td>58.7%</td><td>48.9%</td></tr><tr><td><strong>OTSD + GRPO</strong></td><td><strong>63.3%</strong></td><td><strong>55.7%</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>GRPO만으로는 box를 찾는 IoU가 크게 오르지만 VQA 개선은 상대적으로 작다. OTSD만 적용하면 IoU는 GRPO-only보다 낮아도 VQA가 48.9%까지 오른다. privileged view에서 얻은 recognition evidence가 질문 답변에 특히 중요하고, task reward가 위치와 출력 형식을 보완한다는 해석이 가능하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>OTSD 내부에서 visual transfer와 response-region-aware distillation을 함께 쓴 구성이 58.7 IoU, 48.9 accuracy였다. visual transfer를 제거하면 52.2/35.3, visual transfer는 유지하되 region-aware loss를 표준 OPSD JSD로 바꾸면 54.1/46.6이었다. 즉 privileged image evidence와 응답 영역별 loss가 서로 보완한다. GRPO reward도 하나씩 제거할 때 모두 성능이 내려가며, VQA reward 제거가 accuracy를 5.6%p 낮춰 최종 질문 응답과 가장 직접적으로 연결됐다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">10. 이 논문의 장점</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>배포 경로가 단순하다.</strong> 추론 시 원본 이미지로 한 번만 모델을 호출하며 반복 crop·rotation pipeline이 필요 없다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>실제 failure mode가 명확하다.</strong> 일반 OCR 평균보다 사람이 읽고 VLM이 놓치는 사례를 직접 겨냥한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>위치와 문자열을 함께 학습한다.</strong> OCR 결과가 어느 영역에서 왔는지 연결할 수 있다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>큰 모델 호출을 추론 비용으로 남기지 않는다.</strong> 235B judge와 privileged teacher는 학습 때만 사용한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>두 학습 단계의 역할이 ablation으로 드러난다.</strong> OTSD는 지각·답변, GRPO는 위치·형식 능력을 상호 보완한다.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">11. 한계와 결과 해석의 경계</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>AdvSpot은 저자 제작 390-image benchmark이며 기본 evaluator는 공개됐지만 데이터와 완전한 평가 패키지가 없다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>학습 120K 샘플이 모두 합성 pipeline 기반이라 실제 촬영 분포와 차이가 날 수 있다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>일반 OCR 세 benchmark에서 기반 모델보다 0.7~1.8점 낮아졌다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>tiny·stylized·post-processing 등 일부 subtype에서는 비교 모델이 더 좋다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>AdvOCR real split에서는 tool-assisted VACoT보다 18%p 낮다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>두 단계에 대규모 전용 accelerator와 235B judge가 필요해 재학습 비용이 작지 않다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>저자 수치가 독립 재현되지 않았고 현재 실행 가능한 ArmorOCR checkpoint가 없다.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>따라서 가장 안전한 결론은 이렇다. <strong>ArmorOCR은 저자 평가에서 Qwen3-VL-8B의 적대적 OCR 실패를 크게 줄였고, 변형 도구를 추론 경로에서 제거하는 설계를 제시했다.</strong> 그러나 데이터와 가중치가 공개되기 전에는 상품·산업 이미지에서 같은 개선이 재현되는지 확인할 수 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">12. 실무에서 어떻게 적용할 수 있나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>가장 현실적인 형태는 모든 이미지에 ArmorOCR을 쓰는 것이 아니라 <strong>hard-sample fallback</strong>이다. 기존 OCR 또는 일반 VLM이 높은 confidence로 읽는 이미지는 그대로 처리하고, 작은 각인·강한 회전·낮은 대비처럼 실패 징후가 있는 경우에만 ArmorOCR 계열 모델로 보낸다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list {"ordered":true} -->
+<ol class="wp-block-list"><!-- wp:list-item -->
+<li>기존 OCR/VLM으로 전체 상품 이미지를 1차 처리한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>빈 문자열, 낮은 confidence, OCR 간 불일치, 질문 응답 실패를 hard sample로 표시한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>실패 샘플에 별도 이미지 변형 없이 adversarial OCR 모델을 한 번 호출한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>box와 text를 함께 저장해 사람이 원본 영역을 검수할 수 있게 한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>자사 이미지의 회전·작은 각인·패턴별 정확도를 별도로 측정한다.</li>
+<!-- /wp:list-item --></ol>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>비교 실험에서는 AdvSpot 평균을 목표값으로 쓰지 말고, 실제 운영 이미지에서 <strong>문자 단위 정확도·box recall·제품 단위 정답률·호출 비용·검수 시간</strong>을 함께 측정해야 한다. 특히 모델이 답을 그럴듯하게 생성해도 box가 틀릴 수 있으므로 영역 근거를 반드시 보존하는 편이 좋다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">13. 코드·가중치·라이선스 상태</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>2026년 8월 23일 기준 <a href="https://github.com/ant-research/ArmorOCR">공식 GitHub</a>에는 <code>infer.py</code>, 예제와 기본 metric까지 계산하는 <code>advspot_infer.py</code>가 있다. 그러나 training code, ArmorOCR weights, AdvSpot 이미지·annotation과 완전한 평가 패키지는 미공개다. 추론·기본 평가 wrapper가 있다는 것과 논문 checkpoint로 benchmark를 재현할 수 있다는 것은 다른 말이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><a href="https://arxiv.org/abs/2608.20122">논문</a>은 CC BY 4.0으로 공개됐지만 GitHub에는 별도 software LICENSE가 확인되지 않는다. 향후 Qwen3-VL 기반 가중치를 사용할 때는 기반 모델과 배포물의 이용 조건도 함께 확인해야 한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">원문</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><a href="https://arxiv.org/abs/2608.20122">arXiv 초록과 메타데이터</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://arxiv.org/html/2608.20122v1">arXiv HTML 전문</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://arxiv.org/pdf/2608.20122">논문 PDF</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://github.com/ant-research/ArmorOCR">공식 GitHub</a></li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p><em>논문 arXiv v1과 공개 저장소를 2026년 8월 23일 확인했습니다. 수치는 저자 평가 조건을 옮긴 것이며 독립 재현 결과가 아닙니다. 이 글에서 “향상”은 같은 표의 비교 조건 안에서만 의미합니다.</em></p>
+<!-- /wp:paragraph -->
