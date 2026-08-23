@@ -99,6 +99,9 @@ for (const editorialFocus of ['IT 최신 뉴스', 'AI 논문 분석', '사업 �
 if (!home.includes('AI CV SOTA 브리핑')) {
   throw new Error('첫 화면에서 최신 AI CV 브리핑을 확인할 수 없습니다.');
 }
+if (!home.includes('<link rel="icon" href="data:image/svg+xml,')) {
+  throw new Error('기본 사이트 아이콘 fallback이 없습니다.');
+}
 
 const editorialArticles = new Map([
   ['/supabase-realtime-binary-state-sync/', ['Supabase Realtime이 바이너리를 품었다', 'supabase.com/changelog/']],
