@@ -140,10 +140,10 @@ if [ -n "$wordpress_id" ]; then
     fail "Odd Note 초기 콘텐츠 구성이 완료되지 않았습니다. make install을 실행하세요."
   fi
 
-  if docker compose exec -T wordpress php -r 'require "/var/www/html/wp-load.php"; exit(get_option("odd_note_bootstrap_version") === "1.7.0" ? 0 : 1);' >/dev/null 2>&1; then
-    ok "Odd Note 콘텐츠 스키마가 1.7.0입니다."
+  if docker compose exec -T wordpress php -r 'require "/var/www/html/wp-load.php"; exit(get_option("odd_note_bootstrap_version") === "1.7.1" ? 0 : 1);' >/dev/null 2>&1; then
+    ok "Odd Note 콘텐츠 스키마가 1.7.1입니다."
   else
-    fail "Odd Note 콘텐츠 스키마가 1.7.0이 아닙니다. make install을 실행하세요."
+    fail "Odd Note 콘텐츠 스키마가 1.7.1이 아닙니다. make install을 실행하세요."
   fi
 
   if docker compose exec -T wordpress php -r 'require "/var/www/html/wp-load.php"; $expected = array("supabase-realtime-binary-state-sync" => "it-news", "spatialvlm-paper-review" => "ai-paper-analysis", "ai-mvp-before-model" => "business-knowledge", "ai-cv-sota-briefing-2026-08-23" => "ai-paper-analysis", "ai-cv-sota-briefing-2026-08-25" => "ai-paper-analysis", "armorocr-adversarial-ocr-paper-analysis" => "ai-paper-analysis", "step-pose-video-anomaly-detection-paper-analysis" => "ai-paper-analysis", "dreamhand-video-diffusion-3d-hand-paper-analysis" => "ai-paper-analysis"); foreach ($expected as $slug => $category) { $post = get_page_by_path($slug, OBJECT, "post"); if (!$post || $post->post_status !== "publish" || !has_category($category, $post)) { exit(1); } } exit(0);' >/dev/null 2>&1; then

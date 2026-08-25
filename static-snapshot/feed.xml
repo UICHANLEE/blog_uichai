@@ -12,7 +12,7 @@
 	<atom:link href="https://odd-note.invalid/feed/" rel="self" type="application/rss+xml" />
 	<link>https://odd-note.invalid</link>
 	<description>IT 최신 뉴스, AI 논문 분석, 사업 지식을 기술을 만들고 사업을 운영하는 사람의 관점으로 정리합니다.</description>
-	<lastBuildDate>Tue, 25 Aug 2026 03:29:33 +0000</lastBuildDate>
+	<lastBuildDate>Tue, 25 Aug 2026 03:35:45 +0000</lastBuildDate>
 	<language>ko-KR</language>
 	<sy:updatePeriod>
 	hourly	</sy:updatePeriod>
@@ -20,11 +20,11 @@
 	1	</sy:updateFrequency>
 	<generator>https://wordpress.org/?v=7.0.2</generator>
 	<item>
-		<title>AI CV SOTA 브리핑 — Video-ORA-9B·A2DINOv3·Stream3Dv2 (2026.08.25)</title>
+		<title>AI CV SOTA 브리핑 — Video-ORA-9B · A2DINOv3 · Stream3Dv2 (2026.08.25)</title>
 		<link>https://odd-note.invalid/ai-cv-sota-briefing-2026-08-25/</link>
 
 		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
-		<pubDate>Tue, 25 Aug 2026 03:29:33 +0000</pubDate>
+		<pubDate>Tue, 25 Aug 2026 03:35:45 +0000</pubDate>
 				<category><![CDATA[AI 논문 분석]]></category>
 		<category><![CDATA[A2DINOv3]]></category>
 		<category><![CDATA[Computer Vision]]></category>

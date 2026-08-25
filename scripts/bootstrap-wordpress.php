@@ -970,7 +970,7 @@ function odd_note_publish_ai_cv_briefing_august_25( $owner_id ) {
 			'post_type'      => 'post',
 			'post_status'    => 'publish',
 			'post_name'      => $slug,
-			'post_title'     => 'AI CV SOTA 브리핑 — Video-ORA-9B·A2DINOv3·Stream3Dv2 (2026.08.25)',
+			'post_title'     => 'AI CV SOTA 브리핑 — Video-ORA-9B · A2DINOv3 · Stream3Dv2 (2026.08.25)',
 			'post_excerpt'   => '정답 annotation을 rollout으로 쓰는 Video-ORA-9B, RGB·IR 통신을 제한한 A2DINOv3, training-free 스트리밍 3D 인식 Stream3Dv2의 방법·데이터·비교 결과와 공개 상태를 검증했습니다.',
 			'post_content'   => odd_note_editorial_content( $slug ),
 			'post_author'    => $owner_id,
@@ -986,7 +986,7 @@ function odd_note_publish_ai_cv_briefing_august_25( $owner_id ) {
 		false
 	);
 	update_post_meta( $post_id, '_odd_note_primary_category_id', (int) $category->term_id );
-	update_post_meta( $post_id, '_odd_note_editorial_revision', '1.7.0' );
+	update_post_meta( $post_id, '_odd_note_editorial_revision', '1.7.1' );
 
 	$post_ids          = (array) get_option( 'odd_note_editorial_post_ids', array() );
 	$post_ids[ $slug ] = $post_id;
@@ -1114,7 +1114,7 @@ if (
 	odd_note_bootstrap_fail( '사이트 주소 형식이 올바르지 않습니다.' );
 }
 
-$target_version = '1.7.0';
+$target_version = '1.7.1';
 $installed      = is_blog_installed();
 $state          = $installed ? get_option( 'odd_note_bootstrap_state', '' ) : '';
 
@@ -1161,7 +1161,7 @@ if ( $installed && 'complete' === $state ) {
 			odd_note_publish_ai_cv_deep_dives( $owner_id );
 		}
 
-		if ( version_compare( $current_version, '1.7.0', '<' ) ) {
+		if ( version_compare( $current_version, '1.7.1', '<' ) ) {
 			odd_note_publish_ai_cv_briefing_august_25( $owner_id );
 		}
 
