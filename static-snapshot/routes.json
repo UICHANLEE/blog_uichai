@@ -22,6 +22,11 @@
       "indexable": true
     },
     {
+      "path": "/ai-cv-sota-briefing-2026-08-25/",
+      "file": "ai-cv-sota-briefing-2026-08-25/index.html",
+      "indexable": true
+    },
+    {
       "path": "/ai-mvp-before-model/",
       "file": "ai-mvp-before-model/index.html",
       "indexable": true
@@ -212,6 +217,11 @@
       "indexable": false
     },
     {
+      "path": "/tag/a2dinov3/",
+      "file": "tag/a2dinov3/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/advspot/",
       "file": "tag/advspot/index.html",
       "indexable": false
@@ -312,6 +322,16 @@
       "indexable": false
     },
     {
+      "path": "/tag/open-vocabulary-3d/",
+      "file": "tag/open-vocabulary-3d/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/orarl/",
+      "file": "tag/orarl/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/pca/",
       "file": "tag/pca/index.html",
       "indexable": false
@@ -332,6 +352,11 @@
       "indexable": false
     },
     {
+      "path": "/tag/rgb-ir/",
+      "file": "tag/rgb-ir/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/seo/",
       "file": "tag/seo/index.html",
       "indexable": false
@@ -347,6 +372,11 @@
       "indexable": false
     },
     {
+      "path": "/tag/stream3dv2/",
+      "file": "tag/stream3dv2/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/supabase/",
       "file": "tag/supabase/index.html",
       "indexable": false
@@ -359,6 +389,11 @@
     {
       "path": "/tag/video-diffusion-model/",
       "file": "tag/video-diffusion-model/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/video-ora-9b/",
+      "file": "tag/video-ora-9b/index.html",
       "indexable": false
     },
     {

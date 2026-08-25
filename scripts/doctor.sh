@@ -55,6 +55,7 @@ for theme_file in \
   content/posts/spatialvlm-paper-review.html \
   content/posts/ai-mvp-before-model.html \
   content/posts/ai-cv-sota-briefing-2026-08-23.html \
+  content/posts/ai-cv-sota-briefing-2026-08-25.html \
   content/posts/armorocr-adversarial-ocr-paper-analysis.html \
   content/posts/step-pose-video-anomaly-detection-paper-analysis.html \
   content/posts/dreamhand-video-diffusion-3d-hand-paper-analysis.html; do
@@ -127,7 +128,7 @@ if [ -n "$wordpress_id" ]; then
     fail "Odd Note 테마 마운트를 확인하지 못했습니다."
   fi
 
-  if docker compose exec -T wordpress test -r /opt/odd-note/content/posts/dreamhand-video-diffusion-3d-hand-paper-analysis.html >/dev/null 2>&1; then
+  if docker compose exec -T wordpress test -r /opt/odd-note/content/posts/ai-cv-sota-briefing-2026-08-25.html >/dev/null 2>&1; then
     ok "버전 관리되는 편집 글 원본이 WordPress에 연결됐습니다."
   else
     fail "편집 글 원본 마운트를 확인하지 못했습니다."
@@ -139,13 +140,13 @@ if [ -n "$wordpress_id" ]; then
     fail "Odd Note 초기 콘텐츠 구성이 완료되지 않았습니다. make install을 실행하세요."
   fi
 
-  if docker compose exec -T wordpress php -r 'require "/var/www/html/wp-load.php"; exit(get_option("odd_note_bootstrap_version") === "1.6.1" ? 0 : 1);' >/dev/null 2>&1; then
-    ok "Odd Note 콘텐츠 스키마가 1.6.1입니다."
+  if docker compose exec -T wordpress php -r 'require "/var/www/html/wp-load.php"; exit(get_option("odd_note_bootstrap_version") === "1.7.0" ? 0 : 1);' >/dev/null 2>&1; then
+    ok "Odd Note 콘텐츠 스키마가 1.7.0입니다."
   else
-    fail "Odd Note 콘텐츠 스키마가 1.6.1이 아닙니다. make install을 실행하세요."
+    fail "Odd Note 콘텐츠 스키마가 1.7.0이 아닙니다. make install을 실행하세요."
   fi
 
-  if docker compose exec -T wordpress php -r 'require "/var/www/html/wp-load.php"; $expected = array("supabase-realtime-binary-state-sync" => "it-news", "spatialvlm-paper-review" => "ai-paper-analysis", "ai-mvp-before-model" => "business-knowledge", "ai-cv-sota-briefing-2026-08-23" => "ai-paper-analysis", "armorocr-adversarial-ocr-paper-analysis" => "ai-paper-analysis", "step-pose-video-anomaly-detection-paper-analysis" => "ai-paper-analysis", "dreamhand-video-diffusion-3d-hand-paper-analysis" => "ai-paper-analysis"); foreach ($expected as $slug => $category) { $post = get_page_by_path($slug, OBJECT, "post"); if (!$post || $post->post_status !== "publish" || !has_category($category, $post)) { exit(1); } } exit(0);' >/dev/null 2>&1; then
+  if docker compose exec -T wordpress php -r 'require "/var/www/html/wp-load.php"; $expected = array("supabase-realtime-binary-state-sync" => "it-news", "spatialvlm-paper-review" => "ai-paper-analysis", "ai-mvp-before-model" => "business-knowledge", "ai-cv-sota-briefing-2026-08-23" => "ai-paper-analysis", "ai-cv-sota-briefing-2026-08-25" => "ai-paper-analysis", "armorocr-adversarial-ocr-paper-analysis" => "ai-paper-analysis", "step-pose-video-anomaly-detection-paper-analysis" => "ai-paper-analysis", "dreamhand-video-diffusion-3d-hand-paper-analysis" => "ai-paper-analysis"); foreach ($expected as $slug => $category) { $post = get_page_by_path($slug, OBJECT, "post"); if (!$post || $post->post_status !== "publish" || !has_category($category, $post)) { exit(1); } } exit(0);' >/dev/null 2>&1; then
     ok "핵심 편집 글이 올바른 카테고리에 공개됐습니다."
   else
     fail "핵심 편집 글의 공개 상태 또는 카테고리가 올바르지 않습니다."

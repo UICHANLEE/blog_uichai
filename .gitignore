@@ -13,3 +13,4 @@ backups/*
 public/
 .public-build/
 .static-snapshot-*/
+_workspace/

@@ -71,6 +71,7 @@ for (const requiredRoute of [
   '/spatialvlm-paper-review/',
   '/ai-mvp-before-model/',
   '/ai-cv-sota-briefing-2026-08-23/',
+  '/ai-cv-sota-briefing-2026-08-25/',
   '/armorocr-adversarial-ocr-paper-analysis/',
   '/step-pose-video-anomaly-detection-paper-analysis/',
   '/dreamhand-video-diffusion-3d-hand-paper-analysis/',
@@ -135,6 +136,14 @@ const editorialArticles = new Map([
     'arxiv.org/abs/2608.20122',
     'arxiv.org/abs/2608.19987',
     'arxiv.org/abs/2608.20308',
+  ]],
+  ['/ai-cv-sota-briefing-2026-08-25/', [
+    'AI CV SOTA 브리핑',
+    '<strong>Input</strong>',
+    '<strong>Output</strong>',
+    'arxiv.org/abs/2608.20492',
+    'arxiv.org/abs/2608.21099',
+    'arxiv.org/abs/2608.21136',
   ]],
   ['/armorocr-adversarial-ocr-paper-analysis/', [
     'ArmorOCR 논문 분석',

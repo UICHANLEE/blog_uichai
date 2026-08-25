@@ -12,7 +12,7 @@
 	<atom:link href="https://odd-note.invalid/feed/" rel="self" type="application/rss+xml" />
 	<link>https://odd-note.invalid</link>
 	<description>IT 최신 뉴스, AI 논문 분석, 사업 지식을 기술을 만들고 사업을 운영하는 사람의 관점으로 정리합니다.</description>
-	<lastBuildDate>Sun, 23 Aug 2026 15:26:29 +0000</lastBuildDate>
+	<lastBuildDate>Tue, 25 Aug 2026 03:29:33 +0000</lastBuildDate>
 	<language>ko-KR</language>
 	<sy:updatePeriod>
 	hourly	</sy:updatePeriod>
@@ -20,6 +20,253 @@
 	1	</sy:updateFrequency>
 	<generator>https://wordpress.org/?v=7.0.2</generator>
 	<item>
+		<title>AI CV SOTA 브리핑 — Video-ORA-9B·A2DINOv3·Stream3Dv2 (2026.08.25)</title>
+		<link>https://odd-note.invalid/ai-cv-sota-briefing-2026-08-25/</link>
+
+		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
+		<pubDate>Tue, 25 Aug 2026 03:29:33 +0000</pubDate>
+				<category><![CDATA[AI 논문 분석]]></category>
+		<category><![CDATA[A2DINOv3]]></category>
+		<category><![CDATA[Computer Vision]]></category>
+		<category><![CDATA[Open-Vocabulary 3D]]></category>
+		<category><![CDATA[OraRL]]></category>
+		<category><![CDATA[RGB-IR]]></category>
+		<category><![CDATA[Stream3Dv2]]></category>
+		<category><![CDATA[Video-ORA-9B]]></category>
+		<guid isPermaLink="false">https://odd-note.invalid/ai-cv-sota-briefing-2026-08-25/</guid>
+
+					<description><![CDATA[정답 annotation을 rollout으로 쓰는 Video-ORA-9B, RGB·IR 통신을 제한한 A2DINOv3, training-free 스트리밍 3D 인식 Stream3Dv2의 방법·데이터·비교 결과와 공개 상태를 검증했습니다.]]></description>
+										<content:encoded><![CDATA[
+<p class="article-lead wp-block-paragraph"><strong>2026년 8월 25일 화요일.</strong> arXiv cs.CV의 최신 정식 배치는 8월 24일 월요일 공개분 103편이다. 이미지 분류·객체 탐지·세그멘테이션·VLM·비디오·3D를 다시 확인하고, 최근 브리핑에 실은 연구를 제외한 뒤 <strong>Video-ORA-9B·A2DINOv3·Stream3Dv2</strong>를 골랐다.</p>
+
+
+
+<p class="wp-block-paragraph">세 논문이 성능을 높인 지점은 서로 다르다. OraRL은 정답 annotation을 reward 기준이자 positive rollout으로 다시 쓰고, A2DINOv3는 RGB와 IR이 주고받는 정보의 용량을 제한한다. Stream3Dv2는 전용 3D 모델을 학습하지 않고 2D foundation model의 mask를 geometry와 semantics로 묶는다.</p>
+
+
+
+<p class="wp-block-paragraph">여기서 <strong>SOTA</strong>는 모든 환경의 절대 1등을 뜻하지 않는다. 각 논문이 선택한 데이터셋·평가 조건·비교표 안의 저자 보고값이다. 서로 다른 frame 수와 prompt 설정, 저자 제작 aggregate score, 아직 공개되지 않은 코드처럼 해석을 바꾸는 조건을 함께 읽어야 한다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>연구</th><th>분야</th><th>눈에 띄는 수치</th><th>2026.08.25 공개 상태</th></tr></thead><tbody><tr><td><strong>Video-ORA-9B / OraRL</strong></td><td>Video MLLM · RL</td><td>Tracking AO 73.0 → 78.2</td><td>9B 가중치 공개, 전체 학습 소스 미확인</td></tr><tr><td><strong>A2DINOv3</strong></td><td>RGB-IR Detection</td><td>GAIIC test mAP 37.53 → 43.05</td><td>코드·가중치 미공개</td></tr><tr><td><strong>Stream3Dv2</strong></td><td>Streaming 3D</td><td>ScanNet200 AP 22.4 → 27.1</td><td>연결 저장소에는 v1 코드만 공개</td></tr></tbody></table></figure>
+
+
+
+<h2 class="wp-block-heading">1. Video-ORA-9B / OraRL — 정답 annotation을 RL rollout으로</h2>
+
+
+
+<p class="wp-block-paragraph"><strong>정식명:</strong> Annotations as Rollouts: Efficient and Scalable Reinforcement Learning for Video MLLMs · <strong>arXiv v1 제출:</strong> 2026년 8월 20일 · <strong>정식 배치:</strong> 8월 24일</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>Video-ORA-9B의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>이미지 또는 비디오와 자연어 지시. 기본 비디오 평가는 2 fps, 최대 128 frame을 사용한다.</td></tr><tr><td><strong>Process</strong></td><td>policy rollout 8개에 annotation을 직렬화한 oracle rollout 1개를 추가한다. policy reward만으로 baseline을 만들고 sign-balanced pruning 뒤 선택된 4개 rollout을 업데이트한다.</td></tr><tr><td><strong>Output</strong></td><td>CoT가 아닌 task-native direct answer. 선택지, 시간 구간, bounding box, box trajectory, segmentation prompt 등을 과제 형식에 맞춰 낸다.</td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading">좋은 rollout이 오히려 벌점을 받는 문제</h3>
+
+
+
+<p class="wp-block-paragraph">기존 group-based RL은 모델이 직접 생성한 여러 응답을 정답 annotation과 비교해 reward를 계산한다. 문제는 정교한 시간 구간, box, mask, trajectory를 on-policy sampling만으로 정확히 맞힌 positive rollout이 드물다는 데 있다. OraRL은 annotation 자체를 모델의 응답 형식으로 바꿔 rollout group에 넣는다. 매 group마다 확실한 positive anchor가 생기는 셈이다.</p>
+
+
+
+<p class="wp-block-paragraph">그대로 섞으면 다른 문제가 생긴다. reward가 높은 oracle이 group 평균을 끌어올려, 기존 policy 평균보다 잘한 응답도 negative advantage를 받을 수 있다. 논문은 이를 <strong>advantage inversion</strong>이라 부른다. OraRL은 policy sample만으로 baseline을 계산하고, oracle과 policy의 격차는 좋은 rollout을 키우는 directional gain과 별도의 detached oracle advantage에 반영한다.</p>
+
+
+
+<p class="wp-block-paragraph">업데이트 비용은 sign-balanced pruning으로 줄인다. 기본 설정에서는 policy rollout 8개와 oracle 1개 가운데 oracle, 강한 positive 1개, 강한 negative 2개만 남긴다. 한쪽 부호만 선택해 모델을 같은 방향으로 밀지 않도록 positive·negative를 함께 보존하고, 선택 뒤 평균과 RMS를 다시 보정한다.</p>
+
+
+
+<h3 class="wp-block-heading">7개 task family를 어떤 데이터로 학습했나</h3>
+
+
+
+<p class="wp-block-paragraph">SFT와 RL에는 각각 284,779개와 100,032개의 prompt를 썼다. Temporal grounding은 TimeLens-100K, tracking은 GOT-10k·TrackingNet·ElysiumTrack, segmentation은 ReVOS·Ref-YouTube-VOS·Ref-SAV·MeViS·DAVIS-17·COCO referring expressions를 포함한 OneThinker pack에서 가져왔다. Spatial grounding은 RefCOCO 계열, spatio-temporal grounding은 LLaVA-ST-STVG, Video QA는 LLaVA-Video-178K·LongVILA·STAR·CLEVRER·Video-Holmes를 사용한다. Spatial intelligence에는 ScanNet·ScanNet++·ARKitScenes 기반 VSI-590K와 SenseNova-SI-800K 일부가 들어간다.</p>
+
+
+
+<p class="wp-block-paragraph">연구진은 공개 training split만 사용하고 평가 영상과 겹치는 학습 예시는 제거했다고 설명한다. RL mixture는 structured task 비중이 63%이며, SFT checkpoint가 이미 0.80 이상을 받은 쉬운 샘플은 task별 subset의 15%로 제한해 중간 난도 예시에 무게를 뒀다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>평가 family</th><th>주요 비교군</th><th>비교값</th><th>Video-ORA-9B</th></tr></thead><tbody><tr><td>Temporal grounding mIoU macro</td><td>TimeLens2-8B</td><td>62.5</td><td><strong>66.0</strong></td></tr><tr><td>GOT-10k tracking AO</td><td>OneThinker-8B</td><td>73.0</td><td><strong>78.2</strong></td></tr><tr><td>Segmentation family score</td><td>OneThinker-8B</td><td>64.3</td><td><strong>70.4</strong></td></tr><tr><td>Spatial-intelligence 3종 macro</td><td>GPT-5</td><td>51.0</td><td><strong>56.1</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">Temporal 수치는 Charades·ActivityNet·QVHighlights TimeLens split의 mIoU 평균이고, segmentation은 RefCOCO 계열 cIoU와 MeViS·ReasonVOS J&amp;F를 단순 평균한 저자 정의 family score다. 서로 다른 metric을 묶은 수치이므로 단일 benchmark 점수처럼 읽으면 안 된다. Spatial-intelligence 평균도 VSI-Bench 73.1의 영향이 크다. MMSI와 MindCube만 보면 일부 폐쇄형 모델보다 낮아 “모든 spatial task에서 GPT-5를 이겼다”는 해석은 성립하지 않는다.</p>
+
+
+
+<h3 class="wp-block-heading">36.8배는 전체 latency가 아니라 decoding 구간이다</h3>
+
+
+
+<p class="wp-block-paragraph">4B controlled experiment에서 OraRL은 62.4초/step으로 SFT 27.84초의 약 2.24배, CoT GRPO 135.6초의 약 4.87배다. Sign-balanced pruning 자체는 92.5→62.4초로 update를 1.48배 빠르게 만들고 peak per-GPU memory를 62.4→50.9GB로 줄였지만, 평균 점수는 63.1→62.7로 0.4점 낮아졌다.</p>
+
+
+
+<p class="wp-block-paragraph">단일 H20에서 10분 영상 10개를 2 fps로 처리한 측정에서는 post-TTFT decoding이 4.78초→130ms로 약 36.8배 짧아졌다. 전체 median latency는 29.03→24.30초, 약 16.3% 감소다. <strong>전체 모델이 36.8배 빨라진 결과가 아니다.</strong></p>
+
+
+
+<p class="wp-block-paragraph"><strong>공개 상태:</strong> Apache-2.0의 Video-ORA-9B BF16 가중치는 Hugging Face에서 받을 수 있고 vLLM·Transformers 설정도 제공된다. 4B는 아직 coming soon이다. GitHub README에는 사용 예정 CLI와 recipe 이름이 있지만 실제 file tree에는 README·LICENSE·NOTICE·assets만 있어 전체 학습·평가 소스는 공개되지 않은 상태다. 9B inference는 시험할 수 있지만 full OraRL training을 재현할 단계는 아니다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>실무 판단:</strong> 긴 검사 영상에서 “결함이 처음 나타난 구간”, “같은 물체의 trajectory”, “이 영역의 mask”를 하나의 MLLM API로 다루려는 연구에 가장 먼저 시험해볼 만하다. 다만 model card는 safety-critical decision, identity inference, surveillance deployment를 사용 범위에서 제외한다. 생산 품질 판정에는 모델 응답과 실제 결정을 분리하는 검증 계층이 필요하다.</p>
+
+
+
+<h2 class="wp-block-heading">2. A2DINOv3 — RGB와 IR은 많이 말할수록 좋은가</h2>
+
+
+
+<p class="wp-block-paragraph"><strong>정식명:</strong> A2DINOv3: Rethinking Multi-Modal Object Detection via Socialized Collaboration · <strong>arXiv v1 제출:</strong> 2026년 8월 21일</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>A2DINOv3의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>같은 장면을 담은 spatially paired RGB와 IR 이미지. 1-channel IR은 backbone 입력에 맞춰 3-channel로 복제한다.</td></tr><tr><td><strong>Process</strong></td><td>파라미터를 공유하는 두 DINOv3 stream → index 5·8·11의 bidirectional SCP → mean fusion → hybrid encoder와 6-layer DEIM decoder.</td></tr><tr><td><strong>Output</strong></td><td>객체별 bounding box와 category distribution. confidence 0.25 미만의 예측은 제거한다.</td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading">명시적 선택기가 아니라 제한된 통신 경로</h3>
+
+
+
+<p class="wp-block-paragraph">일반적인 RGB-IR detector는 중간 feature를 cross-attention이나 고용량 fusion module로 강하게 섞는다. 한 modality가 흐리거나 어두우면 쓸모없는 신호도 함께 전달돼 더 믿을 만한 modality의 표현을 훼손할 수 있다. A2DINOv3는 같은 DINOv3 ViT-S+/16 파라미터를 두 stream이 공유하되 activation은 분리한다. Backbone을 두 벌 저장하지는 않지만 RGB와 IR을 각각 forward해야 한다.</p>
+
+
+
+<p class="wp-block-paragraph">SCP는 RGB→IR, IR→RGB 양방향 residual을 만든다. Down-projection으로 feature를 <em>r ≪ d</em>인 저차원 공간에 압축하고 GELU와 up-projection을 거쳐 상대 stream에 더한다. Token gate나 별도의 reliability estimator가 정보를 골라내는 구조는 아니다. <strong>교환 자유도를 좁혀 detection loss가 유용한 방향에 제한된 용량을 쓰도록 유도한다</strong>는 설명이 더 정확하다.</p>
+
+
+
+<p class="wp-block-paragraph">Up-projection을 0으로 초기화하므로 첫 optimization step의 SCP residual은 정확히 0이다. 두 stream이 DINOv3 prior를 유지한 채 출발하고, gradient가 up-projection을 갱신하면서 communication이 서서히 열린다. 이후 두 stream의 multi-level feature를 파라미터 없는 산술 평균으로 모아 DETR 계열 decoder에 보낸다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>데이터셋</th><th>기존 multimodal 최고</th><th>A2DINOv3</th><th>변화</th></tr></thead><tbody><tr><td>GAIIC2024 test mAP</td><td>AFF-Net 37.53</td><td><strong>43.05</strong></td><td>+5.52%p</td></tr><tr><td>M3FD mAP</td><td>AFF-Net 59.22</td><td><strong>61.78</strong></td><td>+2.56%p</td></tr><tr><td>FLIR mAP</td><td>M²D-LIF 46.10</td><td><strong>46.80</strong></td><td>+0.70%p</td></tr><tr><td>LLVIP mAP</td><td>M²D-LIF 70.80</td><td><strong>71.56</strong></td><td>+0.76%p</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">GAIIC2024 test의 mAP50·mAP75도 AFF-Net 56.05·43.38에서 61.08·50.56으로 올랐다. 같은 test에서 가장 강한 IR-only RF-DETR Large의 mAP 37.12보다 5.93%p 높다. 반면 FLIR와 LLVIP의 차이는 1%p 미만이다. “네 데이터셋에서 일관되게 최고”라는 저자 비교표의 결론은 맞지만, 모든 domain에서 큰 폭으로 앞선 것은 아니다.</p>
+
+
+
+<p class="wp-block-paragraph">Ablation은 중심 아이디어를 비교적 잘 분리한다. Backbone을 고정했을 때 cross-attention 38.10에서 SCP 40.27로 2.17%p 올랐고, SCP full fine-tuning에서 random initialization 42.43을 zero initialization이 43.05로 0.62%p 높였다. 실험은 8×RTX 4090에서 수행됐다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>공개 상태:</strong> 논문에 연결된 공식 repository나 checkpoint는 8월 25일 현재 확인되지 않는다. SCP 병목 차원 <em>r</em>, 정확한 DINOv3 checkpoint, M3FD 학습 설정, 일부 loss weight도 빠져 있어 설명만 보고 논문과 같은 결과를 재현하기는 어렵다. 논문은 arXiv perpetual non-exclusive license이며 구현물 라이선스는 미정이다. DINOv3 backbone의 별도 이용 조건도 확인해야 한다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>실무 판단:</strong> RGB와 thermal/NIR 카메라가 이미 설치된 야간 검사·시설 모니터링·자율주행에 적합한 문제 설정이다. 그러나 missing modality, 심한 sensor failure, 정합 오차 크기별 stress test는 없다. Paired input의 registration과 parallax가 큰 현장에서는 별도 정합 실험이 필요하다.</p>
+
+
+
+<h2 class="wp-block-heading">3. Stream3Dv2 — 2D mask를 스트리밍 3D instance로</h2>
+
+
+
+<p class="wp-block-paragraph"><strong>정식명:</strong> Stream3Dv2: Geometric-Semantic Fusion Enhanced Streaming Zero-Shot 3D Scene Understanding · <strong>arXiv v1 제출:</strong> 2026년 8월 21일</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>Stream3Dv2의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>순차 RGB-D frame, camera pose·intrinsic, 이전까지 누적된 point cloud와 historical instance mask, scene class text prompt.</td></tr><tr><td><strong>Process</strong></td><td>SAM2 grid mask와 SAM3 semantic mask를 3D로 투영 → 최근 frame의 geometric-semantic merge·partition → manifold graph 경계 보정 → AABB 기반 historical update.</td></tr><tr><td><strong>Output</strong></td><td>현재 시점까지 갱신된 class-agnostic·semantic 3D instance mask, CLIP ViT-H label, AABB 기반 3D detection.</td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading">Training-free는 model-free가 아니다</h3>
+
+
+
+<p class="wp-block-paragraph">Stream3Dv2는 dataset-specific 3D model을 새로 학습하지 않는다. 대신 SAM2 grid prompt로 넓은 영역을 덮는 class-agnostic mask를 만들고, SAM3에는 common scene class words를 넣어 semantic mask를 얻는다. 두 종류의 mask를 depth와 camera pose로 3D에 투영한 뒤 최근 20개 frame의 local window에서 multi-view consistency를 검사한다. 20은 세 데이터셋 실험의 기본값이지 알고리즘의 고정 한계는 아니다.</p>
+
+
+
+<p class="wp-block-paragraph">Grid mask가 한 물체를 둘로 나누거나 여러 물체를 하나로 묶으면 set covering과 set partitioning으로 merge·split한다. 이후 voxel super-point로 만든 manifold graph에서 경계를 다듬는다. 초기 single-view denoising에는 Euclidean threshold도 사용하므로 “Euclidean 거리를 완전히 버렸다”는 설명은 부정확하다. Manifold metric은 후반 boundary refinement에서 곡면을 가로지르는 잘못된 최근접 연결을 줄이는 역할을 맡는다.</p>
+
+
+
+<p class="wp-block-paragraph">Historical update에서는 현재 mask의 AABB와 겹치는 과거 instance만 활성화한다. 모든 historical point를 매번 대조하는 대신 후보를 static·dynamic·new instance로 나눠 갱신해, 스트림이 길어질 때의 비교 비용을 줄인다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>평가 데이터</th><th>Split</th><th>Scene</th><th>Frame</th></tr></thead><tbody><tr><td>ScanNet200</td><td>validation</td><td>312</td><td>54,090</td></tr><tr><td>ScanNet++</td><td>validation</td><td>50</td><td>33,884</td></tr><tr><td>MatterPort3D</td><td>test subset</td><td>8</td><td>11,052</td></tr></tbody></table></figure>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>ScanNet200 streaming·zero-shot</th><th>AP</th><th>AP50</th><th>AP25</th><th>FPS</th></tr></thead><tbody><tr><td>OnlineAnySeg</td><td>18.6</td><td>36.1</td><td>53.5</td><td><strong>15</strong></td></tr><tr><td>Stream3D</td><td>22.4</td><td>37.6</td><td>55.1</td><td>13</td></tr><tr><td><strong>Stream3Dv2</strong></td><td><strong>27.1</strong></td><td><strong>42.0</strong></td><td><strong>55.3</strong></td><td>11</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">Stream3D보다 class-agnostic AP는 4.7%p, AP50은 4.4%p 올랐지만 속도는 13→11 FPS로 낮아졌다. OnlineAnySeg보다 4 FPS 느린 대신 AP가 8.5%p 높다. 다만 11 FPS는 ScanNet200 평가표의 수치다. 논문은 단일 GPU 기준인지, SAM2·SAM3 등 2D foundation model의 전체 추론 비용을 모두 포함했는지 명확히 분리하지 않는다. “어떤 길이의 스트림에서도 11 FPS”로 일반화하면 안 된다.</p>
+
+
+
+<p class="wp-block-paragraph">ScanNet200 semantic AP는 20.6%로, full sequence를 미리 보는 offline zero-shot MV3DIS의 15.5%보다 5.1%p 높다. Open-vocabulary 3D detection AP50/AP25도 Stream3D 10.6/18.9에서 14.2/24.8로 올랐다. 반대로 class-agnostic AP 전체 비교에서는 offline MV3DIS 35.5와 supervised Mask3D 39.7이 더 높다. Stream3Dv2의 장점은 <strong>streaming·zero-shot 조건에서 정확도와 처리량을 함께 확보했다</strong>는 데 있다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>공개 상태:</strong> 논문은 기존 SubmissionsIn/Stream3D 저장소에 v2 코드를 업데이트하겠다고 적었다. 8월 25일 연결된 MIT 저장소에는 CVPR 2026 Stream3D v1 zip만 있고 v2 구현은 확인되지 않는다. V2 전용 학습 weight는 없지만 SAM2·SAM3·CLIP ViT-H checkpoint와 각 upstream 라이선스가 필요하다. 아직 없는 v2 코드의 라이선스는 실제 공개 뒤 다시 확인해야 한다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>실무 판단:</strong> RGB-D 기반 실내 로봇, 창고 스캔, digital twin, 설비 순찰에서 고정 class용 3D 모델을 다시 학습하지 않고 instance를 누적하는 용도에 맞는다. 현재 검증은 정적인 실내 장면 중심이며 정확한 pose·intrinsic과 일관된 좌표계가 필요하다. 대규모 야외 환경, 동적 occlusion, 긴 스트림의 memory 증가는 남은 과제다.</p>
+
+
+
+<h2 class="wp-block-heading">오늘의 우선순위</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>지금 모델을 내려받아 평가한다면 Video-ORA-9B:</strong> 세 편 가운데 실행 가능한 가중치가 실제 공개됐다. 다만 inference 가능과 full training 재현 가능은 구분해야 한다.</li>
+
+<li><strong>RGB+IR 산업 CV라면 A2DINOv3:</strong> 강한 fusion보다 제한된 communication이 낫다는 ablation이 분명하다. 코드 공개와 sensor-failure 검증은 기다려야 한다.</li>
+
+<li><strong>RGB-D 로봇·3D 인식이라면 Stream3Dv2:</strong> Training-free streaming이라는 제약 안에서 성능이 좋다. Pose 품질과 긴 sequence 비용을 실제 장비에서 다시 재야 한다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">세 연구 모두 backbone 크기보다 <strong>학습과 정보 처리의 경로</strong>를 바꿨다. Annotation을 rollout으로 쓰고, modality 사이의 통신 용량을 줄이며, 2D mask를 geometry와 semantics로 조정했다. 큰 모델을 한 번 더 키우는 것보다 어떤 신호를 어디에 넣고 어떤 비교를 허용할지 설계한 결과다.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity" />
+
+
+
+<h3 class="wp-block-heading">원문과 공개 상태 확인</h3>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://arxiv.org/list/cs.CV/recent?skip=0&amp;show=2000">arXiv cs.CV recent — 2026년 8월 24일 배치 103편</a></li>
+
+<li><a href="https://arxiv.org/abs/2608.20492">OraRL 논문</a> · <a href="https://orarl.github.io/">프로젝트 페이지</a> · <a href="https://github.com/HVision-NKU/OraRL">공식 GitHub</a> · <a href="https://huggingface.co/OraRL/Video-ORA-9B">Video-ORA-9B 가중치</a> · <a href="https://huggingface.co/datasets/OraRL/OraRL-Data">평가 데이터</a></li>
+
+<li><a href="https://arxiv.org/abs/2608.21099">A2DINOv3 논문</a></li>
+
+<li><a href="https://arxiv.org/abs/2608.21136">Stream3Dv2 논문</a> · <a href="https://github.com/SubmissionsIn/Stream3D">연결된 공식 저장소 — 현재 v1 코드</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><em>논문 버전과 저장소 상태는 2026년 8월 25일 확인했습니다. 성능 수치는 각 논문의 평가 조건을 요약한 저자 보고값이며 독립 재현 결과가 아닙니다. 코드·가중치·라이선스 상태는 이후 변경될 수 있습니다.</em></p>
+
+]]></content:encoded>
+
+
+
+			</item>
+		<item>
 		<title>DreamHand 논문 분석: 비디오 확산 모델로 가려진 손의 3D 움직임을 복원하는 법</title>
 		<link>https://odd-note.invalid/dreamhand-video-diffusion-3d-hand-paper-analysis/</link>
 
@@ -2519,67 +2766,6 @@ cwebp -preset photo -q 82 -resize 0 1600 -metadata none input.jpg -o output.webp
 
 
 <p class="wp-block-paragraph"><strong>작성 과정:</strong> 이 글은 AI를 이용해 목차와 초안을 구성했으며, 주장은 Google Search Central의 <a href="https://developers.google.com/search/docs/fundamentals/creating-helpful-content?hl=ko">사람 중심 콘텐츠 가이드</a>, <a href="https://developers.google.com/search/docs/fundamentals/using-gen-ai-content?hl=ko">생성형 AI 콘텐츠 가이드</a>, <a href="https://developers.google.com/search/docs/fundamentals/ai-optimization-guide?hl=ko">검색 AI 기능 최적화 가이드</a>와 대조해 검토했습니다. 정책은 바뀔 수 있으므로 실제 적용 전 최신 원문을 다시 확인해야 합니다.</p>
-]]></content:encoded>
-
-
-
-			</item>
-		<item>
-		<title>인터랙티브 블로그가 읽는 속도를 방해하지 않게 만든 방법</title>
-		<link>https://odd-note.invalid/interactive-blog-without-sacrificing-speed/</link>
-
-		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
-		<pubDate>Sun, 16 Aug 2026 05:54:17 +0000</pubDate>
-				<category><![CDATA[AI 도구]]></category>
-		<category><![CDATA[AI 디자인]]></category>
-		<category><![CDATA[성능]]></category>
-		<category><![CDATA[웹 접근성]]></category>
-		<category><![CDATA[인터랙션]]></category>
-		<guid isPermaLink="false">/interactive-blog-without-sacrificing-speed</guid>
-
-					<description><![CDATA[커서와 카드 효과를 살리면서 검색성, 접근성, 배터리와 읽기 경험을 지키기 위해 선택한 기준입니다.]]></description>
-										<content:encoded><![CDATA[
-<p class="wp-block-paragraph">인터랙티브 웹은 첫인상을 강하게 만들지만, 수익형 블로그의 주인공은 결국 글입니다. 이번 테마는 “놀라움 30%, 읽기 70%”를 기준으로 효과를 선택했습니다.</p>
-
-
-
-<h2 class="wp-block-heading">콘텐츠는 서버가 먼저 보여준다</h2>
-
-
-
-<p class="wp-block-paragraph">글 제목, 링크, 카테고리, 본문은 JavaScript가 없어도 HTML에 존재합니다. 검색엔진과 보조 기술이 콘텐츠를 읽을 수 있고, 스크립트 오류가 나도 방문자가 글을 잃지 않습니다. JavaScript는 커서 링, 카드 기울기, 스크롤 등장 효과처럼 없어도 되는 경험만 덧붙입니다.</p>
-
-
-
-<h2 class="wp-block-heading">네이티브 커서는 숨기지 않는다</h2>
-
-
-
-<p class="wp-block-paragraph">커스텀 커서가 재미있어도 사용자가 클릭 위치를 잃으면 실패입니다. 기본 포인터는 그대로 유지하고, 정밀한 마우스가 있는 데스크톱에서만 작은 링이 따라오도록 했습니다. 터치 화면에서는 효과를 자동으로 끕니다.</p>
-
-
-
-<h2 class="wp-block-heading">움직임을 선택할 권리</h2>
-
-
-
-<p class="wp-block-paragraph">운영체제의 동작 줄이기 설정을 존중하고, 사이트 안에도 FX 끄기 버튼을 제공합니다. 효과가 꺼지면 자동 애니메이션뿐 아니라 부드러운 스크롤과 전환 효과도 즉시 멈춥니다.</p>
-
-
-
-<h2 class="wp-block-heading">무거운 기술보다 작은 반응</h2>
-
-
-
-<p class="wp-block-paragraph">WebGL이나 대형 애니메이션 라이브러리 대신 CSS와 짧은 순수 JavaScript를 사용했습니다. 포인터가 멈추면 애니메이션 프레임도 멈추고, 화면 아래 이미지는 지연 로딩합니다. 화려함보다 글을 읽는 속도와 배터리를 우선한 선택입니다.</p>
-
-
-
-<h2 class="wp-block-heading">수익과 효과의 경계</h2>
-
-
-
-<p class="wp-block-paragraph">광고를 메뉴나 인터랙티브 버튼처럼 보이게 만들면 안 됩니다. 향후 광고를 붙일 때도 히어로와 조작 요소에서는 떨어뜨리고, 글의 흐름을 끊지 않는 명확한 광고 영역만 사용할 계획입니다.</p>
 ]]></content:encoded>
 
 

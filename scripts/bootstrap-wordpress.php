@@ -947,6 +947,55 @@ function odd_note_publish_ai_cv_briefing( $owner_id ) {
 }
 
 /**
+ * Publish the August 25 computer-vision research briefing.
+ *
+ * @param int $owner_id Author user ID.
+ * @return int
+ */
+function odd_note_publish_ai_cv_briefing_august_25( $owner_id ) {
+	$slug     = 'ai-cv-sota-briefing-2026-08-25';
+	$existing = get_page_by_path( $slug, OBJECT, 'post' );
+
+	if ( $existing && '1' !== get_post_meta( (int) $existing->ID, '_odd_note_bootstrap', true ) ) {
+		odd_note_bootstrap_fail( '같은 슬러그의 사용자 글이 있어 자동 발행을 중단했습니다: ' . $slug );
+	}
+
+	$category = get_term_by( 'slug', 'ai-paper-analysis', 'category' );
+	if ( ! $category ) {
+		odd_note_bootstrap_fail( 'AI 논문 분석 카테고리를 찾을 수 없습니다.' );
+	}
+
+	$post_id = odd_note_bootstrap_post(
+		array(
+			'post_type'      => 'post',
+			'post_status'    => 'publish',
+			'post_name'      => $slug,
+			'post_title'     => 'AI CV SOTA 브리핑 — Video-ORA-9B·A2DINOv3·Stream3Dv2 (2026.08.25)',
+			'post_excerpt'   => '정답 annotation을 rollout으로 쓰는 Video-ORA-9B, RGB·IR 통신을 제한한 A2DINOv3, training-free 스트리밍 3D 인식 Stream3Dv2의 방법·데이터·비교 결과와 공개 상태를 검증했습니다.',
+			'post_content'   => odd_note_editorial_content( $slug ),
+			'post_author'    => $owner_id,
+			'post_category'  => array( (int) $category->term_id ),
+			'comment_status' => 'closed',
+			'ping_status'    => 'closed',
+		)
+	);
+
+	wp_set_post_tags(
+		$post_id,
+		array( 'Computer Vision', 'Video-ORA-9B', 'OraRL', 'A2DINOv3', 'Stream3Dv2', 'RGB-IR', 'Open-Vocabulary 3D', 'AI 논문 분석' ),
+		false
+	);
+	update_post_meta( $post_id, '_odd_note_primary_category_id', (int) $category->term_id );
+	update_post_meta( $post_id, '_odd_note_editorial_revision', '1.7.0' );
+
+	$post_ids          = (array) get_option( 'odd_note_editorial_post_ids', array() );
+	$post_ids[ $slug ] = $post_id;
+	update_option( 'odd_note_editorial_post_ids', $post_ids, false );
+
+	return $post_id;
+}
+
+/**
  * Publish one standalone deep dive for each paper in the CV briefing.
  *
  * @param int $owner_id Author user ID.
@@ -1065,7 +1114,7 @@ if (
 	odd_note_bootstrap_fail( '사이트 주소 형식이 올바르지 않습니다.' );
 }
 
-$target_version = '1.6.1';
+$target_version = '1.7.0';
 $installed      = is_blog_installed();
 $state          = $installed ? get_option( 'odd_note_bootstrap_state', '' ) : '';
 
@@ -1110,6 +1159,10 @@ if ( $installed && 'complete' === $state ) {
 				odd_note_publish_ai_cv_briefing( $owner_id );
 			}
 			odd_note_publish_ai_cv_deep_dives( $owner_id );
+		}
+
+		if ( version_compare( $current_version, '1.7.0', '<' ) ) {
+			odd_note_publish_ai_cv_briefing_august_25( $owner_id );
 		}
 
 		update_option( 'odd_note_bootstrap_version', $target_version, false );
@@ -1555,6 +1608,7 @@ odd_note_publish_mac_image_workflow( $owner_id, $mac_workflow_id );
 $editorial_ids = odd_note_publish_editorial_series( $owner_id );
 odd_note_publish_ai_cv_briefing( $owner_id );
 odd_note_publish_ai_cv_deep_dives( $owner_id );
+odd_note_publish_ai_cv_briefing_august_25( $owner_id );
 
 update_option( 'sticky_posts', array( $editorial_ids['supabase-realtime-binary-state-sync'] ) );
 update_option( 'show_on_front', 'page' );
@@ -1600,4 +1654,4 @@ update_option( 'odd_note_bootstrap_version', $target_version, false );
 update_option( 'odd_note_bootstrap_state', 'complete', false );
 
 echo 'Odd Note 설치와 초기 콘텐츠 구성이 완료됐습니다.' . PHP_EOL;
-echo '페이지 6개, 카테고리 6개, 글 12개, 메뉴 2개를 준비했습니다.' . PHP_EOL;
+echo '페이지 6개, 카테고리 6개, 글 13개, 메뉴 2개를 준비했습니다.' . PHP_EOL;
