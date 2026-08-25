@@ -1,0 +1,475 @@
+<!-- wp:paragraph {"className":"article-lead"} -->
+<p class="article-lead"><strong>정답 annotation은 강화학습에서 채점표로만 써야 할까?</strong> OraRL은 정답을 모델 응답 형식으로 바꿔 rollout group 안에 직접 넣는다. 모델이 만든 응답만으로 얻기 어려운 정확한 시간 구간, bounding box, trajectory, segmentation prompt를 학습 때마다 확실한 positive example로 제공한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>이 방식으로 학습한 <strong>Video-ORA-9B</strong>는 temporal grounding, tracking, segmentation, Video QA, spatial intelligence를 한 모델에서 처리한다. 여기서 <strong>36.8배</strong>는 전체 응답 속도가 아니다. 첫 token 이후 answer를 생성하는 decoding 구간이 4.78초에서 0.13초로 줄었다는 뜻이다. 전체 median latency는 같은 실험에서 29.03초에서 24.30초로 약 16.3% 감소했다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>OraRL은 학습 방법이고 Video-ORA-9B는 그 결과 모델이다. 이 글에서는 둘을 구분해 입력과 출력 형식, annotation의 학습 경로, SFT 284,779개·RL 100,032개 prompt의 출처, 여러 benchmark 평균값의 구성을 차례로 살펴본다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>정식명:</strong> Annotations as Rollouts: Efficient and Scalable Reinforcement Learning for Video MLLMs · <strong>arXiv v1 제출:</strong> 2026년 8월 20일 · <strong>정식 배치:</strong> 2026년 8월 24일 · <strong>확인 기준:</strong> 2026년 8월 25일</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>OraRL / Video-ORA-9B의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>이미지 또는 비디오와 자연어 지시. 기본 비디오 설정은 2 fps, 최대 128 frame이며 tracking은 32 frame을 사용한다.</td></tr><tr><td><strong>Process</strong></td><td>policy rollout 8개에 annotation을 직렬화한 oracle rollout 1개를 추가한다. policy reward로만 기준선을 정하고, oracle과 positive·negative rollout을 골라 advantage를 보정한 뒤 업데이트한다.</td></tr><tr><td><strong>Output</strong></td><td>CoT 없이 과제별 direct answer를 낸다. 선택지, 시간 구간, box, box trajectory, segmentation prompt, 수치 답변처럼 형식이 과제마다 다르다.</td></tr><tr><td><strong>대표 결과</strong></td><td>TimeLens 3종 mIoU 평균 66.0, GOT-10k AO 78.2, 저자 정의 segmentation family score 70.4.</td></tr><tr><td><strong>공개 상태</strong></td><td>Video-ORA-9B BF16 가중치와 평가 데이터 공개. 4B 가중치와 전체 학습·평가 소스는 2026년 8월 25일 기준 미공개.</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">1. 논문이 풀려는 문제</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Video MLLM을 여러 정밀 지각 과제에 맞추는 가장 단순한 방법은 supervised fine-tuning, SFT다. 정답 문장을 그대로 따라 쓰게 하므로 출력 형식을 배우기에는 좋지만, 거의 맞힌 box와 완전히 빗나간 box를 서로 다른 정도로 평가하지 못한다. 둘 다 정답 sequence와 다르면 같은 token-level imitation 문제로 다뤄진다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>GRPO 같은 group-based RL은 한 질문에서 여러 응답을 sampling하고 task reward를 비교한다. 시간 구간에는 tIoU, box에는 IoU, tracking에는 평균 overlap처럼 과제에 맞는 연속 점수를 줄 수 있다. 문제는 정밀한 구조화 답변일수록 on-policy rollout 안에 좋은 답이 거의 없다는 데 있다. 1~2초 차이의 temporal boundary, frame마다 이어지는 trajectory, mask를 유도할 box와 point를 모두 정확히 생성해야 해서 reward가 높은 positive rollout이 드물다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Chain-of-thought를 길게 생성해도 이 병목이 저절로 풀리지는 않았다. 논문의 4B controlled experiment에서는 CoT GRPO가 answer-only GRPO보다 temporal 평균이 58.5 대 58.7로 낮았고, 학습 시간은 step당 93.9초에서 135.6초로 늘었다. OraRL은 reasoning trace를 더 만드는 대신 이미 존재하는 정답 annotation을 학습 가능한 positive rollout으로 바꾼다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">2. Input — 모델이 실제로 보는 것</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">추론 입력은 영상과 지시문이다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>논문은 하나의 질의를 <em>q=(v, x)</em>로 쓴다. <em>v</em>는 이미지 또는 비디오, <em>x</em>는 자연어 지시다. “빨간 셔츠를 입은 사람이 문을 통과하는 구간을 찾아라”, “첫 frame의 이 물체를 끝까지 추적하라”, “질문이 가리키는 영역을 segment하라”처럼 같은 시각 입력에서도 요구하는 출력이 달라진다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>기본 video pipeline은 2 fps로 frame을 뽑고 최대 128개를 남기며 clip당 840만 pixel budget을 적용한다. Tracking은 32개 frame을 균일하게 sampling한다. 더 높은 해상도가 필요한 Video QA·segmentation·spatial-intelligence 과제의 pixel budget은 1,050만~1,680만이다. 따라서 “모든 평가를 같은 128 frame 조건으로 수행했다”는 설명은 맞지 않는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>과제</th><th>입력 예시</th><th>시각 처리 조건</th></tr></thead><tbody><tr><td>Temporal grounding</td><td>비디오 + 찾을 사건을 설명한 문장</td><td>기본 2 fps, 최대 128 frame</td></tr><tr><td>Visual tracking</td><td>비디오 + 추적 대상</td><td>균일 sampling한 32 frame</td></tr><tr><td>Spatial grounding</td><td>이미지 + referring expression</td><td>과제별 image budget</td></tr><tr><td>Video segmentation</td><td>비디오 + 가리키는 대상</td><td>고해상도 과제 budget 1,050만~1,680만 pixel</td></tr><tr><td>Video QA·spatial intelligence</td><td>비디오 + 선택형·수치형 질문</td><td>고해상도 과제 budget 1,050만~1,680만 pixel</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Annotation은 학습할 때만 추가된다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>정답 annotation은 추론 입력이 아니다. RL 학습 중에만 task adapter가 annotation을 모델의 정상 응답 형식으로 직렬화한다. 시간 annotation은 시작·종료 구간, tracking annotation은 frame별 box trajectory, multiple-choice annotation은 정답 token으로 바뀐다. 이 직렬화 결과를 논문은 <strong>oracle rollout</strong>이라 부른다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>학습을 마친 Video-ORA-9B는 영상과 질문만 받고 답한다. Oracle은 retrieval용 외부 memory도, test-time hint도 아니다. 정답을 training target으로 쓰는 방식이 바뀐 것이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">3. Output — 한 모델이 일곱 종류의 답을 낸다</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Video-ORA는 기본적으로 <code>&lt;think&gt;</code>를 생성하지 않는다. 정확히 하나의 <code>&lt;answer&gt;</code> block 안에 과제별 direct answer를 내며, 중복 answer block이나 대화 turn 유출처럼 parser가 읽지 못하는 응답은 reward 0을 받는다. 이 형식 검사가 중요한 이유는 box 좌표나 시간 구간이 맞아도 schema가 깨지면 실제 pipeline에서 쓸 수 없기 때문이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>Task family</th><th>모델 출력</th><th>학습 reward·평가 기준</th></tr></thead><tbody><tr><td>Temporal·highlight grounding</td><td>시작·종료 시간 구간</td><td>예측 구간과 정답 구간의 temporal IoU</td></tr><tr><td>Spatial grounding</td><td>대상 bounding box</td><td>정답 box와의 IoU</td></tr><tr><td>Spatial-temporal grounding</td><td>시간 구간 + frame별 box</td><td>temporal IoU, strict spatial IoU, temporal coverage, framewise box quality의 결합</td></tr><tr><td>Visual tracking</td><td>전체 box trajectory</td><td>주석 frame 전체의 Average Overlap. 누락 frame은 IoU 0</td></tr><tr><td>Video segmentation</td><td>timestamp, box, positive·negative point</td><td>정답 mask와 box·point 관계를 계산한 mask-aware reward</td></tr><tr><td>Video QA</td><td>선택지 또는 짧은 직접 답</td><td>multiple-choice token exact match</td></tr><tr><td>Spatial intelligence</td><td>범주형 답 또는 거리·개수 같은 수치</td><td>범주형 exact match, 수치형 Mean Relative Accuracy</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>Segmentation 출력은 dense pixel mask 자체가 아니라 <strong>mask evaluator가 사용할 prompt</strong>다. 선택한 timestamp가 유효한지, box가 정답 mask를 얼마나 감싸는지, positive point가 mask 안에 있고 negative point가 밖에 있는지를 조합해 reward를 계산한다. 이 구조 덕분에 text decoder가 거대한 mask array를 직접 생성하지 않아도 되지만, 최종 mask를 얻으려면 별도의 segmentation evaluator가 필요하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">4. Process — Annotation as Rollout은 어떻게 작동하나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 1. Policy rollout 8개를 생성한다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>각 prompt에서 현재 policy가 answer-only 응답 8개를 sampling한다. 기본 temperature는 1.0, top-p는 0.85다. Task adapter가 각 응답을 annotation과 비교해 scalar reward를 계산한다. Vanilla GRPO라면 이 8개의 reward 평균과 표준편차로 advantage를 정하고, 평균보다 좋은 응답 확률은 높이고 나쁜 응답 확률은 낮춘다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 2. Annotation을 아홉 번째 oracle rollout으로 붙인다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>OraRL은 8개를 교체하지 않고 정답을 직렬화한 oracle을 하나 더 붙인다. Group은 모두 9개가 된다. Policy가 만든 rollout을 그대로 남기므로 on-policy exploration budget은 줄지 않고, group마다 적어도 하나의 정확한 positive target이 생긴다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 3. Oracle을 평균에 섞을 때 생기는 advantage inversion을 막는다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>정답을 단순히 group에 넣고 9개 reward의 평균을 다시 계산하면 oracle의 높은 점수가 기준선을 끌어올린다. 기존 policy 평균보다 잘한 응답도 새 평균보다는 낮아 negative advantage를 받을 수 있다. 강화해야 할 rollout을 오히려 억제하는 이 현상을 논문은 <strong>advantage inversion</strong>이라 부른다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>실험에서도 naive GT injection은 GRPO의 세 과제 평균 60.3을 55.4로 낮췄고, tracking은 63.9에서 52.0으로 떨어졌다. 정답이 정확하다는 사실만으로 좋은 학습이 보장되지 않는다는 증거다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 4. Policy와 oracle의 advantage를 분리한다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>OraRL은 on-policy 8개의 reward 평균만으로 policy advantage의 부호를 정한다. 평균보다 좋은 rollout이 oracle 때문에 negative로 뒤집힐 수 없다. 대신 oracle과 policy 사이의 격차는 두 경로에 따로 반영한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>Directional gain:</strong> oracle을 포함했을 때 reward dispersion이 얼마나 커지는지 보고, 평균 이상 policy rollout의 positive advantage만 1~4배 범위에서 키운다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>Detached oracle advantage:</strong> oracle과 policy 평균의 gap이 클 때 정답 update를 강하게 주고, policy가 oracle reward에 가까워지면 자동으로 약하게 만든다.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>첫 경로는 현재 policy가 우연히 만든 좋은 탐색 결과를 살리고, 둘째 경로는 annotation을 직접 따라갈 기준점을 남긴다. 정답 모방만 하도록 수렴하거나 on-policy exploration을 억누르지 않게 역할을 나눈 셈이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 5. 네 개 rollout만 남기되 부호를 보존한다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>9개 응답 모두에 backpropagation하면 계산량이 크다. 기본 pruning ratio 0.5에서는 oracle, 가장 강한 positive policy rollout 1개, 가장 강한 negative rollout 2개를 남긴다. 후보가 부족하면 빈 자리를 다른 부호에 넘기지만, 가능하면 reward를 올리는 신호와 내리는 신호를 함께 유지한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>선택 뒤에는 advantage 평균을 다시 0으로 맞추고 oracle이 음수가 되지 않게 보정한다. Retained group의 RMS도 pruning 전 on-policy RMS에 맞추되 update를 더 증폭하지는 않는다. 큰 절댓값만 보고 고르면 한쪽 부호가 사라져 모든 응답을 같은 방향으로 미는 문제가 생길 수 있어서다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">5. 학습 데이터 — 일곱 task family를 어떻게 섞었나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>SFT와 RL은 같은 일곱 task family를 다루지만 prompt와 sampling 비율이 다르다. SFT에는 284,779개, RL에는 100,032개의 서로 다른 prompt를 썼다. SFT mixture는 answer-only가 82%, structured task가 18%다. RL에서는 structured task를 63%로 끌어올리고 answer-only를 37%로 낮췄다. 정밀 annotation을 oracle rollout으로 쓰는 이점을 structured perception에서 더 많이 활용하려는 구성이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>Task family</th><th>학습 데이터 출처</th><th>Annotation이 담는 정보</th></tr></thead><tbody><tr><td>Temporal grounding</td><td>TimeLens-100K</td><td>질의에 대응하는 시간 구간</td></tr><tr><td>Visual tracking</td><td>GOT-10k, TrackingNet, ElysiumTrack</td><td>frame별 object box trajectory</td></tr><tr><td>Image·video segmentation</td><td>OneThinker pack: ReVOS, Ref-YouTube-VOS, Ref-SAV, MeViS, DAVIS-17, COCO referring expressions</td><td>대상 mask와 referring expression</td></tr><tr><td>Spatial grounding</td><td>COCO train2014의 RefCOCO, RefCOCO+, RefCOCOg</td><td>referring expression과 box</td></tr><tr><td>Spatial-temporal grounding</td><td>LLaVA-ST-STVG</td><td>시간 구간과 frame별 box</td></tr><tr><td>Video QA</td><td>LLaVA-Video-178K, LongVILA, STAR, CLEVRER, Video-Holmes</td><td>질문과 정답</td></tr><tr><td>Spatial intelligence</td><td>ScanNet·ScanNet++·ARKitScenes 기반 VSI-590K, SenseNova-SI-800K 일부</td><td>거리·크기·방향·순서·공간 관계 답</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>모든 예시는 공개 training split에서 가져왔고, 평가 영상과 겹치는 training example은 제거했다고 논문은 설명한다. Media나 annotation을 복구할 수 없는 예시를 버리고 task·media·질문·답을 기준으로 중복을 찾았으며, 한 영상에서는 prompt를 최대 두 개만 남겼다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>RL 후보의 난도도 조절했다. SFT checkpoint로 먼저 추론해 해당 task metric으로 점수를 매긴 뒤 중간 난도에 무게를 줬다. SFT 모델이 이미 0.80 이상을 받은 쉬운 예시는 task별 RL subset의 15%까지만 허용했다. 실패만 모은 hard-negative set은 아니고, 학습 신호가 거의 없는 너무 쉬운 샘플의 비중을 제한한 것이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">6. 학습 protocol과 계산 자원</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>설정</th><th>SFT</th><th>OraRL</th></tr></thead><tbody><tr><td>Epoch</td><td>1</td><td>1</td></tr><tr><td>Framework</td><td>ms-swift</td><td>veRL + vLLM</td></tr><tr><td>Distributed</td><td>ZeRO-2</td><td>FSDP full shard</td></tr><tr><td>Precision</td><td>bfloat16</td><td>bfloat16</td></tr><tr><td>학습 module</td><td>Language model</td><td>Language model</td></tr><tr><td>Global prompt batch</td><td>64</td><td>64</td></tr><tr><td>Learning rate</td><td>1×10<sup>-5</sup></td><td>2×10<sup>-6</sup></td></tr><tr><td>Prompt별 rollout</td><td>—</td><td>Policy 8 + oracle 1</td></tr><tr><td>KL coefficient</td><td>—</td><td>0</td></tr><tr><td>Pruning ratio</td><td>—</td><td>0.5, gradient 대상 4개</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>기본 backbone은 Qwen3.5다. SFT에서는 vision tower와 multimodal aligner를 고정하고 language-model parameter만 학습한다. RL을 시작할 때는 base와 SFT language-model parameter를 보간한다. 4B controlled experiment의 SFT 비중은 0.7, 9B full model은 0.6이며 비교 방법마다 같은 초기화를 사용했다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>계산 규모는 작지 않다. 4B controlled comparison은 NVIDIA H20 8개가 장착된 node 4대, 모두 32개 GPU를 사용했다. 9B 전체 RL run은 같은 node 8대, 64개 H20에서 full parameter sharding으로 수행했다. 공개된 9B weight를 추론하는 일과 논문 규모로 OraRL을 다시 학습하는 일은 비용 차이가 크다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">7. 평가 데이터셋과 지표</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>논문의 실험은 두 층으로 읽어야 한다. 알고리즘 차이를 보는 controlled analysis는 같은 Qwen3.5-4B SFT 초기화, 데이터, optimization budget으로 temporal grounding·tracking·video segmentation 세 과제를 비교한다. 최종 Video-ORA-9B 평가는 여기에 spatial grounding, STVG, Video QA, spatial intelligence를 더한 unified evaluation이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>평가 영역</th><th>데이터셋</th><th>대표 지표</th><th>지표가 묻는 것</th></tr></thead><tbody><tr><td>Temporal grounding</td><td>Charades-STA·ActivityNet Captions·QVHighlights의 TimeLens split</td><td>mIoU, R1@0.3/0.5/0.7</td><td>예측 시간 구간과 정답 구간의 겹침</td></tr><tr><td>Tracking</td><td>GOT-10k</td><td>AO, R@0.3/0.5/0.7</td><td>전체 trajectory의 평균 box overlap</td></tr><tr><td>Image segmentation</td><td>RefCOCO·RefCOCO+·RefCOCOg</td><td>cIoU</td><td>전체 예시의 intersection·union을 누적한 mask 품질</td></tr><tr><td>Video segmentation</td><td>MeViS, ReasonVOS</td><td>J&amp;F</td><td>영역 overlap J와 contour F의 평균</td></tr><tr><td>Spatial-temporal grounding</td><td>STVG</td><td>tIoU@0.5, mean tIoU, sIoU@0.5, mean sIoU</td><td>사건 시간과 frame별 위치를 함께 찾는 능력</td></tr><tr><td>Video QA</td><td>VideoMME, VideoMME-v2, MV-Bench, MMVU, VideoHolmes, LongVideoBench, MLVU-MC</td><td>Accuracy</td><td>일반 video question answering</td></tr><tr><td>Spatial intelligence</td><td>VSI-Bench, MMSI-Bench, MindCube-Tiny</td><td>MRA·accuracy</td><td>거리·크기·관계·방향·경로 등 공간 추론</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>다른 논문에서 가져온 비교값에는 frame 수, prompt, split, decoding 조건이 다를 수 있다. 공식 프로젝트 페이지도 이런 original-report value를 별도 표시한다. 아래 결과는 같은 표의 저자 보고값을 설명한 것이며, 모든 baseline을 하나의 재현 환경에서 다시 실행한 결과는 아니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">8. 비교 결과 — 평균값의 구성부터 읽기</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>논문 대표 요약값</th><th>비교 기준</th><th>Video-ORA-9B</th><th>정확한 구성</th></tr></thead><tbody><tr><td>Temporal mIoU</td><td>TimeLens2-8B 62.5</td><td><strong>66.0</strong></td><td>Charades 61.8, ActivityNet 63.6, QVHighlights 72.5의 단순 평균</td></tr><tr><td>Tracking AO</td><td>OneThinker-8B 73.0</td><td><strong>78.2</strong></td><td>GOT-10k 한 benchmark의 Average Overlap</td></tr><tr><td>Segmentation family score</td><td>OneThinker-8B 64.3</td><td><strong>70.4</strong></td><td>RefCOCO 계열 cIoU 79.4·72.6·75.1과 MeViS·ReasonVOS J&amp;F 61.3·63.7의 단순 평균</td></tr><tr><td>Spatial-intelligence macro</td><td>GPT-5 51.0</td><td><strong>56.1</strong></td><td>VSI-Bench 73.1, MMSI 37.9, MindCube 57.4의 단순 평균</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>네 줄은 모두 같은 종류의 숫자가 아니다. Tracking 78.2는 단일 benchmark의 표준 지표지만, segmentation 70.4는 cIoU와 J&amp;F를 함께 평균한 저자 정의 family score다. Spatial 56.1도 MRA가 섞인 VSI-Bench와 accuracy 기반 MMSI·MindCube를 동일 가중치로 묶었다. 모델의 전체 성능을 비교하기에는 편하지만 단일 benchmark의 공식 leaderboard 점수로 쓰면 안 된다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Temporal grounding — 세 데이터셋 모두 boundary가 좋아졌다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>TimeLens split</th><th>TimeLens2-8B mIoU</th><th>Video-ORA-9B mIoU</th><th>차이</th></tr></thead><tbody><tr><td>Charades</td><td>58.6</td><td><strong>61.8</strong></td><td>+3.2%p</td></tr><tr><td>ActivityNet</td><td>58.6</td><td><strong>63.6</strong></td><td>+5.0%p</td></tr><tr><td>QVHighlights</td><td>70.2</td><td><strong>72.5</strong></td><td>+2.3%p</td></tr><tr><td><strong>Macro</strong></td><td>62.5</td><td><strong>66.0</strong></td><td>+3.5%p</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>저자 비교표에서는 세 split의 모든 mIoU가 가장 높다. ActivityNet과 QVHighlights에서는 overlap 기준을 R1@0.7로 높일수록 TimeLens2와의 차이가 더 커졌다. 대략 맞는 구간보다 시작·끝 boundary를 정밀하게 맞히는 데 annotation-as-rollout이 기여했다는 논문의 해석과 맞닿는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Tracking과 STVG — frame별 box supervision의 효과</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>GOT-10k, 32 frame</th><th>AO</th><th>R@0.3</th><th>R@0.5</th><th>R@0.7</th></tr></thead><tbody><tr><td>Qwen3.5-9B backbone</td><td>46.0</td><td>66.9</td><td>46.9</td><td>25.8</td></tr><tr><td>OneThinker-8B</td><td>73.0</td><td>93.9</td><td>84.4</td><td>68.8</td></tr><tr><td><strong>Video-ORA-9B</strong></td><td><strong>78.2</strong></td><td><strong>94.1</strong></td><td><strong>87.8</strong></td><td><strong>75.3</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>OneThinker 대비 AO는 5.2%p, 엄격한 R@0.7은 6.5%p 올랐다. R@0.3 차이는 0.2%p에 그쳐, 대상을 대강 놓치지 않는 능력보다 frame마다 box를 정밀하게 유지하는 쪽에서 개선 폭이 컸다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>STVG에서도 같은 경향이 보인다. Qwen3.5-9B에서 Video-ORA-9B로 갈 때 tIoU@0.5/mean tIoU는 37.0/39.3에서 40.0/41.7로 올랐고, sIoU@0.5/mean sIoU는 11.9/16.5에서 27.4/28.4로 크게 뛰었다. 시간 구간 개선보다 frame-level spatial localization 개선이 더 크다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Segmentation — 70.4 한 숫자 안에 다섯 평가가 있다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>평가</th><th>OneThinker-8B</th><th>Video-ORA-9B</th><th>차이</th></tr></thead><tbody><tr><td>RefCOCO cIoU</td><td>75.8</td><td><strong>79.4</strong></td><td>+3.6%p</td></tr><tr><td>RefCOCO+ cIoU</td><td>67.1</td><td><strong>72.6</strong></td><td>+5.5%p</td></tr><tr><td>RefCOCOg cIoU</td><td>70.8</td><td><strong>75.1</strong></td><td>+4.3%p</td></tr><tr><td>MeViS J&amp;F</td><td>52.7</td><td><strong>61.3</strong></td><td>+8.6%p</td></tr><tr><td>ReasonVOS J&amp;F</td><td>54.9</td><td><strong>63.7</strong></td><td>+8.8%p</td></tr><tr><td><strong>저자 정의 family 평균</strong></td><td>64.3</td><td><strong>70.4</strong></td><td>+6.1%p</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>Image cIoU에서는 최근 specialist가 촘촘하게 붙어 있어 최고 비교군과의 실제 차이가 최대 1.0%p 수준인 항목도 있다. Video benchmark 쪽 개선은 더 크다. MeViS는 강한 비교군 52.7에서 61.3으로 올랐고, ReasonVOS에서는 Video-ORA-4B가 63.8로 9B의 63.7보다 0.1 높다. 이 데이터셋의 잔여 오차를 모델 크기만 키워 해결하기는 어렵다는 신호다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Video QA와 spatial intelligence — 평균보다 항목별 편차가 중요하다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>Video QA</th><th>Qwen3.5-9B</th><th>Video-ORA-9B</th></tr></thead><tbody><tr><td>VideoMME</td><td>71.1</td><td><strong>76.7</strong></td></tr><tr><td>VideoMME-v2</td><td>29.9</td><td><strong>32.0</strong></td></tr><tr><td>MV-Bench</td><td>68.2</td><td><strong>72.5</strong></td></tr><tr><td>MMVU(mc)</td><td>72.5</td><td><strong>77.0</strong></td></tr><tr><td>VideoHolmes</td><td>50.3</td><td><strong>65.5</strong></td></tr><tr><td>LongVideoBench</td><td>64.6</td><td><strong>66.2</strong></td></tr><tr><td>MLVU-MC</td><td>76.7</td><td><strong>77.7</strong></td></tr><tr><td><strong>7종 macro</strong></td><td>61.9</td><td><strong>66.8</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>Video-ORA-9B는 backbone보다 일곱 평가에서 모두 높고, 저자 표에서 완전한 결과를 보고한 open-source model 중 다섯 benchmark에서 가장 높다. 다만 일부 비교 모델은 일곱 칸을 모두 보고하지 않아 66.8 macro로 모든 open model을 일괄 비교할 수는 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Spatial-intelligence 56.1도 세부 편차가 크다. VSI-Bench는 73.1로 GPT-5 55.0과 Gemini-3-Pro 55.1보다 높지만, MMSI 37.9와 MindCube 57.4의 두 benchmark 평균은 47.7이다. 같은 표의 Grok-4 50.7, GPT-5 49.1보다 낮다. “공간 추론에서 GPT-5를 이겼다”보다 <strong>VSI-Bench에서 크게 앞섰고, 세 benchmark macro도 높지만 모든 spatial task의 우위는 아니다</strong>가 정확하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>정답과 frame budget을 다시 손본 ReVSI에서는 128 frame Video-ORA-9B가 58.2로 open-source model 중 가장 높았지만, 원래 VSI-Bench 73.1보다 14.9점 내려갔다. 특히 상대 방향 질문은 forward 91.5%, backward 8.3%로 차이가 컸다. 높은 평균 뒤에 회전·시점 전환 취약성이 남아 있다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">9. Ablation — 성능 향상이 어디서 왔나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Naive oracle injection은 오히려 해롭다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>같은 4B·3-task protocol</th><th>Temporal</th><th>Tracking</th><th>Video Seg.</th><th>평균</th></tr></thead><tbody><tr><td>GRPO</td><td>58.1</td><td>63.9</td><td>58.9</td><td>60.3</td></tr><tr><td>Naive GT injection</td><td>57.2</td><td>52.0</td><td>57.0</td><td>55.4</td></tr><tr><td>GT injection + task별 reward shaping</td><td>60.4</td><td>64.0</td><td>59.2</td><td>61.2</td></tr><tr><td><strong>OraRL</strong></td><td><strong>60.5</strong></td><td><strong>67.1</strong></td><td><strong>60.6</strong></td><td><strong>62.7</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>Naive mix에서는 원래 GRPO 기준으로 positive였던 rollout의 22.4%가 negative로 뒤집혔다. Reward shaping을 추가하면 11.9%, OraRL은 pruning 전 1.9%, 뒤에는 0.3%로 낮아졌다. 완전히 0이 아닌 이유는 최종 selection과 moment correction까지 거친 advantage를 측정하기 때문이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">각 구성요소는 서로 다른 과제를 보완한다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Directional gain을 빼면 평균이 62.7에서 61.2로, detached oracle을 빼면 61.3으로 내려갔다. Reward-gap weight를 제거한 값은 61.6이다. Directional gain 제거는 tracking에서 2.7점, detached oracle 제거는 temporal에서 2.5점 손실이 가장 컸다. 하나의 항목만으로 전체 개선을 설명하기보다는 policy의 좋은 탐색을 키우는 경로와 정답 anchor가 보완한다고 읽어야 한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>같은 초기화와 budget에서 continued SFT는 58.7, GRPO 계열은 60.3~60.7, OraRL은 62.7 평균이었다. Qwen3-VL-8B와 Qwen3.5-9B 두 backbone에서도 OraRL이 GRPO보다 각각 2.6점, 1.4점 높았다. 0.8B·2B·4B·9B 모든 크기에서는 각자의 backbone보다 일곱 family macro가 8점 이상 올랐다. 특정 9B checkpoint 하나에만 맞춘 trick이라는 가능성을 줄여 주는 결과다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">10. 효율성 — 36.8배와 16.3%를 구분해야 한다</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">학습 효율</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>4B controlled setting</th><th>Step time</th><th>Peak memory / GPU</th><th>평균 점수</th></tr></thead><tbody><tr><td>SFT</td><td>27.84초</td><td>—</td><td>—</td></tr><tr><td>GRPO + CoT</td><td>135.6초</td><td>—</td><td>58.5</td></tr><tr><td>OraRL, pruning 없음</td><td>92.5초</td><td>62.4GB</td><td><strong>63.1</strong></td></tr><tr><td><strong>OraRL, κ=0.5</strong></td><td><strong>62.4초</strong></td><td><strong>50.9GB</strong></td><td>62.7</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>기본 OraRL은 SFT보다 step당 약 2.24배 느리지만, CoT GRPO의 약 4.87배보다는 작다. Pruning만 놓고 보면 92.5초에서 62.4초로 1.48배 빨라지고 memory는 62.4GB에서 50.9GB로 줄었다. 대신 평균 점수는 63.1에서 62.7로 0.4점 낮아진다. 속도 개선이 공짜는 아니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">추론 효율</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>추론 비교는 BF16 단일 NVIDIA H20에서 수행됐다. 10분짜리 영상 10개를 각각 2 fps로 sampling했고, 요청 하나의 visual input은 약 120K token이었다. Video-ORA-9B는 median 13.5 answer token을 직접 생성하고, 비교한 CoT 설정의 Qwen3.5-9B backbone은 median 808.5 reasoning token을 생성했다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>Single-request median</th><th>CoT Qwen3.5-9B</th><th>Video-ORA-9B</th><th>변화</th></tr></thead><tbody><tr><td>TTFT</td><td>24.25초</td><td>24.17초</td><td>거의 동일</td></tr><tr><td>Post-TTFT decoding</td><td>4.78초</td><td>0.13초</td><td><strong>약 36.8배 단축</strong></td></tr><tr><td>전체 median latency</td><td>29.03초</td><td>24.30초</td><td><strong>4.73초, 약 16.3% 감소</strong></td></tr><tr><td>P90 전체 latency</td><td>62.67초</td><td>25.15초</td><td>긴 reasoning tail 감소</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>입력 영상 encoding이 대부분의 시간을 차지해 TTFT는 거의 변하지 않는다. 36.8배는 TTFT 뒤 text decoding만 비교한 값이다. 전체 요청은 1.19배 정도 빨라졌다고 표현하는 편이 맞다. 더 짧은 영상, 다른 frame 수, 다른 GPU, batch serving에서는 비율이 달라질 수 있다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">11. 이 논문의 장점</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>이미 있는 annotation의 역할을 확장한다.</strong> 별도 teacher가 만든 reasoning trace 없이 정답 자체를 positive rollout으로 사용한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>정밀 출력의 positive scarcity를 직접 겨냥한다.</strong> 시간 구간·box·trajectory처럼 우연히 정확한 on-policy sample이 나오기 어려운 과제에 확실한 anchor를 준다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>On-policy exploration을 유지한다.</strong> Policy rollout을 oracle로 교체하지 않고 추가하며, advantage 기준선은 policy sample로만 계산한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>Task reward가 달라도 같은 원칙을 쓴다.</strong> Annotation을 응답으로 직렬화하고 task adapter가 reward를 계산할 수 있으면 범주형 답부터 trajectory까지 한 update rule로 묶는다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>CoT 없이 직접 답한다.</strong> 논문의 temporal setting에서는 정확도가 높고 decoding tail이 짧았다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>Controlled comparison이 비교적 촘촘하다.</strong> 같은 초기화·데이터·budget에서 SFT, 여러 GRPO variant, naive oracle mix와 component ablation을 나눠 검증했다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>9B weight를 바로 평가할 수 있다.</strong> 세부 training pipeline은 미공개지만 BF16 checkpoint와 vLLM·Transformers 사용 경로는 제공된다.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">12. 한계와 결과 해석의 경계</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>70.4와 56.1은 서로 다른 metric을 단순 평균한 저자 정의 family score다. 개별 benchmark leaderboard 점수가 아니다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>Baseline의 frame 수, prompt, split, decoding 조건이 다른 original-report value가 포함돼 모든 비교가 완전히 통제된 것은 아니다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>“CoT가 필요 없다”는 결론은 논문이 비교한 structured temporal setting에서 지지된다. 모든 종류의 video reasoning에 일반화된 결론은 아니다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>Full 9B RL은 H20 64개를 사용했다. 방법이 계산 효율을 개선해도 개인 환경에서 처음부터 재학습하기에는 무겁다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>Segmentation model output은 dense mask가 아니라 timestamp·box·point prompt다. 최종 mask에는 별도 evaluator가 필요하다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>ReVSI에서 원래 VSI-Bench보다 14.9점 낮아졌고 backward relative-direction 질문에 크게 취약했다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>2026년 8월 25일 공식 GitHub에는 README·LICENSE·NOTICE·assets만 있어 논문과 같은 full training을 독립 재현할 수 없다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>Model card는 safety-critical decision, identity inference, surveillance deployment를 intended use에서 제외한다. 실제 의사결정에는 별도 검증과 사람의 승인이 필요하다.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>안전한 결론은 이 정도다. <strong>OraRL은 저자 평가에서 정답 annotation을 RL의 직접 positive target으로 쓰면서 advantage inversion을 억제했고, 여러 정밀 video task에서 Qwen3.5 backbone과 기존 비교군보다 높은 결과를 냈다.</strong> 다만 공개 checkpoint의 독립 평가와 full source release 전에는 다른 domain에서 같은 폭의 개선을 가정하면 안 된다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">13. 실무에서는 어디에 쓸 수 있나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">긴 검사 영상의 구간·대상·영역을 한 interface로</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>제조 검사나 설비 순찰에서는 질문의 출력 단위를 먼저 정할 수 있다. “균열이 처음 보이는 구간”은 temporal interval, “해당 부품을 끝까지 따라간 경로”는 box trajectory, “이물질이 있는 영역”은 segmentation prompt로 받는다. 서로 다른 specialist model을 하나의 자연어 interface로 묶는 prototype에 적합하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">자사 annotation이 있다면 OraRL 원리를 적용할 수 있다</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>방법의 핵심은 반드시 공개 dataset일 필요가 없다는 데 있다. 사내 annotation을 모델이 내야 하는 정확한 schema로 직렬화하고, 같은 annotation으로 연속 reward를 계산할 수 있으면 oracle rollout 후보가 된다. 다만 reward parser가 허술하면 모델이 format loophole을 이용할 수 있으므로 schema validation과 degenerate solution cap을 함께 설계해야 한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">도입 전 확인할 것</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list {"ordered":true} -->
+<ol class="wp-block-list"><!-- wp:list-item -->
+<li>Video-ORA-9B를 자사 영상의 실제 frame 수와 해상도로 inference한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>평균 score 외에 temporal boundary error, track loss, mask J&amp;F, 질문 유형별 정확도를 따로 기록한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>TTFT와 decoding을 분리해 측정하고 전체 latency·GPU memory·동시 요청 처리량을 함께 본다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>출력 schema가 깨졌을 때의 fallback과 사람 검수 화면을 준비한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>Safety-critical·surveillance 용도는 model card 범위를 확인하고 자동 의사결정과 분리한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>Fine-tuning이 필요하다면 full source 공개 전 자체 재구현 비용과 64×H20 학습 규모를 먼저 계산한다.</li>
+<!-- /wp:list-item --></ol>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>공개 README의 serving 예시는 vLLM 0.19.1과 NVIDIA 환경을 기준으로 한다. Apple Silicon용 공식 recipe는 제시되지 않았다. M1 Pro에서 9B BF16을 개인 서버로 돌리려면 weight뿐 아니라 vision input, KV cache, runtime overhead까지 감당해야 하므로 실시간 운영 장비로 가정하기보다 먼저 작은 clip으로 호환성과 속도를 재는 편이 현실적이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">14. 코드·가중치·라이선스 상태</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>2026년 8월 25일 기준 <a href="https://huggingface.co/OraRL/Video-ORA-9B">Video-ORA-9B BF16 weight</a>가 공개돼 vLLM 또는 Transformers로 inference할 수 있다. Video-ORA-4B는 coming soon이다. <a href="https://huggingface.co/datasets/OraRL/OraRL-Data">OraRL-Data</a>에는 평가용 data release가 연결돼 있다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><a href="https://github.com/HVision-NKU/OraRL">공식 GitHub</a> README에는 <code>orarl_4b.yaml</code>·<code>orarl_9b.yaml</code> recipe와 CLI 사용법이 적혀 있지만, 실제 repository tree에는 README·README_zh·LICENSE·NOTICE·assets만 확인된다. 문서에 적힌 명령과 해당 명령을 실행할 source file이 모두 공개됐다는 뜻은 아니다. 현재는 9B inference와 공개 평가 자료 확인은 가능하지만, 저자 코드로 full OraRL training을 재현할 단계는 아니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Repository source license는 Apache-2.0이다. Model, dataset, benchmark와 optional dependency는 각자의 원래 license를 유지하므로 NOTICE와 upstream 조건을 함께 확인해야 한다. 논문 본문은 CC BY 4.0으로 공개됐다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><a href="/ai-cv-sota-briefing-2026-08-25/">Video-ORA-9B·A2DINOv3·Stream3Dv2 비교 브리핑으로 돌아가기</a></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">원문과 공식 자료</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><a href="https://arxiv.org/abs/2608.20492">arXiv 초록과 메타데이터</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://arxiv.org/html/2608.20492v1">arXiv HTML 전문과 Appendix</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://arxiv.org/pdf/2608.20492">논문 PDF</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://orarl.github.io/">공식 프로젝트 페이지</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://github.com/HVision-NKU/OraRL">공식 GitHub</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://huggingface.co/OraRL/Video-ORA-9B">Video-ORA-9B model card와 weight</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://huggingface.co/datasets/OraRL/OraRL-Data">OraRL 공개 data</a></li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p><em>공식 arXiv v1, 프로젝트 페이지, GitHub와 Hugging Face 공개 상태를 2026년 8월 25일 확인했습니다. 성능 수치는 논문의 평가 조건을 옮긴 저자 보고값이며 독립 재현 결과가 아닙니다. 본문의 “최고”와 “개선”은 각 표의 비교 범위 안에서만 의미합니다.</em></p>
+<!-- /wp:paragraph -->

@@ -986,7 +986,7 @@ function odd_note_publish_ai_cv_briefing_august_25( $owner_id ) {
 		false
 	);
 	update_post_meta( $post_id, '_odd_note_primary_category_id', (int) $category->term_id );
-	update_post_meta( $post_id, '_odd_note_editorial_revision', '1.7.1' );
+	update_post_meta( $post_id, '_odd_note_editorial_revision', '1.8.0' );
 
 	$post_ids          = (array) get_option( 'odd_note_editorial_post_ids', array() );
 	$post_ids[ $slug ] = $post_id;
@@ -1017,6 +1017,21 @@ function odd_note_publish_ai_cv_deep_dives( $owner_id ) {
 			'title'   => 'DreamHand 논문 분석: 비디오 확산 모델로 가려진 손의 3D 움직임을 복원하는 법',
 			'excerpt' => '81-frame RGB clip을 Wan의 clean latent와 양방향 decoder로 처리해 양손 MANO 궤적을 만드는 과정, 7-source 학습 데이터와 OOS·K-free 결과의 의미를 분석합니다.',
 			'tags'    => array( 'DreamHand', 'Video Diffusion Model', '3D Hand Reconstruction', 'MANO', 'Egocentric Video', 'Embodied AI', 'AI 논문 분석' ),
+		),
+		'orarl-video-ora-9b-paper-analysis' => array(
+			'title'   => 'OraRL 논문 분석: 정답 Annotation을 Rollout으로 쓰는 Video-ORA-9B 학습법',
+			'excerpt' => '이미지·비디오와 자연어 지시를 받는 Video-ORA-9B가 annotation을 oracle rollout으로 활용하는 과정과 7개 task family의 데이터셋·비교 결과·효율성 범위를 분석합니다.',
+			'tags'    => array( 'OraRL', 'Video-ORA-9B', 'Video MLLM', 'Reinforcement Learning', 'Video Grounding', 'GOT-10k', 'AI 논문 분석' ),
+		),
+		'a2dinov3-rgb-ir-object-detection-paper-analysis' => array(
+			'title'   => 'A2DINOv3 논문 분석: RGB와 IR의 정보 교환을 제한한 객체 탐지 모델',
+			'excerpt' => 'Paired RGB·IR 입력을 공유 DINOv3와 저차원 SCP 통신 경로로 처리하는 과정, GAIIC2024·M3FD·FLIR·LLVIP 결과와 재현 한계를 분석합니다.',
+			'tags'    => array( 'A2DINOv3', 'RGB-IR', 'Multimodal Object Detection', 'DINOv3', 'Thermal Imaging', 'GAIIC2024', 'AI 논문 분석' ),
+		),
+		'stream3dv2-streaming-zero-shot-3d-paper-analysis' => array(
+			'title'   => 'Stream3Dv2 논문 분석: 2D Mask를 스트리밍 3D Instance로 묶는 법',
+			'excerpt' => 'RGB-D·camera pose·intrinsic을 받아 SAM2·SAM3 mask를 3D instance로 누적하는 과정과 ScanNet200 비교 결과, training-free와 11 FPS의 범위를 분석합니다.',
+			'tags'    => array( 'Stream3Dv2', 'Streaming 3D', 'Zero-Shot 3D', 'SAM2', 'SAM3', 'ScanNet200', 'Open-Vocabulary 3D', 'AI 논문 분석' ),
 		),
 	);
 
@@ -1057,7 +1072,7 @@ function odd_note_publish_ai_cv_deep_dives( $owner_id ) {
 
 		wp_set_post_tags( $post_id, $spec['tags'], false );
 		update_post_meta( $post_id, '_odd_note_primary_category_id', (int) $category->term_id );
-		update_post_meta( $post_id, '_odd_note_editorial_revision', '1.6.1' );
+		update_post_meta( $post_id, '_odd_note_editorial_revision', '1.8.0' );
 		$post_ids[ $slug ] = $post_id;
 		$created[ $slug ]  = $post_id;
 	}
@@ -1114,7 +1129,7 @@ if (
 	odd_note_bootstrap_fail( '사이트 주소 형식이 올바르지 않습니다.' );
 }
 
-$target_version = '1.7.1';
+$target_version = '1.8.0';
 $installed      = is_blog_installed();
 $state          = $installed ? get_option( 'odd_note_bootstrap_state', '' ) : '';
 
@@ -1162,6 +1177,11 @@ if ( $installed && 'complete' === $state ) {
 		}
 
 		if ( version_compare( $current_version, '1.7.1', '<' ) ) {
+			odd_note_publish_ai_cv_briefing_august_25( $owner_id );
+		}
+
+		if ( version_compare( $current_version, '1.8.0', '<' ) ) {
+			odd_note_publish_ai_cv_deep_dives( $owner_id );
 			odd_note_publish_ai_cv_briefing_august_25( $owner_id );
 		}
 
@@ -1654,4 +1674,4 @@ update_option( 'odd_note_bootstrap_version', $target_version, false );
 update_option( 'odd_note_bootstrap_state', 'complete', false );
 
 echo 'Odd Note 설치와 초기 콘텐츠 구성이 완료됐습니다.' . PHP_EOL;
-echo '페이지 6개, 카테고리 6개, 글 13개, 메뉴 2개를 준비했습니다.' . PHP_EOL;
+echo '페이지 6개, 카테고리 6개, 글 16개, 메뉴 2개를 준비했습니다.' . PHP_EOL;

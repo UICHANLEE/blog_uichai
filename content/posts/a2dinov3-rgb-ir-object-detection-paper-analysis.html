@@ -1,0 +1,392 @@
+<!-- wp:paragraph {"className":"article-lead"} -->
+<p class="article-lead"><strong>어두운 장면에서 RGB 영상이 흔들리고 열화상에는 물체의 질감이 거의 남지 않는다면, 두 센서의 feature를 더 많이 섞는다고 탐지가 늘 좋아질까?</strong> A2DINOv3의 답은 “항상 그렇지는 않다”다. DINOv3를 공유하는 RGB·IR stream 사이에 좁은 통신 경로만 열어, 한쪽의 잡음이 다른 쪽 표현을 망가뜨리는 범위를 줄인다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>이 글은 <strong>A2DINOv3: Rethinking Multi-Modal Object Detection via Socialized Collaboration</strong>의 Input·Process·Output을 실제 구현 순서대로 풀어본다. GAIIC2024·M3FD·FLIR·LLVIP에서 무엇을 학습하고 어떤 기준으로 비교했는지, headline mAP의 유효 범위와 코드가 없는 현재의 재현 가능성까지 짚는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>공개일:</strong> arXiv v1 2026년 8월 21일 · <strong>분야:</strong> RGB-IR Object Detection · Vision Foundation Model Adaptation · DETR · <strong>확인 기준:</strong> 2026년 8월 25일</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>A2DINOv3의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>같은 장면을 담은 spatially paired RGB 이미지와 1-channel IR 이미지. IR은 backbone 입력 형식에 맞춰 3-channel로 복제한다.</td></tr><tr><td><strong>Process</strong></td><td>파라미터를 공유하는 DINOv3 RGB·IR stream → index 5·8·11의 양방향 SCP → 파라미터 없는 mean fusion → hybrid encoder → 6-layer DEIM decoder.</td></tr><tr><td><strong>Output</strong></td><td>300개 object query가 만든 bounding box와 category distribution. 평가에서는 기본적으로 confidence 0.25 미만을 제거한다.</td></tr><tr><td><strong>핵심 수치</strong></td><td>GAIIC2024 test mAP 43.05. 같은 표의 기존 multimodal 최고 AFF-Net 37.53보다 5.52%p 높다.</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">1. 어떤 문제를 풀려는 논문인가</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>가시광 RGB와 적외선 IR은 실패하는 조건이 다르다. RGB는 낮에 색과 질감을 풍부하게 담지만 야간, 역광, 안개에서는 정보가 빠르게 무너진다. IR은 조명이 부족해도 사람이나 차량의 열·구조 단서를 남기는 대신 세밀한 외형과 색 정보가 약하다. 두 영상을 함께 쓰는 이유는 한쪽이 놓친 단서를 다른 쪽에서 찾기 위해서다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>문제는 fusion 자체가 언제나 이득은 아니라는 데 있다. 어두워진 RGB feature를 cross-attention으로 넓게 전달하면 유용한 IR 표현까지 흐려질 수 있다. 반대로 열 대비가 약한 장면에서는 IR 잡음이 RGB stream에 퍼질 수 있다. 논문은 이를 <strong>fusion degradation</strong>이라 부르고, 대규모 사전학습 표현이 갑작스러운 joint optimization으로 변형되는 현상을 <strong>feature distortion</strong>으로 설명한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A2DINOv3는 두 센서를 독립된 expert로 취급한다. 각 stream은 자신의 표현을 유지하고, 정해진 세 layer에서만 저차원 residual을 주고받는다. 이 연구의 핵심은 더 정교한 최종 fusion operator가 아니라 <strong>상대 modality가 내 feature를 바꿀 수 있는 자유도를 줄인 것</strong>이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">2. Input — 모델에 무엇을 넣는가</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">공간적으로 짝을 맞춘 RGB와 IR</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>입력은 같은 장면을 촬영한 <code>(I_rgb, I_ir)</code> 한 쌍이다. 객체 annotation도 두 영상이 공유하는 하나의 좌표계를 전제로 한다. 따라서 서로 다른 시점의 프레임이나 calibration이 크게 어긋난 센서 영상을 그대로 넣는 구조가 아니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>RGB는 일반적인 3-channel 이미지다. 원본 IR이 1-channel이면 같은 값을 세 channel에 복제해 DINOv3의 입력 모양에 맞춘다. 색채를 새로 만드는 변환은 아니며, 사전학습 backbone의 patch embedding을 구조 변경 없이 재사용하기 위한 형식 변환이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">데이터셋별 resize와 augmentation</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>데이터셋</th><th>입력 크기·학습 설정</th><th>Augmentation</th></tr></thead><tbody><tr><td><strong>GAIIC2024</strong></td><td>640×640, 58 epochs, total batch 64</td><td>Mosaic, mixup, random photometric distortion, CopyBlend</td></tr><tr><td><strong>FLIR</strong></td><td>36 epochs, batch 8</td><td>GAIIC2024와 같은 augmentation 사용</td></tr><tr><td><strong>LLVIP</strong></td><td>768×768, 8 epochs, batch 8</td><td>강한 augmentation 비활성화</td></tr><tr><td><strong>M3FD</strong></td><td colspan="2">논문에 dataset-specific training configuration이 제시되지 않음</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>GAIIC2024의 기본 learning rate는 <code>5×10^-4</code>, backbone은 <code>1×10^-5</code>이며 flat-cosine scheduler를 쓴다. FLIR는 <code>2×10^-4</code>, LLVIP는 <code>1×10^-4</code>다. 전체 실험은 PyTorch와 8개 NVIDIA RTX 4090에서 진행됐고 optimizer는 AdamW, weight decay는 <code>1.25×10^-4</code>다. Mixed precision, EMA, gradient clipping 0.1도 적용한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>재현 관점에서는 빈칸이 남는다. 논문은 RGB와 IR에 geometric augmentation을 동일하게 적용해 pair 정합을 어떻게 보존했는지, photometric distortion을 어느 modality에 적용했는지, 정확한 normalization 값은 밝히지 않는다. FLIR 원본에 정합이 좋지 않은 pair가 있다고 설명하지만 필터링 목록이나 정합 전처리도 제공하지 않는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">3. Output — 정확히 무엇이 나오는가</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>최종 출력은 객체 instance의 집합 <code>{(b_j, p_j)}</code>다. <code>b_j</code>는 bounding box, <code>p_j</code>는 class별 category distribution을 뜻한다. Segmentation mask, depth, sensor reliability score는 출력하지 않는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>Bounding box:</strong> 물체가 있는 2D 위치와 크기</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>Category distribution:</strong> 데이터셋 class에 대한 확률 또는 score</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>Confidence filtering:</strong> 별도 언급이 없으면 score 0.25 미만의 box 제거</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>Decoder에는 300개 object query가 들어간다. DETR 계열의 set prediction이므로 Hungarian matching으로 예측과 ground truth를 일대일 배정하고 classification loss, box L1 loss, generalized IoU loss를 함께 최적화한다. 논문은 세 loss의 정확한 가중치 <code>λ_L1</code>과 <code>λ_giou</code>를 공개하지 않았다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">4. Process — RGB와 IR이 협업하는 여섯 단계</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 1. 두 stream이 하나의 DINOv3 파라미터를 공유</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>논문 구현은 DINOv3 ViT-S/16+를 두 논리적 stream으로 실행한다. Backbone block의 weight는 RGB와 IR이 전부 공유하지만 activation은 따로 유지한다. 같은 semantic prior를 두 센서에 적용하면서도, 초기 layer부터 feature를 한 tensor로 섞지는 않는 구성이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>“Dual backbone”이라는 구현 표현 때문에 DINOv3 weight를 두 벌 저장한다고 오해하기 쉽다. 실제 방법론은 parameter-shared dual stream이다. 저장해야 할 backbone parameter는 공유되지만 RGB와 IR을 각각 forward하므로 backbone 연산량과 activation memory가 단일 이미지 수준으로 줄어드는 것은 아니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 2. 각 block은 먼저 독립적으로 feature를 갱신</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>layer <code>l</code>에서 RGB와 IR feature는 같은 Transformer block <code>B_l</code>을 각각 통과한다. 여기까지는 상대 modality를 보지 않는다. 결과 activation <code>H_rgb</code>와 <code>H_ir</code>는 별도 tensor로 남고, SCP가 없는 layer에서는 그대로 다음 block으로 넘어간다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 3. Index 5·8·11에서 SCP residual을 양방향 교환</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Socialized Collaboration Protocol, SCP는 모든 layer에 들어가지 않는다. 논문 알고리즘의 <code>l=0 … L-1</code> 표기를 기준으로 index 5, 8, 11에서만 RGB→IR과 IR→RGB 경로를 연다. Source feature가 만드는 residual은 다음과 같다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>Δ(source → target) = GELU(H_source · W_down) · W_up
+X_target(next) = H_target + Δ(source → target)</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:paragraph -->
+<p><code>W_down</code>은 feature 차원 <code>d</code>를 통신 차원 <code>r</code>로 줄이고, <code>W_up</code>은 다시 <code>d</code>로 올린다. <code>r ≪ d</code>이므로 상대 stream을 바꾸는 residual의 rank는 최대 <code>r</code>로 제한된다. 두 방향 residual은 상호작용 전 feature에서 동시에 계산해 RGB를 먼저 바꾸고 그 결과로 IR을 바꾸는 인위적인 순서를 만들지 않는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>SCP는 hard selector나 reliability gate가 아니다.</strong> 어느 sensor를 믿을지 판정하는 scalar gate, token mask, modality quality classifier가 식에 없다. 입력 activation에 따라 residual 값은 달라지지만 통신 용량을 제한하는 구조는 고정되어 있다. 논문에서 말하는 selective interaction은 detection loss가 좁은 저차원 경로 안에서 유용한 전달 방향을 학습한다는 뜻으로 읽는 편이 정확하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 4. Zero initialization으로 통신을 0에서 시작</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>각 SCP의 up-projection <code>W_up</code>은 0으로 초기화한다. 첫 forward에서 모든 cross-modal residual이 정확히 0이므로 모델은 독립된 두 DINOv3 stream처럼 출발한다. Random residual이 사전학습 feature를 첫 step부터 흔드는 일을 막는 장치다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>0으로 시작한다고 통신 경로가 영원히 닫히는 것은 아니다. 첫 backward에서 <code>W_up</code> gradient는 일반적으로 0이 아니어서 즉시 갱신된다. 그 시점에는 SCP를 거쳐 source feature와 <code>W_down</code>으로 흐르는 gradient만 0이고, 각 stream의 일반 detection path gradient는 그대로 존재한다. <code>W_up</code>이 0에서 벗어나면 다음 step부터 down-projection과 source representation도 SCP gradient를 받는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>저자 측정에서는 학습 초기 cross-modal gradient L2 norm이 random initialization의 약 <code>10^1</code>에서 zero initialization의 약 <code>10^-4</code>로 낮아졌다. 이후 100 iteration 동안 점차 커진다. 저자들이 이 과정을 implicit curriculum이라고 부르는 이유다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 5. 세 scale의 RGB·IR feature를 단순 평균</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Index 5·8·11에서 얻은 각 stream의 feature를 multi-level feature map으로 바꾼 뒤 같은 level끼리 산술 평균한다. 최종 fusion에는 attention, learned weight, 추가 gate가 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>F_fused(l) = 0.5 × (F_rgb(l) + F_ir(l)),  l ∈ {5, 8, 11}</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:paragraph -->
+<p>복잡한 fusion module을 뒤에 붙이면 “통신은 SCP가 제어하고 fusion은 증거만 모은다”는 역할 분리가 흐려진다. 그래서 저자들은 일부러 parameter-free mean을 선택했다. 다만 이 단계는 두 modality에 같은 0.5 가중치를 주므로 한 sensor가 완전히 사라진 상황을 명시적으로 처리하지는 않는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Step 6. Hybrid encoder와 DEIM decoder가 box를 생성</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>세 level의 fused feature pyramid는 hybrid encoder를 거쳐 6-layer DEIM decoder로 들어간다. 300개 query가 box와 class distribution을 만들고, 학습에서는 Hungarian matching 뒤 classification·L1·GIoU loss를 계산한다. 추론은 RGB-IR pair를 한 번 forward하고 confidence 0.25 이상인 예측을 반환한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">5. 네 데이터셋은 무엇을 검증하나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>데이터셋</th><th>규모·class</th><th>주요 장면</th><th>검증 포인트</th></tr></thead><tbody><tr><td><strong>GAIIC2024</strong></td><td>5개 vehicle category</td><td>UAV 항공 촬영, 도시 도로·주거지</td><td>작은 차량, illumination 변화, train/test domain shift와 빈번한 RGB-TIR misalignment</td></tr><tr><td><strong>M3FD</strong></td><td>4,200 RGB-IR pair, 6 classes</td><td>주간·흐림·야간의 다양한 도시 환경</td><td>장면·날씨·조명 변화에 대한 multispectral detection</td></tr><tr><td><strong>FLIR</strong></td><td>5,142 aligned pair, 3 classes</td><td>주·야간 자율주행</td><td>사람·자동차·자전거 thermal detection</td></tr><tr><td><strong>LLVIP</strong></td><td>33,672 images, 16,836 pair, pedestrian</td><td>대부분 매우 어두운 감시 장면</td><td>시간·공간 정합된 저조도 보행자 탐지</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>M3FD의 여섯 class는 people, car, bus, motorcycle, truck, lamp다. FLIR는 person, car, bicycle을 사용한다. LLVIP는 보행자 하나에 집중하므로 71.56 mAP를 여섯 class의 M3FD 61.78과 직접 비교해 “LLVIP가 더 쉽다”거나 “성능이 더 좋다”고 말할 수 없다. Class 수, 물체 크기, split과 IoU 분포가 모두 다르다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>GAIIC2024는 이 논문의 주 실험이다. Training·validation의 bounding box 상대 면적 중앙값은 0.57%와 0.54%로 비슷하지만 test는 0.44%다. Test에는 더 높은 고도의 시점과 조밀한 초소형 차량이 많아 validation보다 모든 모델의 성능이 크게 내려간다. 따라서 GAIIC test 결과는 단순한 같은 분포 hold-out보다 작은 물체와 domain shift에 견디는지를 더 강하게 반영한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">6. 평가 프로토콜과 비교군</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>논문은 GAIIC2024·FLIR·LLVIP에 unified COCO-style evaluator를 사용하고 <code>maxDets=[10, 100, 500]</code>, confidence threshold 0.25를 적용했다고 적었다. 주 지표는 mAP이며 가능한 표에는 IoU 0.50의 mAP50과 더 엄격한 0.75의 mAP75도 제시한다. M3FD도 mAP·mAP50·mAP75를 보고하지만 Appendix의 “unified three-benchmark protocol” 문장에는 포함되지 않는다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>비교 범주</th><th>방법</th><th>비교 목적</th></tr></thead><tbody><tr><td><strong>RGB-only</strong></td><td>Faster R-CNN, DDQ-DETR, RF-DETR Large, YOLO26-X</td><td>가시광 하나만 쓸 때의 한계</td></tr><tr><td><strong>IR-only</strong></td><td>같은 네 detector</td><td>열영상 하나가 강한 환경에서 multimodal fusion이 실제 이득인지 확인</td></tr><tr><td><strong>RGB+IR</strong></td><td>CSAA, ICAFusion, M²D-LIF, AFF-Net</td><td>Channel switching, dense cross-attention, illumination-aware fusion 등 기존 융합 방식과 비교</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>중요한 해석 경계가 하나 있다. 논문의 “Cross-Domain Generalization” 절은 GAIIC2024에서만 학습한 한 모델을 M3FD·FLIR·LLVIP에 zero-shot 평가한 결과가 아니다. Appendix는 FLIR와 LLVIP에 별도의 fine-tuning schedule을 제시한다. 네 benchmark에서 일관된 순위를 보였다는 뜻에 가깝고, unseen sensor나 unseen domain 전이를 입증한 실험은 아니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">7. GAIIC2024 — 가장 큰 차이가 난 주 실험</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>Modality</th><th>Val mAP</th><th>Test mAP</th><th>Test mAP50</th><th>Test mAP75</th></tr></thead><tbody><tr><td>YOLO26-X</td><td>RGB</td><td>49.85</td><td>9.76</td><td>27.82</td><td>4.21</td></tr><tr><td>RF-DETR Large</td><td>IR</td><td>54.40</td><td>37.12</td><td>53.40</td><td>44.34</td></tr><tr><td>ICAFusion</td><td>RGB+IR</td><td>60.43</td><td>35.62</td><td>50.70</td><td>42.31</td></tr><tr><td>M²D-LIF</td><td>RGB+IR</td><td>60.52</td><td>34.76</td><td>48.90</td><td>40.83</td></tr><tr><td>AFF-Net</td><td>RGB+IR</td><td>60.32</td><td>37.53</td><td>56.05</td><td>43.38</td></tr><tr><td><strong>A2DINOv3</strong></td><td>RGB+IR</td><td><strong>64.00</strong></td><td><strong>43.05</strong></td><td><strong>61.08</strong></td><td><strong>50.56</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>GAIIC test에서 기존 multimodal 최고 AFF-Net과 비교하면 mAP는 37.53→43.05, <strong>+5.52%p</strong>다. mAP50은 +5.03%p, mAP75는 +7.18%p 오른다. IR-only까지 포함한 전체 기존 최고 RF-DETR Large 37.12와 비교해도 +5.93%p다. 까다로운 위치 기준인 mAP75에서 차이가 더 커, 저자 평가 안에서는 작은 차량의 box 위치까지 개선됐다고 볼 근거가 있다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Validation과 test를 함께 보면 다른 정보가 드러난다. A2DINOv3의 test/validation mAP 비율은 <code>43.05 / 64.00 = 67.27%</code>다. 절대 성능은 20.95%p 내려가지만 비교된 multimodal 방법 가운데 유지율이 가장 높다. 논문이 pre-trained knowledge retention을 강조하는 근거다. 다만 유지율은 representation을 직접 측정한 값이 아니라 두 split의 detection mAP 비율이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">8. M3FD·FLIR·LLVIP — 일관된 1위, 서로 다른 개선 폭</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>데이터셋</th><th>강한 기존 multimodal</th><th>기존 mAP</th><th>A2DINOv3</th><th>차이</th></tr></thead><tbody><tr><td><strong>M3FD</strong></td><td>AFF-Net</td><td>59.22</td><td><strong>61.78</strong></td><td>+2.56%p</td></tr><tr><td><strong>FLIR</strong></td><td>M²D-LIF</td><td>46.10</td><td><strong>46.80</strong></td><td>+0.70%p</td></tr><tr><td><strong>LLVIP</strong></td><td>M²D-LIF</td><td>70.80</td><td><strong>71.56</strong></td><td>+0.76%p</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>세 데이터셋 모두 저자 비교표의 multimodal 최고값을 넘지만 개선 폭은 같지 않다. M3FD는 2.56%p로 분명한 차이가 난다. 세부 지표는 A2DINOv3가 mAP50 88.96, mAP75 66.47이며 기존 최고와 차이는 각각 0.53%p와 0.15%p다. 평균 mAP의 개선이 모든 IoU threshold에서 같은 크기로 나타난 것은 아니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>FLIR는 해석이 흥미롭다. Dense multimodal 계열인 AFF-Net 41.84와 ICAFusion 41.40이 IR-only RF-DETR Large 46.57보다 낮다. Sensor를 하나 더 썼는데 오히려 약해진 fusion degradation 사례다. A2DINOv3는 46.80으로 IR-only 최고보다 0.23%p 높다. 저차원 통신이 손실을 막았다는 저자 가설과 맞지만, 차이가 작아 반복 실험의 분산이나 독립 재현 없이는 우위를 크게 일반화하기 어렵다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>LLVIP는 A2DINOv3 71.56, M²D-LIF 70.80, IR-only RF-DETR Large 70.35다. 저조도 보행자라는 단일 class 조건에서도 두 modality가 소폭 이득을 냈다. 네 데이터셋에서 순위가 일관된 점은 장점이지만 “항상 큰 폭의 SOTA”라는 표현보다는 <strong>GAIIC에서 큰 차이, 다른 세 benchmark에서는 0.70~2.56%p의 multimodal 개선</strong>이라고 쓰는 편이 정확하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">9. Ablation — 무엇이 실제로 성능을 올렸나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>Interaction</th><th>Optimization</th><th>GAIIC test mAP</th></tr></thead><tbody><tr><td>없음</td><td>IR-only</td><td>36.47</td></tr><tr><td>Cross-attention</td><td>Layers 5/8/11</td><td>38.02</td></tr><tr><td>Cross-attention</td><td>Frozen backbone</td><td>38.10</td></tr><tr><td>Cross-attention</td><td>Full fine-tuning</td><td>39.30</td></tr><tr><td>SCP</td><td>Frozen backbone</td><td>40.27</td></tr><tr><td>SCP</td><td>Full fine-tuning, random init.</td><td>42.43</td></tr><tr><td><strong>SCP</strong></td><td><strong>Full fine-tuning, zero init.</strong></td><td><strong>43.05</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">저차원 통신의 효과</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Backbone을 고정한 공통 조건에서 cross-attention은 38.10, SCP는 40.27이다. 차이는 <strong>+2.17%p</strong>다. Backbone update가 결과를 설명할 수 없는 비교여서, 넓은 cross-attention 대신 저차원 residual을 쓴 효과를 가장 깔끔하게 보여준다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Cross-attention을 full fine-tuning해도 39.30으로 frozen SCP 40.27보다 낮다. 단순히 더 많은 parameter를 학습해서 얻은 성능이라고 보기 어렵다. 반면 SCP는 backbone까지 풀었을 때 42.43으로 오르므로 제한된 통신과 foundation model 적응이 함께 필요하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Zero initialization의 효과</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>SCP full fine-tuning에서 random initialization 42.43을 zero initialization이 43.05로 높인다. 개선은 <strong>+0.62%p</strong>다. 핵심 성능의 대부분을 zero initialization 하나가 만든 것은 아니지만, 초기 gradient 충격을 줄이면서 마지막 성능을 더한 것으로 해석할 수 있다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>정성 분석에서는 degraded RGB 입력에 dense cross-attention을 쓴 모델이 0.74 confidence의 false positive를 만들고, A2DINOv3는 실제 target에 0.82 confidence를 준 예시가 제시된다. Feature response도 SCP 쪽이 target에 더 모인다. 다만 한 시각화 사례는 전체 데이터에서 불필요한 신호를 항상 제거한다는 통계적 증명은 아니다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">10. 이 논문의 장점</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>Foundation model의 사전학습 표현을 바로 활용한다.</strong> RGB·IR 전용 backbone을 각각 처음부터 학습하지 않고 하나의 DINOv3 parameter를 공유한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>Cross-modal interference 문제를 구조로 다룬다.</strong> 단순한 loss regularization이 아니라 residual rank와 삽입 layer 수로 상대 modality의 영향 범위를 제한한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>초기 학습 상태가 안전하다.</strong> Zero-initialized up-projection 덕분에 첫 forward는 사전학습 stream을 그대로 보존하고 통신은 gradient로 서서히 열린다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>통신과 최종 aggregation의 역할이 분리된다.</strong> SCP가 정보 교환을 담당하고 mean fusion은 결과만 모아 불필요한 고용량 fusion parameter를 늘리지 않는다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>Ablation의 비교 축이 비교적 명확하다.</strong> Frozen backbone 조건의 cross-attention 대 SCP, random 대 zero initialization을 따로 보여준다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>서로 다른 네 현장에서 일관된 결과를 냈다.</strong> UAV, 도시 장면, 자율주행, 야간 보행자 데이터에서 저자 표의 multimodal 최고 성능을 기록했다.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">11. 한계와 결과 해석의 경계</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>명시적인 reliability estimator는 없다.</strong> SCP는 저차원 residual이며 고장 난 sensor를 감지해 끄는 gate가 아니다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>두 sensor가 모두 존재하고 어느 정도 정합됐다고 가정한다.</strong> Missing modality, 완전한 sensor failure, 정합 오차 크기별 stress test는 없다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>평균 fusion은 두 stream에 같은 가중치를 준다.</strong> SCP가 잡음 전달량을 제한할 수는 있어도 최종 단계에서 신뢰도 기반 weighting을 하지는 않는다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>파라미터 공유와 연산 절감은 다르다.</strong> Backbone weight는 한 벌이지만 RGB·IR forward와 activation은 둘 다 필요하다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>최고 결과는 full fine-tuning이다.</strong> Adapter 모양의 SCP를 쓰지만 최종 43.05는 backbone까지 학습한 결과라 parameter-efficient tuning으로 부르기 어렵다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>네 데이터셋 비교는 zero-shot domain transfer가 아니다.</strong> FLIR와 LLVIP에는 dataset-specific fine-tuning schedule이 있다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>효율성 표가 없다.</strong> 전체 parameter 수, FLOPs, latency, FPS와 단일 GPU memory가 보고되지 않아 정확도 대비 배포 비용을 판단하기 어렵다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>독립 재현 전의 저자 수치다.</strong> 서로 다른 계열의 baseline이 같은 backbone·학습 budget으로 통제됐는지도 표만으로는 완전히 확인할 수 없다.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>안전한 결론은 다음과 같다. <strong>A2DINOv3는 저자 평가에서 RGB-IR 간 통신 용량을 제한해 dense interaction보다 높은 mAP를 기록했고, GAIIC2024의 큰 domain shift에서 가장 뚜렷한 차이를 냈다.</strong> 그러나 어떤 sensor를 믿을지 직접 판정하는 모델은 아니며, severe misalignment와 missing modality에 강하다는 증거도 아직 없다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">12. 실무에서는 어디에 적용할 수 있나</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>가장 맞는 환경은 이미 RGB와 thermal/NIR camera를 같은 시야로 설치했고, 조명에 따라 한 sensor의 품질이 달라지는 현장이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>야간 도로에서 사람·차량·자전거 탐지</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>드론 RGB-TIR 영상의 초소형 차량 탐지</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>공장 설비의 가시광 외형과 열 이상을 함께 보는 검사</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li>연기·그늘·역광이 반복되는 시설 안전 모니터링</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>PoC는 모델 구현보다 데이터 준비에서 시작하는 편이 낫다. 두 카메라의 timestamp를 맞추고 intrinsic·extrinsic calibration과 parallax를 확인한 뒤, 운영 거리별 registration error를 기록해야 한다. 학습·validation·test를 시간대와 장소 기준으로 분리하지 않으면 같은 배경을 외운 성능이 multispectral fusion의 이득처럼 보일 수 있다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>평가표에는 전체 mAP만 두지 말고 주간·야간·역광·우천, 작은 물체와 큰 물체, RGB 손상·IR 손상 조건을 나눠야 한다. RGB-only·IR-only·단순 mean fusion·cross-attention·SCP를 같은 backbone과 학습 budget으로 비교하면 “센서 두 개라서 오른 점수”와 “제한된 통신 설계로 오른 점수”를 구분할 수 있다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>M1 Pro 같은 개인 장비에서 연구 전체를 재현하기는 현재 어렵다. 공식 구현과 checkpoint가 없고 저자 학습은 8개 RTX 4090을 사용했다. 다만 코드가 공개되면 DINOv3 ViT-S/16+ dual forward의 inference부터 측정하고, SCP bottleneck만 소규모 자사 데이터로 학습하는 단계적 검증은 시도할 수 있다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">13. 재현 가능성과 공개 상태</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>2026년 8월 25일 기준 arXiv 페이지에는 공식 GitHub, project page, checkpoint 링크가 연결되어 있지 않다. 실행 가능한 code와 weight가 없어 저자 수치를 그대로 재현하거나 속도를 측정할 수 없는 상태다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>논문만으로도 DINOv3 ViT-S/16+ shared dual stream, SCP 위치 5·8·11, zero-initialized up-projection, mean fusion, 6-layer DEIM decoder와 300 query, 주요 optimizer 설정은 알 수 있다. 반면 <strong>SCP bottleneck 차원 r, 정확한 DINOv3 checkpoint 식별자, M3FD training recipe, loss weight, paired augmentation 구현, 일부 전처리</strong>가 빠져 있어 수치 단위의 재현에는 부족하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>논문은 arXiv perpetual non-exclusive license로 배포됐다. 아직 software repository가 없으므로 구현 코드의 라이선스도 정해지지 않았다. 향후 공개물을 제품에 쓸 때는 A2DINOv3 코드뿐 아니라 DINOv3 backbone weight와 네 데이터셋의 이용 조건을 각각 확인해야 한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><a href="/ai-cv-sota-briefing-2026-08-25/">Video-ORA-9B·A2DINOv3·Stream3Dv2 비교 브리핑으로 돌아가기</a></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">원문</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><a href="https://arxiv.org/abs/2608.21099">arXiv 초록과 메타데이터</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://arxiv.org/html/2608.21099v1">arXiv HTML 전문</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://arxiv.org/pdf/2608.21099">논문 PDF</a></li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p><em>공식 arXiv v1을 2026년 8월 25일 확인했습니다. 모든 수치는 논문 저자 평가이며 독립 재현 결과가 아닙니다. 이 글의 “최고 성능”은 논문 비교표와 각 데이터셋의 평가 조건 안에서만 의미합니다.</em></p>
+<!-- /wp:paragraph -->

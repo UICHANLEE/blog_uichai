@@ -7,6 +7,11 @@
       "indexable": true
     },
     {
+      "path": "/a2dinov3-rgb-ir-object-detection-paper-analysis/",
+      "file": "a2dinov3-rgb-ir-object-detection-paper-analysis/index.html",
+      "indexable": true
+    },
+    {
       "path": "/about/",
       "file": "about/index.html",
       "indexable": true
@@ -102,6 +107,11 @@
       "indexable": true
     },
     {
+      "path": "/orarl-video-ora-9b-paper-analysis/",
+      "file": "orarl-video-ora-9b-paper-analysis/index.html",
+      "indexable": true
+    },
+    {
       "path": "/privacy/",
       "file": "privacy/index.html",
       "indexable": true
@@ -124,6 +134,11 @@
     {
       "path": "/stories/page/2/",
       "file": "stories/page/2/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/stream3dv2-streaming-zero-shot-3d-paper-analysis/",
+      "file": "stream3dv2-streaming-zero-shot-3d-paper-analysis/index.html",
       "indexable": true
     },
     {
@@ -262,6 +277,11 @@
       "indexable": false
     },
     {
+      "path": "/tag/dinov3/",
+      "file": "tag/dinov3/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/docker/",
       "file": "tag/docker/index.html",
       "indexable": false
@@ -292,6 +312,16 @@
       "indexable": false
     },
     {
+      "path": "/tag/gaiic2024/",
+      "file": "tag/gaiic2024/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/got-10k/",
+      "file": "tag/got-10k/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/grpo/",
       "file": "tag/grpo/index.html",
       "indexable": false
@@ -314,6 +344,11 @@
     {
       "path": "/tag/mano/",
       "file": "tag/mano/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/multimodal-object-detection/",
+      "file": "tag/multimodal-object-detection/index.html",
       "indexable": false
     },
     {
@@ -352,8 +387,28 @@
       "indexable": false
     },
     {
+      "path": "/tag/reinforcement-learning/",
+      "file": "tag/reinforcement-learning/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/rgb-ir/",
       "file": "tag/rgb-ir/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/sam2/",
+      "file": "tag/sam2/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/sam3/",
+      "file": "tag/sam3/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/scannet200/",
+      "file": "tag/scannet200/index.html",
       "indexable": false
     },
     {
@@ -377,8 +432,18 @@
       "indexable": false
     },
     {
+      "path": "/tag/streaming-3d/",
+      "file": "tag/streaming-3d/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/supabase/",
       "file": "tag/supabase/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/thermal-imaging/",
+      "file": "tag/thermal-imaging/index.html",
       "indexable": false
     },
     {
@@ -389,6 +454,16 @@
     {
       "path": "/tag/video-diffusion-model/",
       "file": "tag/video-diffusion-model/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/video-grounding/",
+      "file": "tag/video-grounding/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/video-mllm/",
+      "file": "tag/video-mllm/index.html",
       "indexable": false
     },
     {
@@ -419,6 +494,11 @@
     {
       "path": "/tag/wordpress/",
       "file": "tag/wordpress/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/zero-shot-3d/",
+      "file": "tag/zero-shot-3d/index.html",
       "indexable": false
     }
   ]

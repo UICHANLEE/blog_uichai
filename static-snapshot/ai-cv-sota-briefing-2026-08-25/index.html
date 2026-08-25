@@ -112,7 +112,7 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 			<header class="article-hero section-shell">
 				<div class="post-meta reveal">
 					<span>AI 논문 분석</span>
-					<time datetime="2026-08-25T12:35:45+09:00">2026.08.25</time>
+					<time datetime="2026-08-25T12:55:43+09:00">2026.08.25</time>
 					<span>10 min read</span>
 				</div>
 				<h1 class="article-title reveal">AI CV SOTA 브리핑 — Video-ORA-9B · A2DINOv3 · Stream3Dv2 (2026.08.25)</h1>
@@ -148,6 +148,24 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 
 
 <figure class="wp-block-table"><table><thead><tr><th>연구</th><th>분야</th><th>눈에 띄는 수치</th><th>2026.08.25 공개 상태</th></tr></thead><tbody><tr><td><strong>Video-ORA-9B / OraRL</strong></td><td>Video MLLM · RL</td><td>Tracking AO 73.0 → 78.2</td><td>9B 가중치 공개, 전체 학습 소스 미확인</td></tr><tr><td><strong>A2DINOv3</strong></td><td>RGB-IR Detection</td><td>GAIIC test mAP 37.53 → 43.05</td><td>코드·가중치 미공개</td></tr><tr><td><strong>Stream3Dv2</strong></td><td>Streaming 3D</td><td>ScanNet200 AP 22.4 → 27.1</td><td>연결 저장소에는 v1 코드만 공개</td></tr></tbody></table></figure>
+
+
+
+<h2 class="wp-block-heading">논문별 상세 분석</h2>
+
+
+
+<p class="wp-block-paragraph">이 글은 세 연구를 빠르게 비교하는 브리핑이다. 모델의 전체 입출력과 학습 과정, 데이터 구성, benchmark별 해석은 아래 독립 분석글에서 논문 한 편씩 다룬다.</p>
+
+
+
+<ul class="wp-block-list">
+<li><a href="/orarl-video-ora-9b-paper-analysis/"><strong>OraRL 논문 분석</strong></a> — annotation을 oracle rollout으로 넣는 이유와 7개 task family의 평가 범위</li>
+
+<li><a href="/a2dinov3-rgb-ir-object-detection-paper-analysis/"><strong>A2DINOv3 논문 분석</strong></a> — RGB·IR 사이의 저차원 통신과 네 데이터셋 비교</li>
+
+<li><a href="/stream3dv2-streaming-zero-shot-3d-paper-analysis/"><strong>Stream3Dv2 논문 분석</strong></a> — 2D mask를 streaming 3D instance로 누적하는 전체 pipeline</li>
+</ul>
 
 
 
@@ -366,7 +384,7 @@ ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:
 				<div class="article-tags"><a href="/tag/a2dinov3/" rel="tag">A2DINOv3</a> <a href="/tag/ai-%eb%85%bc%eb%ac%b8-%eb%b6%84%ec%84%9d/" rel="tag">AI 논문 분석</a> <a href="/tag/computer-vision/" rel="tag">Computer Vision</a> <a href="/tag/open-vocabulary-3d/" rel="tag">Open-Vocabulary 3D</a> <a href="/tag/orarl/" rel="tag">OraRL</a> <a href="/tag/rgb-ir/" rel="tag">RGB-IR</a> <a href="/tag/stream3dv2/" rel="tag">Stream3Dv2</a> <a href="/tag/video-ora-9b/" rel="tag">Video-ORA-9B</a></div>
 				<nav class="post-navigation" aria-label="다른 글">
 					<div><a href="/dreamhand-video-diffusion-3d-hand-paper-analysis/" rel="prev"><span>이전 글</span>DreamHand 논문 분석: 비디오 확산 모델로 가려진 손의 3D 움직임을 복원하는 법</a></div>
-					<div></div>
+					<div><a href="/orarl-video-ora-9b-paper-analysis/" rel="next"><span>다음 글</span>OraRL 논문 분석: 정답 Annotation을 Rollout으로 쓰는 Video-ORA-9B 학습법</a></div>
 				</nav>
 			</footer>
 
