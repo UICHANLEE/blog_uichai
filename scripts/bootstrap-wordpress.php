@@ -996,6 +996,55 @@ function odd_note_publish_ai_cv_briefing_august_25( $owner_id ) {
 }
 
 /**
+ * Publish the August 26 computer-vision research briefing.
+ *
+ * @param int $owner_id Author user ID.
+ * @return int
+ */
+function odd_note_publish_ai_cv_briefing_august_26( $owner_id ) {
+	$slug     = 'ai-cv-sota-briefing-2026-08-26';
+	$existing = get_page_by_path( $slug, OBJECT, 'post' );
+
+	if ( $existing && '1' !== get_post_meta( (int) $existing->ID, '_odd_note_bootstrap', true ) ) {
+		odd_note_bootstrap_fail( '같은 슬러그의 사용자 글이 있어 자동 발행을 중단했습니다: ' . $slug );
+	}
+
+	$category = get_term_by( 'slug', 'ai-paper-analysis', 'category' );
+	if ( ! $category ) {
+		odd_note_bootstrap_fail( 'AI 논문 분석 카테고리를 찾을 수 없습니다.' );
+	}
+
+	$post_id = odd_note_bootstrap_post(
+		array(
+			'post_type'      => 'post',
+			'post_status'    => 'publish',
+			'post_name'      => $slug,
+			'post_title'     => 'AI CV SOTA 브리핑 — E2S-Pruner · FixAnything · GeoWAM (2026.08.26)',
+			'post_excerpt'   => '학습 없는 VLM token pruning E2S-Pruner, 범용 3D rendering 보정 FixAnything, 미래 geometry로 주행하는 GeoWAM의 입출력·과정·비교 결과와 공개 상태를 검증했습니다.',
+			'post_content'   => odd_note_editorial_content( $slug ),
+			'post_author'    => $owner_id,
+			'post_category'  => array( (int) $category->term_id ),
+			'comment_status' => 'closed',
+			'ping_status'    => 'closed',
+		)
+	);
+
+	wp_set_post_tags(
+		$post_id,
+		array( 'Computer Vision', 'E2S-Pruner', 'FixAnything', 'GeoWAM', 'Visual Token Pruning', '3D Reconstruction', 'World Action Model', 'AI 논문 분석' ),
+		false
+	);
+	update_post_meta( $post_id, '_odd_note_primary_category_id', (int) $category->term_id );
+	update_post_meta( $post_id, '_odd_note_editorial_revision', '1.9.0' );
+
+	$post_ids          = (array) get_option( 'odd_note_editorial_post_ids', array() );
+	$post_ids[ $slug ] = $post_id;
+	update_option( 'odd_note_editorial_post_ids', $post_ids, false );
+
+	return $post_id;
+}
+
+/**
  * Publish one standalone deep dive for each paper in the CV briefing.
  *
  * @param int $owner_id Author user ID.
@@ -1032,6 +1081,21 @@ function odd_note_publish_ai_cv_deep_dives( $owner_id ) {
 			'title'   => 'Stream3Dv2 논문 분석: 2D Mask를 스트리밍 3D Instance로 묶는 법',
 			'excerpt' => 'RGB-D·camera pose·intrinsic을 받아 SAM2·SAM3 mask를 3D instance로 누적하는 과정과 ScanNet200 비교 결과, training-free와 11 FPS의 범위를 분석합니다.',
 			'tags'    => array( 'Stream3Dv2', 'Streaming 3D', 'Zero-Shot 3D', 'SAM2', 'SAM3', 'ScanNet200', 'Open-Vocabulary 3D', 'AI 논문 분석' ),
+		),
+		'e2s-pruner-vlm-token-pruning-paper-analysis' => array(
+			'title'   => 'E2S-Pruner 논문 분석: 학습 없이 VLM Visual Token을 줄이는 Evidence Fusion',
+			'excerpt' => '이미지·prompt와 VLM attention을 받아 head·layer evidence를 결합하고 token을 줄이는 과정, 여섯 benchmark의 유지율과 latency·memory·OCR 한계를 분석합니다.',
+			'tags'    => array( 'E2S-Pruner', 'VLM', 'Visual Token Pruning', 'Dempster-Shafer', 'LLaVA', 'Qwen2-VL', 'Inference Optimization', 'AI 논문 분석' ),
+		),
+		'fixanything-3d-reconstruction-repair-paper-analysis' => array(
+			'title'   => 'FixAnything 논문 분석: 하나의 Video Model로 3DGS·NeRF·Mesh 렌더를 보정하는 법',
+			'excerpt' => '3D rendering video와 clean-frame mask를 Wan2.1-I2V·LoRA·Flow-DPO로 처리하는 과정, DL3DV 데이터와 네 representation의 비교 결과를 분석합니다.',
+			'tags'    => array( 'FixAnything', '3D Reconstruction', '3DGS', 'NeRF', 'Video Diffusion', 'Wan2.1', 'Flow-DPO', 'ECCV 2026', 'AI 논문 분석' ),
+		),
+		'geowam-geometry-world-action-model-paper-analysis' => array(
+			'title'   => 'GeoWAM 논문 분석: 미래 RGB 대신 3D Geometry를 예측해 주행하는 World Action Model',
+			'excerpt' => 'Historical multiview RGB에서 future point map과 ego trajectory를 만드는 두 단계 학습, pretraining 데이터와 nuScenes·NAVSIM v2 결과를 분석합니다.',
+			'tags'    => array( 'GeoWAM', 'World Action Model', 'Autonomous Driving', 'Future Geometry', 'Point Map', 'NAVSIM v2', 'Physical AI', 'AI 논문 분석' ),
 		),
 	);
 
@@ -1072,7 +1136,7 @@ function odd_note_publish_ai_cv_deep_dives( $owner_id ) {
 
 		wp_set_post_tags( $post_id, $spec['tags'], false );
 		update_post_meta( $post_id, '_odd_note_primary_category_id', (int) $category->term_id );
-		update_post_meta( $post_id, '_odd_note_editorial_revision', '1.8.0' );
+		update_post_meta( $post_id, '_odd_note_editorial_revision', '1.9.0' );
 		$post_ids[ $slug ] = $post_id;
 		$created[ $slug ]  = $post_id;
 	}
@@ -1129,7 +1193,7 @@ if (
 	odd_note_bootstrap_fail( '사이트 주소 형식이 올바르지 않습니다.' );
 }
 
-$target_version = '1.8.0';
+$target_version = '1.9.0';
 $installed      = is_blog_installed();
 $state          = $installed ? get_option( 'odd_note_bootstrap_state', '' ) : '';
 
@@ -1183,6 +1247,11 @@ if ( $installed && 'complete' === $state ) {
 		if ( version_compare( $current_version, '1.8.0', '<' ) ) {
 			odd_note_publish_ai_cv_deep_dives( $owner_id );
 			odd_note_publish_ai_cv_briefing_august_25( $owner_id );
+		}
+
+		if ( version_compare( $current_version, '1.9.0', '<' ) ) {
+			odd_note_publish_ai_cv_deep_dives( $owner_id );
+			odd_note_publish_ai_cv_briefing_august_26( $owner_id );
 		}
 
 		update_option( 'odd_note_bootstrap_version', $target_version, false );
@@ -1629,6 +1698,7 @@ $editorial_ids = odd_note_publish_editorial_series( $owner_id );
 odd_note_publish_ai_cv_briefing( $owner_id );
 odd_note_publish_ai_cv_deep_dives( $owner_id );
 odd_note_publish_ai_cv_briefing_august_25( $owner_id );
+odd_note_publish_ai_cv_briefing_august_26( $owner_id );
 
 update_option( 'sticky_posts', array( $editorial_ids['supabase-realtime-binary-state-sync'] ) );
 update_option( 'show_on_front', 'page' );
@@ -1674,4 +1744,4 @@ update_option( 'odd_note_bootstrap_version', $target_version, false );
 update_option( 'odd_note_bootstrap_state', 'complete', false );
 
 echo 'Odd Note 설치와 초기 콘텐츠 구성이 완료됐습니다.' . PHP_EOL;
-echo '페이지 6개, 카테고리 6개, 글 16개, 메뉴 2개를 준비했습니다.' . PHP_EOL;
+echo '페이지 6개, 카테고리 6개, 글 20개, 메뉴 2개를 준비했습니다.' . PHP_EOL;

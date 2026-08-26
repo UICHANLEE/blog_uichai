@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="ko-KR">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+			<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2216%22 fill=%22%230b0b0e%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2218%22 fill=%22%23d7ff3f%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%228%22 fill=%22%230b0b0e%22/%3E%3C/svg%3E">
+		<title>FixAnything 논문 분석: 하나의 Video Model로 3DGS·NeRF·Mesh 렌더를 보정하는 법 &#8211; Odd Note</title>
+<meta name="description" content="3D rendering video와 clean-frame mask를 Wan2.1-I2V·LoRA·Flow-DPO로 처리하는 과정, DL3DV 데이터와 네 representation의 비교 결과를 분석합니다.">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Odd Note">
+<meta property="og:title" content="FixAnything 논문 분석: 하나의 Video Model로 3DGS·NeRF·Mesh 렌더를 보정하는 법 &#8211; Odd Note">
+<meta property="og:description" content="3D rendering video와 clean-frame mask를 Wan2.1-I2V·LoRA·Flow-DPO로 처리하는 과정, DL3DV 데이터와 네 representation의 비교 결과를 분석합니다.">
+<meta property="og:url" content="https://odd-note.invalid/fixanything-3d-reconstruction-repair-paper-analysis/">
+<meta property="og:image" content="https://odd-note.invalid/wp-content/themes/odd-note/assets/images/og-tech-business.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Odd Note — IT 최신 뉴스, AI 논문 분석, 사업 지식">
+<meta name="twitter:card" content="summary_large_image">
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<style id="wp-block-library-inline-css">
+:root{--wp-block-synced-color:#7a00df;--wp-block-synced-color--rgb:122,0,223;--wp-bound-block-color:var(--wp-block-synced-color);--wp-editor-canvas-background:#ddd;--wp-admin-theme-color:#007cba;--wp-admin-theme-color--rgb:0,124,186;--wp-admin-theme-color-darker-10:#006ba1;--wp-admin-theme-color-darker-10--rgb:0,107,160.5;--wp-admin-theme-color-darker-20:#005a87;--wp-admin-theme-color-darker-20--rgb:0,90,135;--wp-admin-border-width-focus:2px}@media (min-resolution:192dpi){:root{--wp-admin-border-width-focus:1.5px}}.wp-element-button{cursor:pointer}:root .has-very-light-gray-background-color{background-color:#eee}:root .has-very-dark-gray-background-color{background-color:#313131}:root .has-very-light-gray-color{color:#eee}:root .has-very-dark-gray-color{color:#313131}:root .has-vivid-green-cyan-to-vivid-cyan-blue-gradient-background{background:linear-gradient(135deg,#00d084,#0693e3)}:root .has-purple-crush-gradient-background{background:linear-gradient(135deg,#34e2e4,#4721fb 50%,#ab1dfe)}:root .has-hazy-dawn-gradient-background{background:linear-gradient(135deg,#faaca8,#dad0ec)}:root .has-subdued-olive-gradient-background{background:linear-gradient(135deg,#fafae1,#67a671)}:root .has-atomic-cream-gradient-background{background:linear-gradient(135deg,#fdd79a,#004a59)}:root .has-nightshade-gradient-background{background:linear-gradient(135deg,#330968,#31cdcf)}:root .has-midnight-gradient-background{background:linear-gradient(135deg,#020381,#2874fc)}:root{--wp--preset--font-size--normal:16px;--wp--preset--font-size--huge:42px}.has-regular-font-size{font-size:1em}.has-larger-font-size{font-size:2.625em}.has-normal-font-size{font-size:var(--wp--preset--font-size--normal)}.has-huge-font-size{font-size:var(--wp--preset--font-size--huge)}:root .has-text-align-center{text-align:center}:root .has-text-align-left{text-align:left}:root .has-text-align-right{text-align:right}.has-fit-text{white-space:nowrap!important}#end-resizable-editor-section{display:none}.aligncenter{clear:both}.items-justified-left{justify-content:flex-start}.items-justified-center{justify-content:center}.items-justified-right{justify-content:flex-end}.items-justified-space-between{justify-content:space-between}.screen-reader-text{word-wrap:normal!important;border:0;clip-path:inset(50%);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.screen-reader-text:focus{background-color:#ddd;clip-path:none;color:#444;display:block;font-size:1em;height:auto;left:5px;line-height:normal;padding:15px 23px 14px;text-decoration:none;top:5px;width:auto;z-index:100000}html :where(.has-border-color){border-style:solid}html :where([style*=border-color]){border-style:solid}html :where([style*=border-top-color]){border-top-style:solid}html :where([style*=border-right-color]){border-right-style:solid}html :where([style*=border-bottom-color]){border-bottom-style:solid}html :where([style*=border-left-color]){border-left-style:solid}html :where([style*=border-width]){border-style:solid}html :where([style*=border-top-width]){border-top-style:solid}html :where([style*=border-right-width]){border-right-style:solid}html :where([style*=border-bottom-width]){border-bottom-style:solid}html :where([style*=border-left-width]){border-left-style:solid}html :where(img[class*=wp-image-]){height:auto;max-width:100%}:where(figure){margin:0 0 1em}html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:var(--wp-admin--admin-bar--height,0px)}@media screen and (max-width:600px){html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:0px}}
+
+/*# sourceURL=/wp-includes/css/dist/block-library/common.min.css */
+</style>
+<style id="wp-block-heading-inline-css">
+h1:where(.wp-block-heading).has-background,h2:where(.wp-block-heading).has-background,h3:where(.wp-block-heading).has-background,h4:where(.wp-block-heading).has-background,h5:where(.wp-block-heading).has-background,h6:where(.wp-block-heading).has-background{padding:1.25em 2.375em}h1.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h1.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h2.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h2.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h3.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h3.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h4.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h4.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h5.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h5.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h6.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h6.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]){rotate:180deg}
+/*# sourceURL=/wp-includes/blocks/heading/style.min.css */
+</style>
+<style id="wp-block-list-inline-css">
+ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:1.25em 2.375em}
+/*# sourceURL=/wp-includes/blocks/list/style.min.css */
+</style>
+<style id="wp-block-paragraph-inline-css">
+.is-small-text{font-size:.875em}.is-regular-text{font-size:1em}.is-large-text{font-size:2.25em}.is-larger-text{font-size:3em}.has-drop-cap:not(:focus):first-letter{float:left;font-size:8.4em;font-style:normal;font-weight:100;line-height:.68;margin:.05em .1em 0 0;text-transform:uppercase}body.rtl .has-drop-cap:not(:focus):first-letter{float:none;margin-left:.1em}p.has-drop-cap.has-background{overflow:hidden}:root :where(p.has-background){padding:1.25em 2.375em}:where(p.has-text-color:not(.has-link-color)) a{color:inherit}p.has-text-align-left[style*="writing-mode:vertical-lr"],p.has-text-align-right[style*="writing-mode:vertical-rl"]{rotate:180deg}
+/*# sourceURL=/wp-includes/blocks/paragraph/style.min.css */
+</style>
+<style id="wp-block-code-inline-css">
+.wp-block-code{box-sizing:border-box}.wp-block-code code{direction:ltr;display:block;font-family:inherit;overflow-wrap:break-word;text-align:initial;white-space:pre-wrap}
+/*# sourceURL=/wp-includes/blocks/code/style.min.css */
+</style>
+<style id="wp-block-separator-inline-css">
+@charset "UTF-8";.wp-block-separator{border:none;border-top:2px solid}:root :where(.wp-block-separator.is-style-dots){height:auto;line-height:1;text-align:center}:root :where(.wp-block-separator.is-style-dots):before{color:currentColor;content:"···";font-family:serif;font-size:1.5em;letter-spacing:2em;padding-left:2em}.wp-block-separator.is-style-dots{background:none!important;border:none!important}
+/*# sourceURL=/wp-includes/blocks/separator/style.min.css */
+</style>
+<style id="wp-block-table-inline-css">
+.wp-block-table{overflow-x:auto}.wp-block-table table{border-collapse:collapse;width:100%}.wp-block-table thead{border-bottom:3px solid}.wp-block-table tfoot{border-top:3px solid}.wp-block-table td,.wp-block-table th{border:1px solid;padding:.5em}.wp-block-table .has-fixed-layout{table-layout:fixed;width:100%}.wp-block-table .has-fixed-layout td,.wp-block-table .has-fixed-layout th{word-break:break-word}.wp-block-table.aligncenter,.wp-block-table.alignleft,.wp-block-table.alignright{display:table;width:auto}.wp-block-table.aligncenter td,.wp-block-table.aligncenter th,.wp-block-table.alignleft td,.wp-block-table.alignleft th,.wp-block-table.alignright td,.wp-block-table.alignright th{word-break:break-word}.wp-block-table .has-subtle-light-gray-background-color{background-color:#f3f4f5}.wp-block-table .has-subtle-pale-green-background-color{background-color:#e9fbe5}.wp-block-table .has-subtle-pale-blue-background-color{background-color:#e7f5fe}.wp-block-table .has-subtle-pale-pink-background-color{background-color:#fcf0ef}.wp-block-table.is-style-stripes{background-color:initial;border-collapse:inherit;border-spacing:0}.wp-block-table.is-style-stripes tbody tr:nth-child(odd){background-color:#f0f0f0}.wp-block-table.is-style-stripes.has-subtle-light-gray-background-color tbody tr:nth-child(odd){background-color:#f3f4f5}.wp-block-table.is-style-stripes.has-subtle-pale-green-background-color tbody tr:nth-child(odd){background-color:#e9fbe5}.wp-block-table.is-style-stripes.has-subtle-pale-blue-background-color tbody tr:nth-child(odd){background-color:#e7f5fe}.wp-block-table.is-style-stripes.has-subtle-pale-pink-background-color tbody tr:nth-child(odd){background-color:#fcf0ef}.wp-block-table.is-style-stripes td,.wp-block-table.is-style-stripes th{border-color:#0000}.wp-block-table.is-style-stripes{border-bottom:1px solid #f0f0f0}.wp-block-table .has-border-color td,.wp-block-table .has-border-color th,.wp-block-table .has-border-color tr,.wp-block-table .has-border-color>*{border-color:inherit}.wp-block-table table[style*=border-top-color] tr:first-child,.wp-block-table table[style*=border-top-color] tr:first-child td,.wp-block-table table[style*=border-top-color] tr:first-child th,.wp-block-table table[style*=border-top-color]>*,.wp-block-table table[style*=border-top-color]>* td,.wp-block-table table[style*=border-top-color]>* th{border-top-color:inherit}.wp-block-table table[style*=border-top-color] tr:not(:first-child){border-top-color:initial}.wp-block-table table[style*=border-right-color] td:last-child,.wp-block-table table[style*=border-right-color] th,.wp-block-table table[style*=border-right-color] tr,.wp-block-table table[style*=border-right-color]>*{border-right-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:last-child,.wp-block-table table[style*=border-bottom-color] tr:last-child td,.wp-block-table table[style*=border-bottom-color] tr:last-child th,.wp-block-table table[style*=border-bottom-color]>*,.wp-block-table table[style*=border-bottom-color]>* td,.wp-block-table table[style*=border-bottom-color]>* th{border-bottom-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:not(:last-child){border-bottom-color:initial}.wp-block-table table[style*=border-left-color] td:first-child,.wp-block-table table[style*=border-left-color] th,.wp-block-table table[style*=border-left-color] tr,.wp-block-table table[style*=border-left-color]>*{border-left-color:inherit}.wp-block-table table[style*=border-style] td,.wp-block-table table[style*=border-style] th,.wp-block-table table[style*=border-style] tr,.wp-block-table table[style*=border-style]>*{border-style:inherit}.wp-block-table table[style*=border-width] td,.wp-block-table table[style*=border-width] th,.wp-block-table table[style*=border-width] tr,.wp-block-table table[style*=border-width]>*{border-style:inherit;border-width:inherit}
+/*# sourceURL=/wp-includes/blocks/table/style.min.css */
+</style>
+
+
+<style id="global-styles-inline-css">
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--color--ink: #0d0d12;--wp--preset--color--paper: #f3efe5;--wp--preset--color--acid: #d8ff45;--wp--preset--color--coral: #ff694f;--wp--preset--color--sky: #8bd9ff;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgb(6,147,227) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgb(252,185,0) 0%,rgb(255,105,0) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgb(255,105,0) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.625), 20px);--wp--preset--font-size--large: clamp(22.041px, 1.378rem + ((1vw - 3.2px) * 1.454), 36px);--wp--preset--font-size--x-large: clamp(25.014px, 1.563rem + ((1vw - 3.2px) * 1.769), 42px);--wp--preset--font-family--sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;--wp--preset--font-family--serif: "Iowan Old Style", "Noto Serif KR", Georgia, serif;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);}:root { --wp--style--global--content-size: 760px;--wp--style--global--wide-size: 1280px; }:where(body) { margin: 0; }.wp-site-blocks > .alignleft { float: left; margin-right: 2em; }.wp-site-blocks > .alignright { float: right; margin-left: 2em; }.wp-site-blocks > .aligncenter { justify-content: center; margin-left: auto; margin-right: auto; }:where(.wp-site-blocks) > * { margin-block-start: 1.5rem; margin-block-end: 0; }:where(.wp-site-blocks) > :first-child { margin-block-start: 0; }:where(.wp-site-blocks) > :last-child { margin-block-end: 0; }:root { --wp--style--block-gap: 1.5rem; }:root :where(.is-layout-flow) > :first-child{margin-block-start: 0;}:root :where(.is-layout-flow) > :last-child{margin-block-end: 0;}:root :where(.is-layout-flow) > *{margin-block-start: 1.5rem;margin-block-end: 0;}:root :where(.is-layout-constrained) > :first-child{margin-block-start: 0;}:root :where(.is-layout-constrained) > :last-child{margin-block-end: 0;}:root :where(.is-layout-constrained) > *{margin-block-start: 1.5rem;margin-block-end: 0;}:root :where(.is-layout-flex){gap: 1.5rem;}:root :where(.is-layout-grid){gap: 1.5rem;}.is-layout-flow > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-flow > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-flow > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-constrained > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-constrained > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > :where(:not(.alignleft):not(.alignright):not(.alignfull)){max-width: var(--wp--style--global--content-size);margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignwide{max-width: var(--wp--style--global--wide-size);}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}body{background-color: #0d0d12;color: #f3efe5;font-family: var(--wp--preset--font-family--sans);line-height: 1.65;padding-top: 0px;padding-right: 0px;padding-bottom: 0px;padding-left: 0px;}a:where(:not(.wp-element-button)){color: #d8ff45;}h1, h2, h3, h4, h5, h6{font-weight: 700;line-height: 1.05;}:root :where(.wp-element-button, .wp-block-button__link){background-color: #32373c;border-width: 0;color: #fff;font-family: inherit;font-size: inherit;font-style: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;padding-top: calc(0.667em + 2px);padding-right: calc(1.333em + 2px);padding-bottom: calc(0.667em + 2px);padding-left: calc(1.333em + 2px);text-decoration: none;text-transform: inherit;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-ink-color{color: var(--wp--preset--color--ink) !important;}.has-paper-color{color: var(--wp--preset--color--paper) !important;}.has-acid-color{color: var(--wp--preset--color--acid) !important;}.has-coral-color{color: var(--wp--preset--color--coral) !important;}.has-sky-color{color: var(--wp--preset--color--sky) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-ink-background-color{background-color: var(--wp--preset--color--ink) !important;}.has-paper-background-color{background-color: var(--wp--preset--color--paper) !important;}.has-acid-background-color{background-color: var(--wp--preset--color--acid) !important;}.has-coral-background-color{background-color: var(--wp--preset--color--coral) !important;}.has-sky-background-color{background-color: var(--wp--preset--color--sky) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-ink-border-color{border-color: var(--wp--preset--color--ink) !important;}.has-paper-border-color{border-color: var(--wp--preset--color--paper) !important;}.has-acid-border-color{border-color: var(--wp--preset--color--acid) !important;}.has-coral-border-color{border-color: var(--wp--preset--color--coral) !important;}.has-sky-border-color{border-color: var(--wp--preset--color--sky) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}.has-sans-font-family{font-family: var(--wp--preset--font-family--sans) !important;}.has-serif-font-family{font-family: var(--wp--preset--font-family--serif) !important;}
+/*# sourceURL=global-styles-inline-css */
+</style>
+
+<link rel='stylesheet' id='odd-note-fonts-css' href='/wp-content/themes/odd-note/assets/fonts/pretendard/pretendardvariable-dynamic-subset.css?ver=1787500912' media='all' />
+<link rel='stylesheet' id='odd-note-site-css' href='/wp-content/themes/odd-note/assets/css/site.css?ver=1787716999' media='all' />
+<meta name="theme-color" content="#0d0d12">
+<!-- ODD_NOTE_ROBOTS:indexable -->
+<link rel="canonical" href="https://odd-note.invalid/fixanything-3d-reconstruction-repair-paper-analysis/">
+<link rel="alternate" type="application/rss+xml" title="Odd Note RSS" href="/feed.xml">
+</head>
+<body class="wp-singular post-template-default single single-post postid-53 single-format-standard wp-embed-responsive wp-theme-odd-note odd-note" data-mood="acid">
+
+<a class="skip-link" href="#main-content">본문으로 바로가기</a>
+
+<div class="reading-progress" aria-hidden="true">
+	<span data-reading-progress></span>
+</div>
+
+<div class="pointer-halo" data-pointer-halo aria-hidden="true" hidden>
+	<span data-pointer-label></span>
+</div>
+
+<div class="page-atmosphere" aria-hidden="true"></div>
+
+<header class="site-header" data-site-header>
+	<div class="site-header__inner">
+		<a class="site-brand magnetic" href="/" data-cursor="HOME">
+			<span class="site-brand__mark" aria-hidden="true">◉</span>
+			<span class="site-brand__name">Odd Note</span>
+		</a>
+
+		<button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-primary-navigation" data-menu-toggle hidden>
+			<span class="menu-toggle__label" lang="en">Menu</span>
+		</button>
+
+		<nav id="site-primary-navigation" class="primary-nav" aria-label="주요 메뉴">
+			<ul id="primary-menu" class="site-menu"><li id="menu-item-27" class="menu-item menu-item-type-post_type menu-item-object-page current_page_parent menu-item-27"><a href="/stories/">전체 글</a></li>
+<li id="menu-item-28" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-28"><a href="/category/it-news/">IT 최신 뉴스</a></li>
+<li id="menu-item-29" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-29"><a href="/category/ai-paper-analysis/">AI 논문 분석</a></li>
+<li id="menu-item-30" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-30"><a href="/category/business-knowledge/">사업 지식</a></li>
+<li id="menu-item-31" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-31"><a href="/about/">소개</a></li>
+</ul>		</nav>
+
+		<div class="experience-controls" role="group" aria-label="화면 효과 설정" aria-hidden="true" data-experience-controls inert>
+			<button class="control-button" type="button" data-mood-toggle data-cursor="COLOR" aria-label="색상 분위기 바꾸기">
+				<span class="control-button__dot" aria-hidden="true"></span>
+				<span data-mood-label lang="en">ACID</span>
+			</button>
+			<button class="control-button" type="button" data-motion-toggle data-cursor="MOTION" aria-label="화면 효과" aria-describedby="odd-note-motion-status" aria-pressed="true">
+				<span class="control-button__pulse" aria-hidden="true"></span>
+				<span data-motion-label lang="en">FX ON</span>
+			</button>
+			<span id="odd-note-motion-status" class="screen-reader-text" data-motion-status></span>
+		</div>
+	</div>
+</header>
+
+<main id="main-content" class="single-page" tabindex="-1">
+					<article class="single-article post-53 post type-post status-publish format-standard hentry category-ai-paper-analysis tag-3d-reconstruction tag-3dgs tag-ai-- tag-eccv-2026 tag-fixanything tag-flow-dpo tag-nerf tag-video-diffusion tag-wan2-1">
+			<header class="article-hero section-shell">
+				<div class="post-meta reveal">
+					<span>AI 논문 분석</span>
+					<time datetime="2026-08-26T12:56:35+09:00">2026.08.26</time>
+					<span>17 min read</span>
+				</div>
+				<h1 class="article-title reveal">FixAnything 논문 분석: 하나의 Video Model로 3DGS·NeRF·Mesh 렌더를 보정하는 법</h1>
+									<p class="article-deck reveal">3D rendering video와 clean-frame mask를 Wan2.1-I2V·LoRA·Flow-DPO로 처리하는 과정, DL3DV 데이터와 네 representation의 비교 결과를 분석합니다.</p>
+							</header>
+
+			<div class="article-visual section-shell reveal">
+									<div class="generative-cover generative-cover--article" style="--cover-seed: 8;">
+						<span class="generative-cover__word">AI 논문 분석</span>
+						<span class="generative-cover__issue">NOTE 053</span>
+					</div>
+							</div>
+
+			<div class="article-layout section-shell">
+				<aside class="article-aside reveal">
+					<p>Written by</p>
+					<strong>Odd Note Editor</strong>
+					<a href="/about/" data-cursor="MORE">편집 원칙 보기 ↗</a>
+				</aside>
+
+				<div class="article-content reveal">
+
+<p class="article-lead wp-block-paragraph"><strong>사진 몇 장으로 만든 3DGS에는 공중에 뜬 점이 생기고, NeRF는 안개처럼 흐려지며, mesh에는 구멍과 뒤틀린 texture가 남는다.</strong> FixAnything은 이 서로 다른 오류를 각각 고치지 않는다. 3D 표현을 camera path를 따라 영상으로 렌더링한 뒤, 하나의 Wan2.1 기반 video model이 자연스러운 영상으로 복원한다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>FixAnything: 3D-Consistent Rendering Refinement via Video Generative Priors</strong>는 3DGS·NeRF·mesh·sparse SfM point cloud를 같은 video-to-video 문제로 바꾼다. 이 글에서는 Input·Process·Output, clean anchor와 Flow-DPO의 역할, DL3DV-10K 학습 데이터, 3·6·9-view 비교 결과, 실행 비용과 공개 코드의 실제 범위를 나눠 살펴본다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>arXiv:</strong> 2608.23549 · <strong>v1 제출:</strong> 2026년 8월 24일 17:51 UTC · <strong>학회:</strong> ECCV 2026 · <strong>분야:</strong> Novel View Synthesis · Video Diffusion · 3D Reconstruction · <strong>확인 기준:</strong> 2026년 8월 26일</p>
+
+
+
+<p class="wp-block-paragraph">같은 날 공개된 연구를 요약한 <a href="/ai-cv-sota-briefing-2026-08-26/">AI CV SOTA 브리핑 — 2026년 8월 26일</a>에서 이 논문만 분리해 확장한 분석이다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>FixAnything의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>3DGS·NeRF·mesh·sparse point cloud 중 하나를 주어진 camera path로 렌더링한 RGB video와, 신뢰할 clean frame을 표시한 frame-level binary mask.</td></tr><tr><td><strong>Process</strong></td><td>Wan2.1-I2V-14B-480P의 VAE latent에 degraded video와 anchor mask를 channel-concatenate → rank-64 LoRA SFT → COLMAP pose 정확도로 preference를 만든 Flow-DPO.</td></tr><tr><td><strong>Output</strong></td><td>입력과 같은 camera trajectory를 따르는 복원 RGB video. 공개 CLI의 기본 출력은 <code>generated.mp4</code>이며 수정된 3DGS·NeRF·mesh를 직접 출력하지 않는다.</td></tr><tr><td><strong>대표 결과</strong></td><td>DL3DV 6-view, 3DGS input에서 PSNR 17.65 / SSIM 0.561 / LPIPS 0.289. 같은 모델의 mesh input은 17.95 / 0.583 / 0.269.</td></tr></tbody></table></figure>
+
+
+
+<h2 class="wp-block-heading">1. 무엇을 고치고, 무엇은 고치지 않는가</h2>
+
+
+
+<p class="wp-block-paragraph">입력 사진이 적으면 관측하지 못한 영역이 많아진다. 3DGS는 floater가 생기고, NeRF는 흐림과 foggy geometry를 만들며, mesh는 깊이가 불확실한 경계에서 구멍이나 texture distortion을 보인다. Sparse point cloud는 애초에 feature가 검출된 위치에만 점이 있어 벽과 하늘 같은 무늬 없는 영역이 비어 있다.</p>
+
+
+
+<p class="wp-block-paragraph">기존 후처리 연구는 대개 특정 표현에 맞춰 설계된다. FixAnything은 3D 내부 구조를 직접 읽지 않고, 모든 표현이 만들 수 있는 <strong>camera-path rendering video</strong>를 공통 인터페이스로 사용한다. 심하게 망가진 render에도 camera motion과 대략적인 scene layout은 남는다는 가정이다.</p>
+
+
+
+<p class="wp-block-paragraph">따라서 “3D reconstruction을 고친다”는 표현에는 경계가 있다. FixAnything이 직접 정제하는 대상은 novel-view 영상이다. 원래 Gaussian 위치·opacity, NeRF field, mesh vertex·texture, point coordinate를 업데이트하지 않는다. 복원 video로 다시 SfM이나 3D reconstruction을 수행할 수는 있지만, 그 downstream 단계는 논문의 기본 출력과 공개 inference CLI에 포함된 3D asset repair가 아니다.</p>
+
+
+
+<h2 class="wp-block-heading">2. Input — 모델에 무엇을 넣는가</h2>
+
+
+
+<h3 class="wp-block-heading">Camera path를 따라 렌더링한 RGB video</h3>
+
+
+
+<p class="wp-block-paragraph">첫 입력 <code>x ∈ R^(T×3×H×W)</code>는 3D representation을 원하는 camera trajectory로 렌더링한 RGB frame sequence다. 모델이 camera pose matrix나 Plücker ray를 별도 token으로 받지는 않는다. 움직이는 시점에서 나온 흐릿한 윤곽, 점의 이동, 가려짐 순서가 camera control 역할을 맡는다.</p>
+
+
+
+<p class="wp-block-paragraph">논문과 공개 모델의 기본 단위는 61 frame, 480×832 해상도다. 저장·CLI 표기로는 832×480이다. 61 frame보다 긴 영상은 겹치는 chunk로 나눈다. 프로젝트 페이지는 각 chunk 경계가 clean anchor를 공유하도록 구성한다고 설명하지만, 긴 전체 trajectory에서 chunk seam이 얼마나 누적되는지에 대한 정량 표는 없다.</p>
+
+
+
+<h3 class="wp-block-heading">Anchor를 표시하는 frame-level binary mask</h3>
+
+
+
+<p class="wp-block-paragraph">두 번째 입력 <code>m ∈ {0,1}^T</code>는 frame마다 하나의 값을 갖는다. Training viewpoint에서 만든 깨끗한 frame에는 1, 복구할 novel-view frame에는 0을 준다. 이름은 mask지만 물체나 pixel 영역을 칠하는 inpainting mask가 아니다. 시간축의 frame label을 spatial dimension 전체로 broadcast해 latent channel에 붙인다.</p>
+
+
+
+<p class="wp-block-paragraph">Clean frame은 두 역할을 한다. 이미 맞는 내용을 다시 생성하지 않도록 신뢰 지점을 알려주고, 주변 degraded frame이 appearance·lighting·scene structure를 가져올 anchor가 된다. Anchor가 처음과 끝에만 있어야 하는 것은 아니다. 논문 Figure 1처럼 trajectory 중간에 섞여 있어도 된다.</p>
+
+
+
+<p class="wp-block-paragraph">공개 CLI는 <code>--clean_frame_indices</code>로 anchor를 지정하며 기본값은 첫 frame 0과 마지막 frame 60이다. 입력은 내부에서 마지막 frame을 네 번 반복해 65 frame으로 만든 뒤 출력 시 다시 61 frame으로 자른다. Wan VAE가 첫 frame은 독립적으로, 나머지는 시간축으로 압축하는 특성 때문에 마지막 anchor의 영향력을 보강하려는 구현이다.</p>
+
+
+
+<h2 class="wp-block-heading">3. Output — 정확히 무엇이 나오는가</h2>
+
+
+
+<p class="wp-block-paragraph">출력 <code>y ∈ R^(T×3×H×W)</code>는 복원된 RGB video다. 목표는 scene content와 입력 camera motion을 유지하면서 floater, blur, fog, hole, scattered-point artifact를 자연스러운 frame으로 바꾸는 것이다.</p>
+
+
+
+<ul class="wp-block-list">
+<li><strong>직접 출력:</strong> 복원 영상 <code>generated.mp4</code>, resize된 <code>input.mp4</code>, 입력·출력 비교 <code>side_by_side.mp4</code></li>
+
+<li><strong>출력하지 않음:</strong> 수정된 3DGS, NeRF checkpoint, triangle mesh, dense point cloud, metric depth, uncertainty map</li>
+
+<li><strong>확률적 결과:</strong> Gaussian noise에서 시작하므로 seed가 달라지면 보이지 않던 영역의 완성도 달라진다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">공개 MapAnything 예제는 사진에서 <code>reconstruction.glb</code>와 <code>rendered.mp4</code>를 먼저 만든다. 여기서 GLB는 MapAnything 단계의 산출물이고, FixAnything 단계가 추가하는 것은 <code>generated.mp4</code>다. 영상이 좋아졌다고 GLB geometry까지 자동으로 고쳐진 것은 아니다.</p>
+
+
+
+<h2 class="wp-block-heading">4. Process — Wan2.1을 V2V 복원기로 바꾸는 일곱 단계</h2>
+
+
+
+<h3 class="wp-block-heading">Step 1. 3D representation을 영상이라는 공통 형식으로 변환</h3>
+
+
+
+<p class="wp-block-paragraph">3DGS·NeRF·mesh·sparse point cloud에서 동일한 camera trajectory를 따라 frame을 렌더링한다. Representation별 artifact 모양은 달라도 물체 윤곽과 camera 이동 방향은 어느 정도 보존된다. FixAnything은 이 render를 geometry scaffold로 삼는다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 2. Frozen VAE가 degraded·clean video를 latent로 압축</h3>
+
+
+
+<p class="wp-block-paragraph">기반 모델은 rectified flow로 학습된 <strong>Wan2.1-I2V-14B-480P</strong>다. Wan VAE encoder <code>E</code>가 degraded render <code>x</code>를 condition latent <code>z_cond</code>로, clean target <code>y</code>를 <code>z_0</code>로 바꾼다. Base model weight와 VAE는 동결한다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 3. Noisy target·degraded condition·mask를 channel 방향으로 연결</h3>
+
+
+
+<p class="wp-block-paragraph">학습 시 clean latent와 Gaussian noise를 시간 <code>t</code>에 따라 섞어 noisy latent <code>z_t</code>를 만든다. DiT 입력은 다음 세 항목을 channel 방향으로 이어 붙인 tensor다.</p>
+
+
+
+<pre class="wp-block-code"><code>z_t = (1 - t) · z_0 + t · ε
+DiT input = [z_t ; z_cond ; broadcast(mask)]</code></pre>
+
+
+
+<p class="wp-block-paragraph"><code>z_cond</code>가 camera motion과 coarse layout을 전달하고 mask가 trust/fix 경계를 알려준다. 논문은 이 channel concatenation을 “minor architectural change”로 설명하지만, backbone block을 새로 설계하는 방식은 아니다. 공개 설명 기준으로는 기존 Wan2.1 DiT에 conditioning channel을 추가하고 LoRA만 학습한다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 4. Rank-64 LoRA로 supervised flow matching</h3>
+
+
+
+<p class="wp-block-paragraph">목표 velocity는 <code>v = ε - z_0</code>이며 모델이 예측한 velocity와의 제곱 오차로 학습한다. Rank 64 LoRA가 전체 parameter의 1% 미만을 갱신한다. 일반 video generation을 처음부터 배우는 것이 아니라 degraded render를 조건으로 clean video 방향을 찾는 방법만 적응시키는 단계다.</p>
+
+
+
+<p class="wp-block-paragraph">최종 SFT에는 DL3DV-10K에서 만든 500개 paired video가 쓰인다. 먼저 288×512에서 학습하고 480×832, 61 frame으로 올린다. SFT는 single H100에서 3,000 iteration 수행됐다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 5. 같은 scene을 다섯 seed로 생성해 pose consistency를 측정</h3>
+
+
+
+<p class="wp-block-paragraph">SFT 영상은 한 frame만 보면 그럴듯해도, 새로 만든 나무나 건물 모양이 시점마다 움직일 수 있다. 저자들은 별도 DL3DV scene 1,000개에서 scene마다 다섯 candidate를 서로 다른 random seed로 생성한다.</p>
+
+
+
+<p class="wp-block-paragraph">각 output에 SuperPoint feature와 LightGlue matching을 사용한 COLMAP SfM을 실행해 camera pose를 다시 구한다. 복원 pose를 known ground-truth pose와 비교하고 relative rotation accuracy와 relative translation accuracy의 <strong>AUC@5°</strong>를 계산한다. 영상의 feature가 여러 view에서 일관될수록 SfM이 원래 camera path를 잘 회수한다는 proxy다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 6. AUC 차이가 큰 candidate로 Flow-DPO</h3>
+
+
+
+<p class="wp-block-paragraph">다섯 candidate를 AUC@5°로 순위화하고 높은 sample을 winner, 낮은 sample을 loser로 묶는다. 두 점수 차이가 0.2 이상인 pair만 남긴다. SFT LoRA checkpoint를 reference model로 고정한 뒤 preferred·dispreferred sample의 velocity prediction 차이를 비교하는 Flow-DPO로 LoRA를 2,000 iteration 더 학습한다.</p>
+
+
+
+<p class="wp-block-paragraph">COLMAP은 학습용 preference를 만드는 데만 쓰인다. 추론 때 pose estimation을 매번 실행하는 구조가 아니다. Geometry 선호가 LoRA weight에 반영되므로 DPO 전후 inference graph와 denoising step 수는 같다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 7. Noise에서 clean video까지 flow ODE를 적분</h3>
+
+
+
+<p class="wp-block-paragraph">추론은 <code>t=1</code>의 Gaussian noise에서 출발해 학습한 velocity field를 <code>t=0</code> 방향으로 적분한다. Degraded video latent와 mask는 매 step condition으로 들어간다. 논문의 기본값은 50 denoising step이며 공개 CLI도 61-frame clip을 기본 입력으로 안내한다.</p>
+
+
+
+<h2 class="wp-block-heading">5. 학습 데이터 — 네 종류의 오류를 어떻게 만들었나</h2>
+
+
+
+<p class="wp-block-paragraph">원본은 다양한 실제 장면 영상과 COLMAP reconstruction을 제공하는 DL3DV-10K다. Scene마다 training view 수 <code>k</code>를 3~12 사이에서 균일하게 뽑고, 그중 최소 두 view를 통과하는 61-frame camera trajectory를 만든다. 같은 trajectory를 네 3D 표현으로 렌더링해 degraded video를 얻고, 원본 frame sequence를 clean target으로 둔다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>3D 입력 표현</th><th>학습 pair 생성 방식</th><th>주요 artifact</th></tr></thead><tbody><tr><td><strong>NeRF</strong></td><td>Sparse training view로 Nerfacto 실행</td><td>Novel view의 blur와 fog</td></tr><tr><td><strong>3DGS</strong></td><td>Random point cloud에서 gsplat 7K iteration. Artifact가 남도록 의도적으로 underfit</td><td>Floater와 빈 영역</td></tr><tr><td><strong>Mesh</strong></td><td>MapAnything depth로 triangular mesh fitting. Training viewpoint frame은 원본 이미지로 대체</td><td>Sky·occlusion boundary의 hole, texture distortion</td></tr><tr><td><strong>Sparse SfM points</strong></td><td>선택한 view에서 보인 COLMAP keypoint만 유지. Training viewpoint frame은 원본 이미지로 대체</td><td>검출점 주변 patch만 남고 textureless region은 비어 있음</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">네 representation은 별도 model을 학습하지 않고 한 LoRA의 SFT batch에서 함께 사용된다. “20개 video만으로 학습했다”는 설명은 data-efficiency ablation을 가리킨다. 논문에서 보고한 최종 model은 <strong>SFT paired video 500개</strong>와, preference candidate를 만드는 <strong>별도 DL3DV scene 1,000개×seed 5개</strong>를 사용한다. 20개는 final training volume이 아니다.</p>
+
+
+
+<h2 class="wp-block-heading">6. 평가 데이터와 지표</h2>
+
+
+
+<p class="wp-block-paragraph">주 평가는 DL3DV-10K의 held-out scene 20개다. 각 scene에서 3·6·9개 frame을 training view로 균일하게 고르고, 그 view를 제외한 나머지 영상에서 8 frame 간격으로 query를 뽑는다. FixAnything의 네 입력 representation도 같은 sparse training view로 만든다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>지표</th><th>무엇을 보는가</th><th>방향</th></tr></thead><tbody><tr><td><strong>PSNR</strong></td><td>Ground-truth frame과 pixel 오차를 신호 대 잡음비로 표현</td><td>높을수록 좋음</td></tr><tr><td><strong>SSIM</strong></td><td>밝기·대비·구조 유사도</td><td>높을수록 좋음</td></tr><tr><td><strong>LPIPS</strong></td><td>Deep feature 공간의 perceptual distance</td><td>낮을수록 좋음</td></tr><tr><td><strong>AUC@5°</strong></td><td>생성 영상에서 SfM으로 회수한 relative rotation·translation pose accuracy</td><td>높을수록 좋음</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">AUC@5°는 유용하지만 완전한 3D 정확도 지표는 아니다. Camera pose가 잘 복원된다는 사실은 view 사이의 feature가 일관됨을 뜻할 뿐, surface depth·mesh topology·Gaussian geometry가 ground truth와 일치한다는 보장은 아니다. 논문은 Chamfer distance나 depth error로 출력 3D asset을 평가하지 않는다. 애초에 기본 출력도 video다.</p>
+
+
+
+<h2 class="wp-block-heading">7. DL3DV 비교 결과 — 3·6·9-view에서 무엇이 달라졌나</h2>
+
+
+
+<p class="wp-block-paragraph">비교군은 sparse-view reconstruction과 3DGS rendering 후처리로 나뉜다. 표의 <code>†</code> 값은 3DGS-Enhancer와 Xu et al.에서 가져온 저자 보고값이고, 모든 방법을 FixAnything 코드베이스에서 같은 설정으로 재실행한 head-to-head 표는 아니다.</p>
+
+
+
+<h3 class="wp-block-heading">3-view 결과</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>종류·입력</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th></tr></thead><tbody><tr><td>3DGS†</td><td>Sparse reconstruction</td><td>10.97</td><td>0.248</td><td>0.567</td></tr><tr><td>RegNeRF†</td><td>Sparse reconstruction</td><td>11.46</td><td>0.214</td><td>0.600</td></tr><tr><td>FreeNeRF†</td><td>Sparse reconstruction</td><td>10.91</td><td>0.211</td><td>0.595</td></tr><tr><td>DNGaussian†</td><td>Sparse reconstruction</td><td>11.10</td><td>0.273</td><td>0.579</td></tr><tr><td>FSGS†</td><td>Sparse reconstruction</td><td>12.22</td><td>0.296</td><td>0.535</td></tr><tr><td>3DGS-Enhancer†</td><td>3DGS post-hoc</td><td>14.33</td><td>0.424</td><td>0.464</td></tr><tr><td>Xu et al.†</td><td>3DGS post-hoc</td><td>14.62</td><td>0.471</td><td>0.491</td></tr><tr><td>Difix3D</td><td>3DGS post-hoc</td><td>12.85</td><td>0.392</td><td>0.557</td></tr><tr><td>Difix3D+</td><td>3DGS post-hoc</td><td>12.37</td><td>0.363</td><td>0.512</td></tr><tr><td>FixAnything</td><td>NeRF render</td><td>14.22</td><td>0.427</td><td>0.451</td></tr><tr><td>FixAnything</td><td>3DGS render</td><td>15.18</td><td>0.452</td><td>0.408</td></tr><tr><td><strong>FixAnything</strong></td><td><strong>Mesh render</strong></td><td><strong>15.74</strong></td><td><strong>0.482</strong></td><td><strong>0.366</strong></td></tr><tr><td>FixAnything</td><td>Sparse SfM points</td><td>15.52</td><td>0.463</td><td>0.381</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">같은 3DGS input끼리 보면 FixAnything PSNR 15.18은 강한 기존 후처리 Xu et al. 14.62보다 0.56 dB 높다. LPIPS 0.408도 3DGS-Enhancer 0.464보다 0.056 낮다. 다만 SSIM은 Xu et al. 0.471보다 0.019 낮다. 세 metric을 모두 같은 폭으로 이긴 결과는 아니다.</p>
+
+
+
+<h3 class="wp-block-heading">6-view 결과</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>종류·입력</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th></tr></thead><tbody><tr><td>3DGS†</td><td>Sparse reconstruction</td><td>13.34</td><td>0.332</td><td>0.498</td></tr><tr><td>RegNeRF†</td><td>Sparse reconstruction</td><td>12.69</td><td>0.236</td><td>0.579</td></tr><tr><td>FreeNeRF†</td><td>Sparse reconstruction</td><td>12.13</td><td>0.230</td><td>0.576</td></tr><tr><td>DNGaussian†</td><td>Sparse reconstruction</td><td>12.67</td><td>0.329</td><td>0.547</td></tr><tr><td>FSGS†</td><td>Sparse reconstruction</td><td>13.73</td><td>0.429</td><td>0.540</td></tr><tr><td>3DGS-Enhancer†</td><td>3DGS post-hoc</td><td>16.94</td><td>0.565</td><td>0.356</td></tr><tr><td>Xu et al.†</td><td>3DGS post-hoc</td><td>17.35</td><td>0.566</td><td>0.396</td></tr><tr><td>Difix3D</td><td>3DGS post-hoc</td><td>14.84</td><td>0.445</td><td>0.462</td></tr><tr><td>Difix3D+</td><td>3DGS post-hoc</td><td>14.41</td><td>0.424</td><td>0.400</td></tr><tr><td>FixAnything</td><td>NeRF render</td><td>17.01</td><td>0.522</td><td>0.329</td></tr><tr><td>FixAnything</td><td>3DGS render</td><td>17.65</td><td>0.561</td><td>0.289</td></tr><tr><td><strong>FixAnything</strong></td><td><strong>Mesh render</strong></td><td><strong>17.95</strong></td><td><strong>0.583</strong></td><td><strong>0.269</strong></td></tr><tr><td>FixAnything</td><td>Sparse SfM points</td><td>17.74</td><td>0.568</td><td>0.271</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">사용자 브리핑에서 비교한 3DGS-Enhancer 대비 FixAnything 3DGS의 PSNR 차이는 16.94→17.65, +0.71 dB이고 LPIPS는 0.356→0.289로 0.067 낮다. 그러나 가장 높은 기존 PSNR은 Xu et al. 17.35이므로 최고 prior 대비 차이는 +0.30 dB다. SSIM은 Xu et al. 0.566보다 0.005 낮다.</p>
+
+
+
+<p class="wp-block-paragraph">같은 FixAnything weight에 mesh render를 넣으면 17.95 / 0.583 / 0.269로 네 입력 중 가장 좋고, sparse point도 17.74 / 0.568 / 0.271이다. 이는 point cloud만으로 3DGS를 완전히 대체할 수 있다는 제품 수준의 결론보다, <strong>clean anchor와 camera-motion scaffold가 충분하면 생성 prior가 많은 appearance를 채울 수 있다</strong>는 증거에 가깝다.</p>
+
+
+
+<h3 class="wp-block-heading">9-view 결과</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>종류·입력</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th></tr></thead><tbody><tr><td>3DGS†</td><td>Sparse reconstruction</td><td>14.99</td><td>0.403</td><td>0.446</td></tr><tr><td>RegNeRF†</td><td>Sparse reconstruction</td><td>12.33</td><td>0.219</td><td>0.598</td></tr><tr><td>FreeNeRF†</td><td>Sparse reconstruction</td><td>12.85</td><td>0.241</td><td>0.573</td></tr><tr><td>DNGaussian†</td><td>Sparse reconstruction</td><td>13.44</td><td>0.365</td><td>0.539</td></tr><tr><td>FSGS†</td><td>Sparse reconstruction</td><td>15.52</td><td>0.468</td><td>0.416</td></tr><tr><td>3DGS-Enhancer†</td><td>3DGS post-hoc</td><td>18.50</td><td>0.630</td><td>0.305</td></tr><tr><td>Xu et al.†</td><td>3DGS post-hoc</td><td>19.19</td><td>0.616</td><td>0.335</td></tr><tr><td>Difix3D</td><td>3DGS post-hoc</td><td>16.76</td><td>0.520</td><td>0.399</td></tr><tr><td>Difix3D+</td><td>3DGS post-hoc</td><td>16.39</td><td>0.498</td><td>0.330</td></tr><tr><td>FixAnything</td><td>NeRF render</td><td>18.86</td><td>0.605</td><td>0.297</td></tr><tr><td>FixAnything</td><td>3DGS render</td><td>19.76</td><td>0.632</td><td>0.269</td></tr><tr><td><strong>FixAnything</strong></td><td><strong>Mesh render</strong></td><td><strong>19.86</strong></td><td><strong>0.646</strong></td><td><strong>0.233</strong></td></tr><tr><td>FixAnything</td><td>Sparse SfM points</td><td>19.72</td><td>0.624</td><td>0.241</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">9-view에서는 FixAnything 3DGS가 강한 prior보다 세 지표 모두 앞선다. PSNR은 Xu et al. 19.19보다 0.57 dB 높고, SSIM은 3DGS-Enhancer 0.630보다 0.002 높으며, LPIPS는 0.305에서 0.269로 0.036 낮다. 브리핑의 3DGS-Enhancer 대비 PSNR +1.26 dB도 맞지만, strongest-PSNR baseline과 비교하면 +0.57 dB다.</p>
+
+
+
+<p class="wp-block-paragraph">논문 supplementary와 프로젝트 페이지에는 MipNeRF-360·LLFF cross-dataset 결과도 제시된다. 본문은 3DGS input에서 기존 방법과 비슷한 PSNR·SSIM, 더 좋은 LPIPS라고 요약하지만 arXiv HTML 본문에는 숫자 표가 포함되지 않았다. 이 글의 headline 수치는 평가 protocol이 완전히 공개된 DL3DV main table로 제한한다.</p>
+
+
+
+<h2 class="wp-block-heading">8. Ablation — anchor와 Flow-DPO가 실제로 한 일</h2>
+
+
+
+<h3 class="wp-block-heading">Flow-DPO는 pixel 점수보다 pose consistency를 크게 올렸다</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>모델</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th><th>AUC@5° ↑</th></tr></thead><tbody><tr><td>SFT only</td><td>17.51</td><td>0.554</td><td>0.296</td><td>61.12</td></tr><tr><td><strong>+ Flow-DPO</strong></td><td><strong>17.65</strong></td><td><strong>0.561</strong></td><td><strong>0.289</strong></td><td><strong>68.32</strong></td></tr><tr><td>차이</td><td>+0.14 dB</td><td>+0.007</td><td>-0.007</td><td><strong>+7.20%p</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">PSNR·SSIM·LPIPS 변화는 작고 AUC@5°가 61.12→68.32로 크게 오른다. 저자 표현의 “7.2% improvement”는 표의 절대 차이 7.20 point다. Flow-DPO는 개별 frame을 더 선명하게 만드는 단계라기보다, seed에 따라 생기던 움직이는 hallucination을 줄여 SfM이 camera path를 회수하기 쉽게 만든다.</p>
+
+
+
+<h3 class="wp-block-heading">Mask가 없으면 이미 깨끗한 frame도 다시 그린다</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>조건</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th></tr></thead><tbody><tr><td>Mask 없음, 모든 entry=1</td><td>16.37</td><td>0.525</td><td>0.311</td></tr><tr><td><strong>Mask-aware conditioning</strong></td><td><strong>17.65</strong></td><td><strong>0.561</strong></td><td><strong>0.289</strong></td></tr><tr><td>차이</td><td><strong>+1.28 dB</strong></td><td>+0.036</td><td>-0.022</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">Mask의 PSNR 효과는 논문 서술처럼 약 1.3 dB다. Model이 clean frame과 살짝 손상된 frame을 영상만 보고 구분하도록 맡기면, 원래 있던 표지판 같은 물체를 지우고 그 오류가 이웃 frame으로 퍼질 수 있다. Anchor는 content preservation의 핵심 입력이지 부가 옵션이 아니다.</p>
+
+
+
+<h3 class="wp-block-heading">20개 paired video는 가능성을 보인 최소 실험</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>SFT paired videos</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th></tr></thead><tbody><tr><td>20</td><td>16.70</td><td>0.531</td><td>0.309</td></tr><tr><td>50</td><td>17.20</td><td>0.548</td><td>0.297</td></tr><tr><td>100</td><td>17.45</td><td>0.556</td><td>0.292</td></tr><tr><td><strong>500</strong></td><td><strong>17.65</strong></td><td><strong>0.561</strong></td><td><strong>0.289</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">20개만으로도 PSNR 16.70을 얻지만 final 500-video model보다 0.95 dB 낮다. 100→500에서는 +0.20 dB라 diminishing return도 보인다. 적은 paired data로 LoRA를 적응시킬 수 있다는 주장은 지지하지만, 최종 공개 weight가 20개만으로 만들어졌다고 쓰면 틀린다.</p>
+
+
+
+<h3 class="wp-block-heading">Denoising 5 step은 10배 빠르지만 LPIPS trade-off가 있다</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>Steps</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th><th>61-frame 시간</th></tr></thead><tbody><tr><td><strong>5</strong></td><td><strong>18.02</strong></td><td><strong>0.574</strong></td><td>0.313</td><td><strong>31초</strong></td></tr><tr><td>10</td><td>17.91</td><td>0.570</td><td>0.296</td><td>62초</td></tr><tr><td>25</td><td>17.75</td><td>0.564</td><td><strong>0.289</strong></td><td>155초</td></tr><tr><td>50</td><td>17.65</td><td>0.561</td><td><strong>0.289</strong></td><td>309초</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">Single H100에서 50→5 step은 309→31초로 약 9.97배 빠르다. 5 step의 PSNR·SSIM은 오히려 높지만 LPIPS는 0.289→0.313으로 나빠진다. 31초는 61 frame 생성 시간이지 camera stream을 즉시 처리하는 31 FPS가 아니다. Clip 전체를 받은 뒤 생성하는 offline 처리이며 real-time cleanup으로 부르기 어렵다.</p>
+
+
+
+<h2 class="wp-block-heading">9. Hallucination과 uncertainty</h2>
+
+
+
+<p class="wp-block-paragraph">관측하지 않은 건물 뒷면을 “복구”할 때 유일한 정답을 알아낼 수는 없다. FixAnything은 video prior로 그럴듯한 내용을 만든다. 저자들은 기존 관측과 모순될 때를 실패하는 hallucination으로 구분하지만, 출력 하나만 보고 추론과 관측을 완전히 분리하는 내장 uncertainty head는 없다.</p>
+
+
+
+<p class="wp-block-paragraph">논문은 같은 입력을 seed 다섯 개로 반복 생성하고 pixel별 표준편차를 uncertainty proxy로 삼는다. DL3DV 6-view에서 confidence가 가장 높은 pixel 25%의 평균 PSNR은 25.7 dB, 가장 낮은 25%는 14.4 dB다. Error와 상관은 있지만, 다섯 번의 14B inference가 필요하고 calibration metric이나 failure threshold는 제공하지 않은 예비 분석이다.</p>
+
+
+
+<h2 class="wp-block-heading">10. 하드웨어와 실행 요구</h2>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>항목</th><th>공식 공개 내용</th></tr></thead><tbody><tr><td><strong>Base model</strong></td><td>Wan-AI/Wan2.1-I2V-14B-480P, repository 안내상 약 60GB 별도 다운로드</td></tr><tr><td><strong>Adapter</strong></td><td>Hugging Face의 <code>fixanything_lora.safetensors</code>, rank 64</td></tr><tr><td><strong>환경</strong></td><td>Python 3.10, PyTorch 2.6.0, torchvision 0.21.0, CUDA 12.6 설치 예시</td></tr><tr><td><strong>가속</strong></td><td>FlashAttention-2 optional but recommended</td></tr><tr><td><strong>저자 학습</strong></td><td>SFT single H100 3,000 iterations, Flow-DPO 2,000 additional iterations</td></tr><tr><td><strong>저자 추론 측정</strong></td><td>Single H100, 61 frame·480×832: 5 steps 31초 / 50 steps 309초</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">약 60GB는 checkpoint download 용량 안내이지 최소 VRAM 수치가 아니다. 공식 README는 최소 GPU memory, CPU offload 성능, multi-GPU 설정을 따로 제시하지 않는다. 14B DiT와 VAE·T5·CLIP 계열 파일을 함께 준비해야 하므로 LoRA 파일이 작다고 전체 실행이 가벼운 것은 아니다.</p>
+
+
+
+<p class="wp-block-paragraph">M1 Pro MacBook은 공식 설치 경로가 아니다. 공개 환경은 CUDA·PyTorch 2.6과 선택적 FlashAttention-2를 전제로 하며 Apple Silicon용 MPS 검증, memory requirement, runtime이 보고되지 않았다. 개인 Mac에서 바로 돌릴 수 있다고 안내하기보다 NVIDIA CUDA 환경이나 cloud H100에서 먼저 재현하는 편이 현실적이다.</p>
+
+
+
+<h2 class="wp-block-heading">11. 이 논문의 장점</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>표현 독립적인 interface가 단순하다.</strong> 3D 내부 parameter가 아니라 어느 renderer든 만들 수 있는 RGB video를 입력으로 쓴다.</li>
+
+<li><strong>하나의 weight로 네 표현을 처리한다.</strong> NeRF·3DGS·mesh·sparse point별 전용 복원기를 따로 학습하지 않는다.</li>
+
+<li><strong>Camera control을 render 자체에서 얻는다.</strong> 별도 SE(3) conditioning architecture를 추가하지 않아 적은 paired data로 적응했다.</li>
+
+<li><strong>Anchor의 역할이 명확하다.</strong> 관측한 clean view를 보존하고 appearance가 이웃 frame으로 퍼질 기준을 제공한다.</li>
+
+<li><strong>Geometry consistency를 학습 신호로 쓴다.</strong> SfM pose recovery를 reward proxy로 바꿔 Flow-DPO에 넣고 추론 비용은 늘리지 않는다.</li>
+
+<li><strong>공개 상태가 좋다.</strong> Inference code, 예제, LoRA weight, 자체 사진용 MapAnything pipeline과 Apache-2.0 license가 실제 공개됐다.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">12. 한계와 결과 해석의 경계</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>3D asset을 직접 고치지 않는다.</strong> 출력은 video이며 새로운 camera path가 필요하면 다시 render·inference해야 한다.</li>
+
+<li><strong>“Anything”은 검증된 네 표현 안에서 읽어야 한다.</strong> Dynamic scene, deformable object, outdoor city-scale path, 비RGB renderer를 포괄하는 실험은 아니다.</li>
+
+<li><strong>Anchor와 coarse geometry가 필요하다.</strong> Camera motion이나 scene layout이 render에 남지 않을 정도로 reconstruction이 무너지면 condition 자체가 잘못된다.</li>
+
+<li><strong>보이지 않은 영역은 생성한다.</strong> 그럴듯한 영상과 실제 현장의 물리적 사실은 다를 수 있어 측량·검사·안전 판단의 ground truth로 쓰기 어렵다.</li>
+
+<li><strong>Pose AUC는 geometry accuracy의 proxy다.</strong> Metric depth, surface error, topology correctness를 직접 검증하지 않는다.</li>
+
+<li><strong>Long video는 chunk 처리다.</strong> 61 frame을 넘는 trajectory의 장기 identity·texture consistency와 seam 누적에 대한 정량 평가가 없다.</li>
+
+<li><strong>최종 학습량은 20 pair보다 크다.</strong> 500 SFT pair 외에 1,000 scene의 다섯 candidate를 생성하고 COLMAP을 반복 실행한 Flow-DPO 준비 비용이 있다.</li>
+
+<li><strong>비교표 일부는 prior paper 보고값이다.</strong> 모든 baseline이 동일 code·hardware·random seed로 재실행된 결과는 아니다.</li>
+
+<li><strong>공개 문서는 inference 중심이다.</strong> SFT dataset 생성과 Flow-DPO 전체 training을 그대로 재현하는 end-to-end recipe는 README에 제공되지 않는다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">가장 안전한 결론은 이렇다. <strong>FixAnything은 저자 평가에서 네 3D representation의 render를 하나의 LoRA로 복원했고, clean anchor와 pose-based Flow-DPO가 content preservation과 view consistency를 개선했다.</strong> 그러나 고친 영상은 실제 3D geometry의 정답이 아니며, 독립 재현과 현장 데이터 검증 전에는 시각화·콘텐츠 제작용 결과와 계측용 결과를 분리해야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">13. 실무에서 어떻게 시험할까</h2>
+
+
+
+<p class="wp-block-paragraph">가장 가까운 용도는 적은 사진으로 만든 scene을 사람이 둘러볼 수 있는 영상으로 정리하는 작업이다. Digital twin preview, AR/VR 배경, 부동산·공간 기록, 로봇 학습용 scene visualization처럼 photorealistic novel view가 필요하지만 모든 영역의 metric geometry가 필수는 아닌 경우에 맞는다.</p>
+
+
+
+<ol class="wp-block-list">
+<li>같은 scene의 사진을 시간·노출이 크게 다르지 않게 촬영한다.</li>
+
+<li>COLMAP·MapAnything·3DGS 등으로 camera pose와 최소한의 3D scaffold를 만든다.</li>
+
+<li>Training view를 반드시 통과하는 61-frame camera path를 렌더링한다.</li>
+
+<li>실제 촬영 view의 frame index만 anchor mask로 지정한다.</li>
+
+<li>먼저 5·10 step으로 seed를 여러 개 시험하고, 중요한 결과만 25·50 step으로 비교한다.</li>
+
+<li>원본 anchor 보존, frame flicker, object drift, camera pose recovery를 함께 검사한다.</li>
+
+<li>3D asset이 필요하면 복원 video를 별도 reconstruction pipeline에 넣고 geometry metric을 다시 평가한다.</li>
+</ol>
+
+
+
+<p class="wp-block-paragraph">자사 PoC에서는 PSNR만 보지 말고 anchor pixel change, LPIPS, COLMAP registered-frame ratio, pose AUC, seed 간 variance, 61-frame latency를 같이 기록하는 편이 좋다. 설비 결함이나 안전 영역이라면 생성된 부분을 색으로 표시하고 원본 관측이 없는 영역을 사람이 확인할 수 있어야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">14. 코드·가중치·라이선스 상태</h2>
+
+
+
+<p class="wp-block-paragraph">2026년 8월 26일 기준 <a href="https://github.com/kvuong2711/fix-anything">공식 GitHub</a>에는 실행 가능한 inference code, 3DGS·sparse point 예제, model downloader와 자체 사진을 처리하는 MapAnything wrapper가 있다. Repository는 Python 3.10과 CUDA용 설치법, 61-frame 입력 형식, anchor index 옵션을 문서화했다.</p>
+
+
+
+<p class="wp-block-paragraph"><a href="https://huggingface.co/kvuong2711/fix-anything">Hugging Face model card</a>에는 rank-64 <code>fixanything_lora.safetensors</code>가 공개됐다. LoRA만으로는 실행할 수 없고 <a href="https://huggingface.co/Wan-AI/Wan2.1-I2V-14B-480P">Wan2.1-I2V-14B-480P base model</a>을 별도로 내려받아야 한다. 공식 downloader는 base checkpoint를 약 60GB로 안내한다.</p>
+
+
+
+<p class="wp-block-paragraph">코드와 FixAnything weight는 Apache-2.0이며 Wan2.1 model card도 Apache-2.0이다. 논문 자체는 arXiv perpetual non-exclusive license다. 선택 설치 항목인 MapAnything, DiffSynth-Studio, gsplat, DL3DV 데이터와 사용자가 투입하는 촬영물은 각각의 라이선스·개인정보 조건을 별도로 확인해야 한다.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity" />
+
+
+
+<h3 class="wp-block-heading">원문과 공개 자료</h3>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://arxiv.org/abs/2608.23549">arXiv 초록과 제출 이력</a></li>
+
+<li><a href="https://arxiv.org/html/2608.23549v1">arXiv HTML 전문</a></li>
+
+<li><a href="https://arxiv.org/pdf/2608.23549">논문 PDF</a></li>
+
+<li><a href="https://fix-anything.github.io/">공식 프로젝트 페이지와 영상 비교</a></li>
+
+<li><a href="https://github.com/kvuong2711/fix-anything">공식 GitHub</a></li>
+
+<li><a href="https://huggingface.co/kvuong2711/fix-anything">FixAnything LoRA model card</a></li>
+
+<li><a href="https://huggingface.co/Wan-AI/Wan2.1-I2V-14B-480P">Wan2.1-I2V-14B-480P model card</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><em>공식 arXiv v1, 프로젝트 페이지, GitHub와 Hugging Face model card를 2026년 8월 26일 확인했습니다. 모든 성능 수치는 저자 평가이며 독립 재현 결과가 아닙니다. 서로 다른 3D representation이나 출처가 다른 baseline 수치는 같은 조건인 경우에만 직접 비교했습니다.</em></p>
+
+									</div>
+			</div>
+
+			<footer class="article-footer section-shell reveal">
+				<div class="article-tags"><a href="/tag/3d-reconstruction/" rel="tag">3D Reconstruction</a> <a href="/tag/3dgs/" rel="tag">3DGS</a> <a href="/tag/ai-%eb%85%bc%eb%ac%b8-%eb%b6%84%ec%84%9d/" rel="tag">AI 논문 분석</a> <a href="/tag/eccv-2026/" rel="tag">ECCV 2026</a> <a href="/tag/fixanything/" rel="tag">FixAnything</a> <a href="/tag/flow-dpo/" rel="tag">Flow-DPO</a> <a href="/tag/nerf/" rel="tag">NeRF</a> <a href="/tag/video-diffusion/" rel="tag">Video Diffusion</a> <a href="/tag/wan2-1/" rel="tag">Wan2.1</a></div>
+				<nav class="post-navigation" aria-label="다른 글">
+					<div><a href="/e2s-pruner-vlm-token-pruning-paper-analysis/" rel="prev"><span>이전 글</span>E2S-Pruner 논문 분석: 학습 없이 VLM Visual Token을 줄이는 Evidence Fusion</a></div>
+					<div><a href="/geowam-geometry-world-action-model-paper-analysis/" rel="next"><span>다음 글</span>GeoWAM 논문 분석: 미래 RGB 대신 3D Geometry를 예측해 주행하는 World Action Model</a></div>
+				</nav>
+			</footer>
+
+					</article>
+	</main>
+
+<footer class="site-footer">
+	<div class="site-footer__orb" aria-hidden="true"></div>
+	<div class="site-footer__inner">
+		<p class="section-kicker reveal" lang="en">SIGNAL TO ACTION</p>
+		<h2 class="site-footer__title reveal">다음 판단을<br><em>더 선명하게.</em></h2>
+
+		<div class="site-footer__actions reveal">
+			<a class="magnetic-button magnetic" href="/feed.xml" data-cursor="RSS">
+				<span>RSS로 새 글 받기</span>
+				<span aria-hidden="true">↗</span>
+			</a>
+			<a class="text-link" href="/stories/" data-cursor="BROWSE">전체 글에서 찾아보기 <span aria-hidden="true">↗</span></a>
+		</div>
+
+		<div class="site-footer__base">
+			<p>© 2026 Odd Note</p>
+							<nav class="footer-nav" aria-label="푸터 메뉴">
+					<ul id="menu-odd-note-footer" class="footer-menu"><li id="menu-item-18" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18"><a href="/about/">소개</a></li>
+<li id="menu-item-19" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19"><a href="/contact/">문의</a></li>
+<li id="menu-item-20" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-privacy-policy menu-item-20"><a rel="privacy-policy" href="/privacy/">개인정보처리방침</a></li>
+<li id="menu-item-21" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-21"><a href="/disclosure/">광고·제휴 고지</a></li>
+</ul>				</nav>
+						<p lang="en">Technology, evidence, and business — carefully edited.</p>
+		</div>
+	</div>
+</footer>
+
+<script data-wp-strategy="defer" defer id="odd-note-interactions-js" src="/wp-content/themes/odd-note/assets/js/site.js?ver=1787501504"></script>
+</body>
+</html>

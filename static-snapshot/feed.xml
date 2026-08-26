@@ -12,7 +12,7 @@
 	<atom:link href="https://odd-note.invalid/feed/" rel="self" type="application/rss+xml" />
 	<link>https://odd-note.invalid</link>
 	<description>IT 최신 뉴스, AI 논문 분석, 사업 지식을 기술을 만들고 사업을 운영하는 사람의 관점으로 정리합니다.</description>
-	<lastBuildDate>Tue, 25 Aug 2026 03:55:43 +0000</lastBuildDate>
+	<lastBuildDate>Wed, 26 Aug 2026 04:08:32 +0000</lastBuildDate>
 	<language>ko-KR</language>
 	<sy:updatePeriod>
 	hourly	</sy:updatePeriod>
@@ -20,11 +20,1738 @@
 	1	</sy:updateFrequency>
 	<generator>https://wordpress.org/?v=7.0.2</generator>
 	<item>
+		<title>AI CV SOTA 브리핑 — E2S-Pruner · FixAnything · GeoWAM (2026.08.26)</title>
+		<link>https://odd-note.invalid/ai-cv-sota-briefing-2026-08-26/</link>
+
+		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
+		<pubDate>Wed, 26 Aug 2026 03:56:35 +0000</pubDate>
+				<category><![CDATA[AI 논문 분석]]></category>
+		<category><![CDATA[3D Reconstruction]]></category>
+		<category><![CDATA[Computer Vision]]></category>
+		<category><![CDATA[E2S-Pruner]]></category>
+		<category><![CDATA[FixAnything]]></category>
+		<category><![CDATA[GeoWAM]]></category>
+		<category><![CDATA[Visual Token Pruning]]></category>
+		<category><![CDATA[World Action Model]]></category>
+		<guid isPermaLink="false">https://odd-note.invalid/ai-cv-sota-briefing-2026-08-26/</guid>
+
+					<description><![CDATA[학습 없는 VLM token pruning E2S-Pruner, 범용 3D rendering 보정 FixAnything, 미래 geometry로 주행하는 GeoWAM의 입출력·과정·비교 결과와 공개 상태를 검증했습니다.]]></description>
+										<content:encoded><![CDATA[
+<p class="article-lead wp-block-paragraph"><strong>2026년 8월 26일 수요일 오전.</strong> 당시 arXiv cs.CV의 최신 정식 배치였던 8월 25일 공개분은 234편이었다. 최근 24~48시간의 이미지 분류·탐지·세그멘테이션·VLM·비디오·3D 연구를 훑고, 그중 <strong>E2S-Pruner·FixAnything·GeoWAM</strong>을 골랐다.</p>
+
+
+
+<p class="wp-block-paragraph">세 논문이 겨냥한 병목은 서로 다르다. E2S-Pruner는 VLM이 처리할 visual token을 덜어낸다. FixAnything은 앞서 만든 3D representation의 rendering artifact를 video prior로 보정한다. GeoWAM은 미래 RGB 대신 metric 3D geometry를 예측해 ego trajectory를 만든다.</p>
+
+
+
+<p class="wp-block-paragraph">아래 수치는 논문과 공식 프로젝트가 보고한 결과다. 독립 재현으로 확인된 값은 아직 아니다. 성능 유지율은 여러 benchmark를 dense baseline으로 정규화한 저자 정의 평균일 수 있다. 속도는 특정 hardware·batch·해상도 조건에서 잰 값이다. 숫자 하나만 떼어 범용 SOTA로 읽기는 어렵다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>연구</th><th>분야</th><th>눈에 띄는 수치</th><th>2026.08.26 공개 상태</th></tr></thead><tbody><tr><td><strong>E2S-Pruner</strong></td><td>VLM · Token Pruning</td><td>평균 64 token에서 throughput 2.09×</td><td>연결된 GitHub 저장소는 비어 있음</td></tr><tr><td><strong>FixAnything</strong></td><td>3D Reconstruction · Video Diffusion</td><td>6-view 3DGS PSNR 17.65 dB</td><td>추론 코드·LoRA 공개</td></tr><tr><td><strong>GeoWAM</strong></td><td>Geometry World Model · Driving</td><td>NAVSIM v2 navtest EPDMS 90.2</td><td>논문·프로젝트 공개, 코드·checkpoint 미공개</td></tr></tbody></table></figure>
+
+
+
+<h2 class="wp-block-heading">논문별 상세 분석</h2>
+
+
+
+<p class="wp-block-paragraph">이 글은 세 연구의 차이를 빠르게 비교하는 허브다. Input·Process·Output, 학습 데이터, benchmark별 비교 조건과 재현 한계는 아래 독립 분석글에서 한 편씩 다룬다.</p>
+
+
+
+<ul class="wp-block-list">
+<li><a href="/e2s-pruner-vlm-token-pruning-paper-analysis/"><strong>E2S-Pruner 논문 분석</strong></a> — attention head와 layer의 충돌을 evidence fusion으로 다루는 전체 pruning 과정</li>
+
+<li><a href="/fixanything-3d-reconstruction-repair-paper-analysis/"><strong>FixAnything 논문 분석</strong></a> — 3DGS·NeRF·mesh·sparse point를 한 video model로 보정하는 학습과 평가</li>
+
+<li><a href="/geowam-geometry-world-action-model-paper-analysis/"><strong>GeoWAM 논문 분석</strong></a> — 과거 multiview RGB에서 미래 point map과 ego trajectory를 만드는 두 단계 학습</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">1. E2S-Pruner — 불확실성을 남겨둔 채 visual token을 고른다</h2>
+
+
+
+<p class="wp-block-paragraph"><strong>정식명:</strong> E2S-Pruner: Progressive Two-Stage Evidence Fusion for Visual Token Pruning in Vision-Language Models · <strong>arXiv v1 제출:</strong> 2026년 8월 24일 UTC</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>E2S-Pruner의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>이미지와 text prompt, 그리고 VLM 내부의 text-to-visual attention. LLaVA-1.5-7B와 Qwen2-VL-7B에서 평가했다.</td></tr><tr><td><strong>Process</strong></td><td>Head별 중요·비중요·불확실 evidence 생성 → clarity와 head 간 consistency로 reliability 추정 → layer 안의 head evidence 결합 → layer 간 conflict를 Dempster–Shafer 이론으로 순차 결합 → spatial novelty를 반영해 token 선택.</td></tr><tr><td><strong>Output</strong></td><td>다음 LLM layer로 전달할 visual token subset. 별도 auxiliary model, 학습 parameter, fine-tuning은 필요하지 않는다.</td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading">Attention 평균이 숨기는 두 가지 정보</h3>
+
+
+
+<p class="wp-block-paragraph">일반적인 attention 기반 pruning은 여러 head나 layer의 score를 평균한다. 이 방식은 한 layer가 확신하고 다른 layer가 모르는 token과, 여러 layer가 정반대로 판단한 token을 비슷하게 취급할 수 있다. E2S-Pruner는 score 하나로 바로 줄이지 않고 important·unimportant·uncertain의 세 상태를 유지한다. Head와 layer가 얼마나 분명하고 서로 얼마나 충돌하는지를 token 선택에 남기는 셈이다.</p>
+
+
+
+<p class="wp-block-paragraph">마지막에는 spatial novelty constraint를 더한다. 24×24 patch grid를 4×4 spatial cell로 나누고, 각 occupied cell에서 score가 가장 높은 대표 token에 λ=0.1의 soft bonus를 준 뒤 전체 후보에서 다시 Top-K를 고른다. 서로 다른 image region을 덮도록 유도하지만 cell마다 token 하나를 반드시 남기는 hard quota는 아니다. 작은 글자나 세밀한 texture처럼 국소 patch 자체가 답인 과제에서는 극단적인 압축이 여전히 손실을 만든다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>LLaVA-1.5-7B 평균 token budget</th><th>Dense 대비 aggregate retention</th><th>64-token 비교에서 확인할 점</th></tr></thead><tbody><tr><td>192</td><td><strong>98.0%</strong></td><td>V2Drop보다 +0.4%p</td></tr><tr><td>128</td><td><strong>96.8%</strong></td><td>End-to-end latency -48.5%, throughput 1.96×</td></tr><tr><td>64</td><td><strong>90.6%</strong></td><td>V2Drop보다 +3.7%p, SparseVLM보다 +4.1%p</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">32개 LLM layer에서 평균 64 token을 처리한 효율 측정에서 end-to-end latency는 dense 대비 51.5% 줄고 throughput은 2.09배가 됐다. 실제 LLaVA schedule은 576→20→8→0이며 마지막까지 64개를 유지하지 않는다. 같은 설정의 MMBench 성능은 dense의 88.7%다. Aggregate retention 90.6%와 MMBench retention 88.7%는 같은 숫자가 아니다. 전자는 GQA·ScienceQA·TextVQA·POPE·MME·MMBench 여섯 지표를 dense score로 정규화한 평균이다.</p>
+
+
+
+<p class="wp-block-paragraph">가장 분명한 약점은 TextVQA다. 평균 64-token budget에서 E2S-Pruner는 49.5로 LLaVA-PruMerge 54.0보다 낮다. 또 논문이 보고한 peak GPU memory는 dense baseline보다 20.8% 늘었다. Token을 줄이면 언제나 memory까지 줄어든다고 가정할 수 없는 이유다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>공개 상태:</strong> 논문은 공식 GitHub를 code link로 제시하지만 8월 26일 확인 당시 저장소는 비어 있다. 별도 학습 weight가 필요한 방법은 아니어도 pruning 구현과 정확한 evaluation configuration이 없어 즉시 재현하기는 어렵다.</p>
+
+
+
+<h2 class="wp-block-heading">2. FixAnything — 3D representation을 영상으로 펼쳐 고친다</h2>
+
+
+
+<p class="wp-block-paragraph"><strong>정식명:</strong> FixAnything: 3D-Consistent Rendering Refinement via Video Generative Priors · <strong>arXiv v1 제출:</strong> 2026년 8월 24일 UTC · <strong>발표:</strong> ECCV 2026</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>FixAnything의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>3DGS·NeRF·mesh·sparse point cloud를 camera path로 render한 degraded video, clean frame 위치를 나타내는 binary mask.</td></tr><tr><td><strong>Process</strong></td><td>Wan2.1-I2V-14B의 noisy latent에 degraded VAE latent와 mask를 channel-concatenate → rank-64 LoRA SFT → COLMAP pose AUC로 rollout을 정렬한 Flow-DPO.</td></tr><tr><td><strong>Output</strong></td><td>Camera trajectory와 anchor content를 유지하도록 보정한 61-frame video. 3DGS나 mesh 자체를 직접 수정하는 출력은 아니다.</td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading">Representation과 무관한 이유</h3>
+
+
+
+<p class="wp-block-paragraph">3DGS의 floater, NeRF의 foggy geometry, mesh의 texture distortion, point cloud의 hole은 생김새가 다르다. 그래도 camera motion과 대략적인 scene layout은 rendering video에 남는다. FixAnything은 representation 내부 parameter를 고치는 대신 이 공통 신호를 video-to-video translation의 control로 쓴다. 같은 model weight에 입력 rendering만 바꿔 네 표현을 처리할 수 있는 이유다.</p>
+
+
+
+<p class="wp-block-paragraph">Binary mask는 model이 보존해야 할 clean training view를 알려준다. SFT만 거치면 frame별로 그럴듯하지만 시점마다 움직이는 구조를 만들 수 있어, 연구진은 여러 rollout에서 COLMAP이 복원한 camera pose의 AUC@5°를 reward로 삼았다. AUC 차이가 0.2 이상인 pair를 Flow-DPO로 학습해 3D consistency를 LoRA에 반영한다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>DL3DV</th><th>3DGS-Enhancer</th><th>FixAnything, 3DGS input</th><th>차이</th></tr></thead><tbody><tr><td>6-view PSNR</td><td>16.94 dB</td><td><strong>17.65 dB</strong></td><td>+0.71 dB</td></tr><tr><td>6-view LPIPS</td><td>0.356</td><td><strong>0.289</strong></td><td>-0.067</td></tr><tr><td>9-view PSNR</td><td>18.50 dB</td><td><strong>19.76 dB</strong></td><td>+1.26 dB</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">Flow-DPO ablation에서는 SFT-only의 camera-pose AUC@5°가 61.12에서 68.32로 올랐고, PSNR은 17.51→17.65 dB, LPIPS는 0.296→0.289가 됐다. 화질 지표보다 pose recovery의 변화가 크다. 20 paired video로도 PSNR 16.70을 얻었다는 data-efficiency 결과가 있지만, 이는 model 전체를 20개 영상으로 학습했다는 뜻이 아니다. Wan2.1의 대규모 사전학습 prior 위에 conditioning LoRA를 맞춘 결과다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>공개 상태:</strong> Apache-2.0 추론 코드와 FixAnything LoRA가 공개됐다. Base model인 Wan2.1-I2V-14B-480P 파일은 약 60GB다. 공식 예제는 832×480, 61 frame을 사용하며 5 denoising step에서 단일 H100으로 약 31초를 보고한다. 실행 가능하다는 말과 가벼운 production component라는 말은 다르다.</p>
+
+
+
+<h2 class="wp-block-heading">3. GeoWAM — 미래의 픽셀보다 미래의 좌표를 예측한다</h2>
+
+
+
+<p class="wp-block-paragraph"><strong>정식명:</strong> GeoWAM: Visual Geometry World Action Models for Autonomous Driving · <strong>arXiv v1 제출:</strong> 2026년 8월 24일 UTC · <strong>현재 버전:</strong> v2, 8월 25일</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>GeoWAM의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>시간순 historical multiview RGB와 camera·ego context.</td></tr><tr><td><strong>Process</strong></td><td>Geometry encoder로 history memory 구성 → learned query가 미래 geometry token 예측 → Point DPT가 dense point map·confidence 생성 → stop-gradient geometry를 조건으로 future ego token과 trajectory 회귀.</td></tr><tr><td><strong>Output</strong></td><td>여러 미래 시점의 dense metric point map과 confidence, 단일 future ego trajectory.</td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading">두 단계 학습과 pseudo geometry target</h3>
+
+
+
+<p class="wp-block-paragraph">첫 단계는 과거 multiview image로 미래 geometry를 맞히는 pretraining이다. 미래 frame 자체는 forecasting branch의 입력으로 주지 않고, 같은 geometry encoder가 만든 detached future feature와 dense point map을 target으로 쓴다. Feature cosine alignment, Euclidean·confidence-aware point regression, multi-scale surface-normal consistency가 supervision을 이룬다.</p>
+
+
+
+<p class="wp-block-paragraph">두 번째 단계에서는 미래 geometry token이 future ego/pose decoder를 조건화한다. Trajectory loss가 geometry forecaster를 임의로 바꾸지 않도록 stop-gradient를 둔다. 마지막 trajectory head는 anchor 후보나 mode classification 없이 하나의 경로를 직접 회귀한다. 논문이 말하는 “ground-truth occupancy annotation이 필요 없다”는 장점은 dense geometry supervision이 없다는 뜻이 아니다. Off-the-shelf geometry model이 만든 pseudo point-map target은 사용한다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>nuScenes future geometry</th><th>Mean Abs Rel ↓</th><th>Mean δ&lt;1.25 ↑</th></tr></thead><tbody><tr><td>Epona + DVGT</td><td>0.274</td><td>0.655</td></tr><tr><td>VGGT-World</td><td>0.325</td><td>0.544</td></tr><tr><td><strong>GeoWAM</strong></td><td><strong>0.257</strong></td><td><strong>0.754</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">평균은 1~4초의 여덟 future frame을 묶은 값이다. Video world model은 먼저 미래 RGB를 생성하고 DVGT로 geometry를 다시 복원해 같은 metric으로 비교했다. 이 protocol에서는 GeoWAM이 Epona+DVGT보다 Abs Rel을 0.017 낮추고 threshold accuracy를 0.099 높였다. Geometry를 직접 예측한 VGGT-World와 비교해도 두 지표가 모두 좋다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>NAVSIM v2</th><th>강한 비교군</th><th>GeoWAM</th><th>차이</th></tr></thead><tbody><tr><td>navtest EPDMS</td><td>DVGT-2 89.6</td><td><strong>90.2</strong></td><td>+0.6</td></tr><tr><td>navhard EPDMS</td><td>EponaV2 36.1</td><td><strong>36.6</strong></td><td>+0.5</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">Navhard는 3DGS로 재구성한 장면에서 예측한 ego pose로 다음 관측을 다시 render해 오류를 누적시키는 pseudo-closed-loop 평가다. 실제 도로 주행 closed loop와 같지는 않다. 또 EponaV2 등 표에서 †로 표시된 방법은 RL 또는 PDMS-score supervision을 쓴다. GeoWAM은 그 supervision 없이 표 전체 최고를 기록했지만, 차이는 0.5점으로 작아 독립 재현과 여러 seed 평가가 필요하다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>공개 상태:</strong> 논문과 프로젝트 페이지는 공개됐지만 8월 26일 확인 당시 code와 checkpoint link는 없다. 논문은 CC BY 4.0이며 프로젝트 웹사이트의 CC BY-SA 4.0은 사이트 template에 대한 라이선스다. 향후 software와 model의 사용 조건은 별도로 확인해야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">오늘의 우선순위</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>직접 실행하려면 FixAnything:</strong> 세 편 가운데 실제 inference code와 LoRA가 공개됐다. Base model 용량과 H100 기준 속도는 먼저 계산해야 한다.</li>
+
+<li><strong>VLM inference 비용을 줄이려면 E2S-Pruner:</strong> 학습 없이 붙이는 구조가 매력적이다. 공식 구현 공개 전에는 128~192 token budget부터 자체 baseline을 만드는 편이 현실적이다.</li>
+
+<li><strong>Physical AI 연구 방향을 본다면 GeoWAM:</strong> Pixel generation보다 action과 같은 metric space의 geometry forecasting이 planning에 유리하다는 근거를 제시했다. 아직 재현 가능한 공개물은 없다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">세 연구는 모두 더 큰 backbone을 제안하지 않았다. E2S-Pruner는 추론 중 남길 증거를 가려낸다. FixAnything은 서로 다른 3D 표현을 공통 video interface로 바꾸고, GeoWAM은 world model의 예측 공간을 action과 가까운 3D 좌표계로 옮긴다. 제품 적용을 검토한다면 headline score보다 입력 계약과 공개 상태를 먼저 보는 편이 빠르다.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity" />
+
+
+
+<h3 class="wp-block-heading">원문과 공개 상태 확인</h3>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://arxiv.org/list/cs.CV/recent?skip=0&amp;show=2000">arXiv cs.CV recent — 2026년 8월 25일 배치 234편</a></li>
+
+<li><a href="https://arxiv.org/abs/2608.23253">E2S-Pruner 논문</a> · <a href="https://github.com/taoyu-qian/E2S-Pruner">공식 GitHub — 확인 당시 빈 저장소</a></li>
+
+<li><a href="https://arxiv.org/abs/2608.23549">FixAnything 논문</a> · <a href="https://fix-anything.github.io/">프로젝트 페이지</a> · <a href="https://github.com/kvuong2711/fix-anything">공식 GitHub</a> · <a href="https://huggingface.co/kvuong2711/fix-anything">LoRA weight</a></li>
+
+<li><a href="https://arxiv.org/abs/2608.23486">GeoWAM 논문</a> · <a href="https://yiren-lu.com/project_pages/geowam/">공식 프로젝트 페이지</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><em>논문 버전과 저장소 상태는 2026년 8월 26일 확인했습니다. 성능 수치는 각 논문의 평가 조건을 요약한 저자 보고값이며 독립 재현 결과가 아닙니다. 코드·가중치·라이선스 상태는 이후 변경될 수 있습니다.</em></p>
+
+]]></content:encoded>
+
+
+
+			</item>
+		<item>
+		<title>GeoWAM 논문 분석: 미래 RGB 대신 3D Geometry를 예측해 주행하는 World Action Model</title>
+		<link>https://odd-note.invalid/geowam-geometry-world-action-model-paper-analysis/</link>
+
+		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
+		<pubDate>Wed, 26 Aug 2026 03:56:35 +0000</pubDate>
+				<category><![CDATA[AI 논문 분석]]></category>
+		<category><![CDATA[Autonomous Driving]]></category>
+		<category><![CDATA[Future Geometry]]></category>
+		<category><![CDATA[GeoWAM]]></category>
+		<category><![CDATA[NAVSIM v2]]></category>
+		<category><![CDATA[Physical AI]]></category>
+		<category><![CDATA[Point Map]]></category>
+		<category><![CDATA[World Action Model]]></category>
+		<guid isPermaLink="false">https://odd-note.invalid/geowam-geometry-world-action-model-paper-analysis/</guid>
+
+					<description><![CDATA[Historical multiview RGB에서 future point map과 ego trajectory를 만드는 두 단계 학습, pretraining 데이터와 nuScenes·NAVSIM v2 결과를 분석합니다.]]></description>
+										<content:encoded><![CDATA[
+<p class="article-lead wp-block-paragraph"><strong>자율주행 world model이 미래 도로의 RGB 영상을 그려야만 장면 변화를 배울 수 있을까?</strong> GeoWAM은 그 중간 표현을 픽셀에서 3D point map으로 바꾼다. 과거의 여러 카메라 영상을 보고 앞으로 4초 동안의 metric geometry를 예측한 뒤, 그 변화에 조건을 걸어 한 개의 ego trajectory를 회귀한다.</p>
+
+
+
+<p class="wp-block-paragraph">이 글은 <strong>GeoWAM: Visual Geometry World Action Models for Autonomous Driving</strong>의 Input·Process·Output을 학습과 추론 순서대로 풀어본다. Geometry target을 어떻게 만들고 어떤 데이터로 pretraining했는지, nuScenes의 미래 geometry와 NAVSIM v2 planning 결과가 정확히 무엇을 뜻하는지, 공개 코드가 없는 현재 어디까지 재현할 수 있는지도 함께 살펴본다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>arXiv:</strong> 2608.23486 · <strong>최초 제출:</strong> 2026년 8월 24일 UTC · <strong>현재 확인본:</strong> v2, 2026년 8월 25일 · <strong>분야:</strong> 3D Vision · World Action Model · Autonomous Driving · <strong>확인 기준:</strong> 2026년 8월 26일</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>GeoWAM의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>과거 3개 시점의 multi-view RGB. Geometry pretraining은 sequence마다 2~8개 camera view를 동적으로 뽑고, NAVSIM planning fine-tuning은 8개 view를 사용한다.</td></tr><tr><td><strong>Process</strong></td><td>DVGT-2 기반 geometry encoder → 6-layer future geometry decoder → Point DPT point-map head → stop-gradient로 연결된 ego decoder → deterministic trajectory head.</td></tr><tr><td><strong>Geometry output</strong></td><td>2Hz의 미래 8개 시점, 즉 4초 horizon에 대한 camera별 dense 3D point map과 confidence map.</td></tr><tr><td><strong>Action output</strong></td><td>현재 ego 좌표계에서 각 미래 시점의 <code>(x, y, θ)</code>를 담은 단일 trajectory. 여러 경로 후보나 확률은 출력하지 않는다.</td></tr><tr><td><strong>핵심 결과</strong></td><td>nuScenes 8-frame mean Abs Rel 0.257, δ&lt;1.25 0.754. NAVSIM v2 navtest EPDMS 90.2, navhard 36.6.</td></tr><tr><td><strong>공개 상태</strong></td><td>논문과 project page만 공개. 2026년 8월 26일 기준 실행 가능한 repository와 checkpoint는 확인되지 않는다.</td></tr></tbody></table></figure>
+
+
+
+<h2 class="wp-block-heading">1. 왜 미래 RGB 대신 미래 geometry인가</h2>
+
+
+
+<p class="wp-block-paragraph">대부분의 driving world model은 과거 영상을 바탕으로 미래 영상을 생성한다. 이 방식은 차의 움직임과 도로 구조뿐 아니라 색, 그림자, 날씨, 재질, 카메라 노이즈까지 픽셀에 함께 맞춰야 한다. 시각적으로 그럴듯한 영상이 나와도 그 안의 3D 이동과 충돌 여유가 planner가 바로 쓰기 좋은 형태로 분리됐다고 보장할 수는 없다.</p>
+
+
+
+<p class="wp-block-paragraph">GeoWAM의 주장은 geometry가 driving action과 더 가까운 state space라는 것이다. Point map은 각 pixel이 대응하는 3D 점을 metric 공간에 놓는다. 시간에 따라 이 점들이 바뀌는 모습에는 ego vehicle의 움직임, 다른 차량의 이동, 정적 구조가 직접 드러난다. 따라서 미래의 외관을 합성하기보다 미래의 공간 구조를 예측하게 하면 planning에 필요한 representation을 더 곧게 학습할 수 있다는 가설이다.</p>
+
+
+
+<p class="wp-block-paragraph">여기서 GeoWAM은 미래 point cloud를 action으로 조건화해 생성하는 simulator라기보다, <strong>관측된 과거로부터 미래 geometry를 먼저 예측하고 그 geometry로 ego motion을 추론하는 policy</strong>에 가깝다. 논문도 이 연결을 inverse-dynamics-like formulation이라고 표현한다.</p>
+
+
+
+<h2 class="wp-block-heading">2. Input — 모델이 실제로 받는 것</h2>
+
+
+
+<h3 class="wp-block-heading">과거 3개 시점의 multi-view RGB</h3>
+
+
+
+<p class="wp-block-paragraph">입력은 <code>I[t-K+1:t]</code>로 표기되는 시간 순서의 camera image 묶음이다. 각 시점에는 <code>V</code>개 camera view가 있고 한 장의 형태는 <code>3×H×W</code>다. 구현에서 <code>K=3</code>이므로 모델은 현재를 포함한 최근 3개 multi-camera frame을 본다.</p>
+
+
+
+<p class="wp-block-paragraph">Geometry pretraining 중에는 각 sequence에서 2~8개 camera view를 동적으로 sampling한다. 서로 다른 dataset의 camera rig와 view 수가 달라도 하나의 모델에 넣기 위한 선택으로 읽을 수 있다. Planning fine-tuning에서는 NAVSIM navtrain의 8개 camera view와 과거 3개 frame을 고정해 사용한다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>미래 RGB는 추론 입력이 아니다.</strong> 학습할 때만 정답 시점의 RGB를 target branch에 넣어 feature target을 만든다. Forecasting branch는 과거 영상만 보고, 배포 시점에도 미래 영상이나 LiDAR를 요구하지 않는다.</p>
+
+
+
+<h3 class="wp-block-heading">입력에 관해 논문이 밝히지 않은 것</h3>
+
+
+
+<p class="wp-block-paragraph">논문에는 image resolution, camera별 resize·crop, augmentation, calibration을 token에 넣는 방식, dataset 간 camera mapping이 적혀 있지 않다. 2~8 view sampling이 어느 확률로 이뤄지는지와 3개 history frame의 실제 시간 간격도 명시되지 않는다. 구조를 이해하기에는 충분하지만, 같은 tensor를 만들어 수치를 재현하기에는 중요한 빈칸이다.</p>
+
+
+
+<h2 class="wp-block-heading">3. Output — geometry와 action을 따로 보자</h2>
+
+
+
+<h3 class="wp-block-heading">Output A. 미래 dense point map</h3>
+
+
+
+<p class="wp-block-paragraph">미래 시점 <code>t+k</code>마다 모델은 <code>V×H×W×3</code> 크기의 point map과 <code>V×H×W</code> confidence map을 출력한다. 각 image pixel에 3차원 좌표 하나를 대응시키며, 좌표는 해당 미래 시점 <code>t+k</code>의 ego coordinate system으로 표현된다. 미래 RGB, semantic class, occupancy voxel을 직접 출력하는 구조는 아니다.</p>
+
+
+
+<p class="wp-block-paragraph"><code>F=8</code>, sampling rate는 2Hz이므로 예측 시점은 0.5초 간격으로 8개, 마지막은 4초 뒤다. 논문 표의 1·2·3·4초 수치는 그중 네 시점을 보여주며, <strong>mean은 이 네 숫자의 평균이 아니라 0.5초부터 4초까지 여덟 frame 전체의 평균</strong>이다.</p>
+
+
+
+<h3 class="wp-block-heading">Output B. 하나의 deterministic ego trajectory</h3>
+
+
+
+<p class="wp-block-paragraph">Action head는 미래 8개 시점 각각에 대해 <code>(x, y, θ)</code>를 예측한다. <code>x, y</code>는 planar position, <code>θ</code>는 heading이며 모두 현재 ego coordinate frame을 기준으로 한다. 결과는 한 개의 연속 trajectory다.</p>
+
+
+
+<p class="wp-block-paragraph">Trajectory anchor, mode classification, diffusion sampling, 여러 후보의 ranking이 없다. 계산 경로는 단순하지만 교차로나 가려진 상대 차량처럼 미래가 본질적으로 여러 갈래인 장면에서 uncertainty를 직접 표현하지 못한다.</p>
+
+
+
+<h2 class="wp-block-heading">4. Process — 미래 공간을 만들고 주행 경로로 바꾸는 과정</h2>
+
+
+
+<h3 class="wp-block-heading">Step 1. DVGT-2 encoder가 history를 두 종류의 token으로 변환</h3>
+
+
+
+<p class="wp-block-paragraph">Geometry encoder는 DVGT-2에서 초기화한다. 선택한 여러 feature level마다 각 과거 시점과 camera view에서 두 종류의 token을 낸다.</p>
+
+
+
+<ul class="wp-block-list">
+<li><strong>Geometry token <code>X</code>:</strong> view마다 <code>P=h×w</code>개의 spatial token으로 장면 구조를 표현한다.</li>
+
+<li><strong>Ego token <code>E</code>:</strong> view마다 <code>N_e</code>개의 token으로 observation history의 ego-motion context를 표현한다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">두 token을 이어 붙인 뒤 과거 시간과 feature level 전체를 historical geometry memory <code>Z</code>로 보존한다. 이후 geometry branch와 action branch가 이 memory를 공통으로 참조한다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 2. 미래의 시간·view·공간 위치마다 geometry query를 배치</h3>
+
+
+
+<p class="wp-block-paragraph">하나의 learned geometry-query seed를 미래 시점, camera view, spatial location마다 복제한다. 여기에 미래 time embedding, view embedding, 2D sinusoidal positional embedding을 더한다. Query는 아직 미래 장면을 담고 있지 않고 “어느 시점의 어느 카메라에서 어느 위치를 예측할 것인가”를 나타내는 빈 슬롯이다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 3. 6-layer decoder가 시간 변화와 과거 관측을 결합</h3>
+
+
+
+<p class="wp-block-paragraph">Future geometry decoder는 6개 Transformer layer, hidden dimension 1024, 16 attention head로 구성된다. 각 layer는 두 연산을 반복한다.</p>
+
+
+
+<ol class="wp-block-list">
+<li><strong>Causal temporal self-attention:</strong> 같은 spatial location의 미래 8개 query 사이에서 앞선 미래 시점만 보며 scene evolution을 모델링한다.</li>
+
+<li><strong>Cross-attention:</strong> 갱신된 query가 과거 geometry memory에서 관련 관측을 가져온다.</li>
+</ol>
+
+
+
+<p class="wp-block-paragraph">마지막 future latent를 feature level별 projection으로 DVGT-2 geometry head가 요구하는 차원에 맞춘다. Shared Point DPT head가 이 multi-level representation을 dense point map과 confidence map으로 decoding한다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 4. 미래 RGB에서 feature target을 만들되 gradient는 끊는다</h3>
+
+
+
+<p class="wp-block-paragraph">학습 시 실제 미래 RGB를 같은 geometry encoder의 target branch에 통과시켜 feature level별 patch target을 만든다. 이 target은 computation graph에서 detach한다. 예측 feature와 target feature의 cosine distance를 평균한 <code>L_feat</code>가 future latent를 실제 미래 장면의 geometry representation에 맞춘다.</p>
+
+
+
+<p class="wp-block-paragraph">동시에 미래 point map에는 valid pixel만 골라 세 항을 적용한다. Euclidean point regression, confidence-aware regression, multi-scale surface-normal consistency다. 현재 frame에도 같은 point-map objective를 걸어, 미래 예측을 배우는 동안 geometry encoder의 현재 장면 복원 능력이 흐트러지지 않게 anchor를 둔다.</p>
+
+
+
+<pre class="wp-block-code"><code>L_pre = L_feat + L_point_future + L_point_current
+L_point = L_reg + L_conf + L_normal</code></pre>
+
+
+
+<h3 class="wp-block-heading">Step 5. 예측 geometry로 미래 ego token을 추론</h3>
+
+
+
+<p class="wp-block-paragraph">두 번째 학습 단계에서는 미래 시점·view·ego-token slot별 learned ego query를 추가한다. Ego decoder도 먼저 causal temporal self-attention을 수행한 뒤, 과거 memory와 예측된 미래 geometry token을 모두 cross-attention한다. 이 결과가 미래의 ego-motion context를 표현하는 ego token이다.</p>
+
+
+
+<p class="wp-block-paragraph">Future geometry token에서 ego decoder로 향하는 연결에는 <strong>stop-gradient</strong>가 있다. Trajectory loss가 geometry branch까지 역전파되어 pretraining으로 얻은 예측 공간을 임의로 바꾸지 못하게 한 것이다. 즉 geometry가 action을 조건화하지만 action supervision이 geometry 표현을 다시 빚는 양방향 결합은 아니다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 6. Causal action head가 단일 trajectory를 회귀</h3>
+
+
+
+<p class="wp-block-paragraph">가장 깊은 level의 과거 ego token과 예측된 미래 ego token을 시간축으로 붙여 causal temporal Transformer로 정제한다. Learned trajectory query가 이 sequence를 cross-attention하고 regression head가 최종 8-step trajectory를 낸다.</p>
+
+
+
+<p class="wp-block-paragraph">Planning fine-tuning에서도 geometry loss를 버리지 않는다. Trajectory의 L1 loss와 과거 frame 사이 relative pose를 예측하는 auxiliary L1 loss를 더하며, 두 가중치는 각각 5다.</p>
+
+
+
+<pre class="wp-block-code"><code>L_plan = L_pre + 5 × L_traj + 5 × L_pose</code></pre>
+
+
+
+<h2 class="wp-block-heading">5. Geometry pseudo-target은 어떻게 만들어지나</h2>
+
+
+
+<p class="wp-block-paragraph">논문은 dense metric point-map target을 <strong>off-the-shelf geometry foundation model</strong>에서 얻는다고 설명한다. 사람이 voxel마다 occupancy label을 붙이거나 LiDAR로 occupancy ground truth를 구축하는 대신, RGB driving frame에 사전학습 geometry model을 실행해 pixel별 3D 좌표와 valid mask를 만들고 이를 supervision으로 쓰는 방식이다. 논문 표현은 point-map target이지만, 외부 모델의 예측을 학습 정답으로 사용한다는 점에서는 pseudo-label 역할을 한다.</p>
+
+
+
+<p class="wp-block-paragraph">이 선택의 실질적인 장점은 <strong>geometry pretraining dataset을 RGB log가 있는 곳까지 넓힐 수 있다는 것</strong>이다. Occupancy annotation 형식이 서로 다른 일곱 dataset을 하나의 dense point-map prediction 문제로 묶을 수 있다. Future video generation처럼 appearance 전체를 합성하지 않으면서도 camera image만으로 metric scene evolution을 학습한다.</p>
+
+
+
+<h3 class="wp-block-heading">“GT occupancy가 필요 없다”의 정확한 범위</h3>
+
+
+
+<ul class="wp-block-list">
+<li><strong>맞는 말:</strong> Geometry pretraining에 voxelized ground-truth occupancy annotation을 요구하지 않는다. 미래 geometry target은 RGB에 외부 geometry foundation model을 적용해 얻는다.</li>
+
+<li><strong>과한 해석:</strong> 전체 GeoWAM이 label-free이거나 RGB 파일만 있으면 아무 준비 없이 학습된다는 뜻은 아니다. Planning 단계는 ego trajectory label과 historical relative-pose supervision을 사용한다.</li>
+
+<li><strong>남은 의존성:</strong> 시간적으로 정렬된 multi-view sequence, dataset별 camera 구성, point-map 생성과 validity filtering pipeline은 여전히 필요하다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">재현에 가장 큰 빈칸도 여기 있다. v2 본문은 target을 만든 geometry foundation model의 정확한 이름과 checkpoint, metric scale 정렬, camera별 preprocessing, confidence threshold, invalid pixel filtering을 공개하지 않았다. Encoder와 point head를 DVGT-2에서 초기화했다고는 적었지만, 그것만으로 <strong>모든 target을 DVGT-2가 생성했다</strong>고 단정할 수는 없다. 따라서 pseudo-target 품질과 teacher bias가 결과에 미친 영향은 코드 공개 전에는 분리해 검증하기 어렵다.</p>
+
+
+
+<h2 class="wp-block-heading">6. 어떤 데이터로 학습했나</h2>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>단계</th><th>데이터</th><th>용도</th></tr></thead><tbody><tr><td><strong>Future-geometry pretraining</strong></td><td>OpenScene, nuScenes, Bench2Drive, Waymo Open Dataset, KITTI, Argoverse 2, DDAD</td><td>과거 multi-view RGB에서 미래 geometry feature와 dense point map을 예측</td></tr><tr><td><strong>Geometry evaluation</strong></td><td>nuScenes validation</td><td>미래 8개 시점의 ray-depth Abs Rel과 δ&lt;1.25 측정</td></tr><tr><td><strong>Planning fine-tuning</strong></td><td>NAVSIM navtrain</td><td>Future geometry objective를 유지하면서 trajectory와 relative pose 학습</td></tr><tr><td><strong>Planning evaluation</strong></td><td>NAVSIM v2 navtest, navhard</td><td>EPDMS와 9개 safety·progress·comfort component 평가</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">Pretraining은 AdamW, weight decay 0.05, bfloat16으로 161 epoch 수행한다. 새 future decoder의 peak learning rate는 <code>1×10^-4</code>, DVGT-2에서 가져온 component는 <code>2×10^-5</code>다. 첫 5%는 linear warmup, 이후 cosine decay를 쓴다.</p>
+
+
+
+<p class="wp-block-paragraph">Planning은 geometry-pretrained checkpoint에서 시작해 navtrain으로 40 epoch fine-tuning한다. Future decoder와 새 action head는 <code>1×10^-4</code>, 나머지 pretrained parameter는 <code>2×10^-5</code>다. 논문에는 일곱 pretraining dataset의 sample 수, mixture ratio, sampling weight, batch size, GPU 종류·수, 전체 학습 시간, model parameter 수와 FLOPs가 없다. 대규모 mixed-data 학습을 그대로 다시 돌리는 데 필요한 compute budget도 아직 알 수 없다.</p>
+
+
+
+<h2 class="wp-block-heading">7. nuScenes future geometry 평가는 무엇을 재나</h2>
+
+
+
+<p class="wp-block-paragraph">예측한 3D point마다 ego-vehicle origin까지의 거리를 계산해 <strong>ray depth</strong>로 바꾼다. 평가 지표는 다음 두 개다.</p>
+
+
+
+<ul class="wp-block-list">
+<li><strong>Abs Rel ↓:</strong> reference depth에 대한 절대 오차를 reference depth로 나눈 상대 오차의 평균. 낮을수록 좋다.</li>
+
+<li><strong>δ&lt;1.25 ↑:</strong> prediction과 reference의 비율 오차가 1.25 threshold 안에 들어온 pixel의 비율. 높을수록 좋다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">비교군의 output을 맞추는 과정이 중요하다. Epona와 Cosmos 3는 미래 RGB를 먼저 생성한 뒤 DVGT로 3D scene을 복원한다. VGGT-World는 geometry foundation model의 feature space에서 미래 geometry를 직접 예측한다. GeoWAM은 미래 point map을 직접 decoding한다. 모두 같은 형태의 geometry metric으로 비교하지만, pipeline과 계산량이 동일한 대조 실험은 아니다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th rowspan="2">방법</th><th colspan="5">Abs Rel ↓</th><th colspan="5">δ&lt;1.25 ↑</th></tr><tr><th>1s</th><th>2s</th><th>3s</th><th>4s</th><th>8-frame mean</th><th>1s</th><th>2s</th><th>3s</th><th>4s</th><th>8-frame mean</th></tr></thead><tbody><tr><td>Epona + DVGT</td><td>0.229</td><td>0.263</td><td>0.292</td><td>0.310</td><td>0.274</td><td><strong>0.732</strong></td><td>0.677</td><td>0.620</td><td>0.589</td><td>0.655</td></tr><tr><td>Cosmos 3 + DVGT</td><td>0.300</td><td>0.376</td><td>0.405</td><td>0.422</td><td>0.376</td><td>0.588</td><td>0.513</td><td>0.464</td><td>0.447</td><td>0.503</td></tr><tr><td>VGGT-World</td><td>0.272</td><td>0.329</td><td>0.342</td><td>0.357</td><td>0.325</td><td>0.612</td><td>0.553</td><td>0.513</td><td>0.497</td><td>0.544</td></tr><tr><td><strong>GeoWAM</strong></td><td><strong>0.228</strong></td><td><strong>0.245</strong></td><td><strong>0.256</strong></td><td><strong>0.297</strong></td><td><strong>0.257</strong></td><td>0.708</td><td><strong>0.769</strong></td><td><strong>0.746</strong></td><td><strong>0.703</strong></td><td><strong>0.754</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">저자 비교표에서 GeoWAM은 모든 표시 horizon의 Abs Rel이 가장 낮다. 가장 강한 video baseline Epona+DVGT와 비교하면 8-frame mean Abs Rel은 0.274→0.257로 0.017 감소했고, 상대 감소율은 약 <strong>6.2%</strong>다. Mean δ&lt;1.25는 0.655→0.754로 <strong>0.099, 즉 9.9%p</strong> 높다. VGGT-World와 비교한 mean Abs Rel 감소율은 약 20.9%다.</p>
+
+
+
+<p class="wp-block-paragraph">그러나 모든 칸에서 1위는 아니다. 1초 δ&lt;1.25는 Epona+DVGT 0.732가 GeoWAM 0.708보다 높다. GeoWAM의 차이는 주로 2~4초에서 커진다. 따라서 “짧은 horizon부터 모든 geometry 지표가 우수하다”보다 <strong>Abs Rel은 전 horizon에서 가장 낮고, threshold accuracy는 장기 horizon과 전체 평균에서 우세하다</strong>가 정확한 요약이다.</p>
+
+
+
+<p class="wp-block-paragraph">평가 reference의 생성 경계도 남는다. v2는 미래 point-map target과 validity mask를 쓴다고 설명하지만, geometry 평가의 reference가 LiDAR ground truth인지 같은 foundation-model target인지 명확하게 식별할 세부 pipeline을 제공하지 않는다. 그러므로 위 수치를 실제 LiDAR 3D 오차라고 바꿔 부르기보다 <strong>논문이 정한 future point-map/ray-depth protocol에서의 일치도</strong>로 읽어야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">8. NAVSIM v2 navtest — aggregate 90.2를 세부 항목으로 읽기</h2>
+
+
+
+<p class="wp-block-paragraph">NAVSIM v2의 EPDMS는 no at-fault collision(NC), drivable-area compliance(DAC), driving-direction compliance(DDC), traffic-light compliance(TLC), ego progress(EP), time-to-collision(TTC), lane keeping(LK), history comfort(HC), extended comfort(EC)를 합친다. 모든 planning metric에는 공식 human-penalty protocol이 적용되며 높을수록 좋다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>NC</th><th>DAC</th><th>DDC</th><th>TLC</th><th>EP</th><th>TTC</th><th>LK</th><th>HC</th><th>EC</th><th>EPDMS</th></tr></thead><tbody><tr><td>DiffusionDrive</td><td>98.2</td><td>96.2</td><td>99.5</td><td>99.8</td><td>87.4</td><td>97.3</td><td>96.9</td><td>98.4</td><td>87.7</td><td>88.2</td></tr><tr><td>DriveLaW</td><td>98.7</td><td>96.9</td><td>99.6</td><td>99.8</td><td>87.5</td><td>98.3</td><td>97.6</td><td>98.4</td><td>77.4</td><td>88.6</td></tr><tr><td>DVGT-2</td><td>98.7</td><td><strong>97.9</strong></td><td><strong>99.7</strong></td><td><strong>99.9</strong></td><td><strong>87.9</strong></td><td>98.0</td><td><strong>98.2</strong></td><td>98.2</td><td>77.0</td><td>89.6</td></tr><tr><td>EponaV2</td><td>98.5</td><td>97.4</td><td>99.5</td><td><strong>99.9</strong></td><td><strong>87.9</strong></td><td>98.1</td><td>97.7</td><td>98.2</td><td>77.4</td><td>88.9</td></tr><tr><td><strong>GeoWAM</strong></td><td>98.7</td><td>97.7</td><td><strong>99.7</strong></td><td><strong>99.9</strong></td><td>87.0</td><td>98.1</td><td>97.9</td><td>98.3</td><td>86.8</td><td><strong>90.2</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">GeoWAM의 EPDMS 90.2는 표에서 다음으로 높은 DVGT-2 89.6보다 <strong>0.6점</strong> 높다. 다만 향상은 모든 component의 동시 상승이 아니다. GeoWAM은 DVGT-2보다 DAC 0.2, EP 0.9, LK 0.3이 낮고 NC·DDC·TLC는 같다. TTC와 HC는 각각 0.1 높으며, 가장 큰 차이는 EC 77.0→86.8의 +9.8점이다.</p>
+
+
+
+<p class="wp-block-paragraph">따라서 저자 표 안에서 aggregate 1위라는 사실은 분명하지만, “geometry forecasting이 모든 안전 항목을 개선했다”는 결론은 이 표가 지지하지 않는다. 또한 DVGT-2는 encoder와 point head의 initialization이지만, GeoWAM과 DVGT-2의 0.6점 차이는 하나의 component만 바꾼 통제 실험이 아니다.</p>
+
+
+
+<h2 class="wp-block-heading">9. NAVSIM v2 navhard — pseudo-closed-loop에서 36.6</h2>
+
+
+
+<p class="wp-block-paragraph">navhard는 3D Gaussian Splatting으로 복원한 장면을 이용하는 two-stage pseudo-closed-loop 평가다. Stage 1은 원래 scene을 평가한다. Stage 2에서는 planner가 낸 ego trajectory에 따라 새 camera observation을 렌더링하고, 이를 다음 planning step의 입력으로 되돌린다. 이전 오차가 다음 관측과 예측에 영향을 주므로 한 번만 trajectory를 채점하는 open-loop보다 error recovery를 더 강하게 본다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>추가 학습 신호</th><th>navhard EPDMS</th></tr></thead><tbody><tr><td>DriveLaW</td><td>표의 일반 학습군</td><td>30.6</td></tr><tr><td>DVGT-2</td><td>표의 일반 학습군</td><td>31.7</td></tr><tr><td>LTFv6†</td><td>RL 또는 direct PDMS-score supervision군</td><td>31.9</td></tr><tr><td>NavFormer†</td><td>RL 또는 direct PDMS-score supervision군</td><td>34.1</td></tr><tr><td>EponaV2†</td><td>RL 또는 direct PDMS-score supervision군</td><td>36.1</td></tr><tr><td><strong>GeoWAM</strong></td><td>Geometry objectives + trajectory/pose L1</td><td><strong>36.6</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">GeoWAM은 저자 비교표에서 EponaV2보다 0.5점, DVGT-2보다 4.9점 높은 aggregate를 기록한다. 논문의 † 표시는 reinforcement learning이나 direct PDMS-score supervision을 사용한 방법에 붙으며 GeoWAM에는 붙지 않는다. 저자가 명시한 GeoWAM objective는 geometry loss와 trajectory·pose L1이다.</p>
+
+
+
+<p class="wp-block-paragraph">Aggregate만으로 회복 양상의 모든 측면이 좋아졌다고 보기는 어렵다. 반응형 synthetic scene인 Stage 2에서 GeoWAM과 EponaV2를 비교하면 GeoWAM은 EP 88.9 대 86.0, EC 56.0 대 52.0으로 높다. 반면 NC 80.4 대 83.6, DAC 76.3 대 78.0, DDC 87.3 대 88.0, TTC 76.2 대 80.3 등 여러 항목은 낮다. 36.6은 protocol이 합성한 최종 EPDMS의 우위이지 모든 safety component의 우위를 뜻하지 않는다.</p>
+
+
+
+<h2 class="wp-block-heading">10. Ablation — 현재 논문에는 원인 분해 실험이 없다</h2>
+
+
+
+<p class="wp-block-paragraph">2026년 8월 25일의 arXiv v2에는 별도의 ablation section이나 table이 없다. Future geometry를 제거했을 때, feature loss와 point loss 중 하나를 뺐을 때, current-frame anchor 또는 stop-gradient를 없앴을 때, dataset mix와 target generator를 바꿨을 때의 결과가 보고되지 않았다.</p>
+
+
+
+<p class="wp-block-paragraph">논문은 navtest에서 DVGT-2 89.6 대비 GeoWAM 90.2를 강조한다. 하지만 GeoWAM은 DVGT-2 initialization 위에 future-geometry pretraining, 두 decoder, action head, joint fine-tuning objective를 함께 추가한다. 이 비교는 전체 system의 결과 차이는 보여도 <strong>0.6점 가운데 얼마가 geometry forecasting 하나에서 왔는지</strong> 분리하지 못한다.</p>
+
+
+
+<p class="wp-block-paragraph">세 가지 driving maneuver의 visualization도 정성 근거일 뿐이다. 왼쪽 회전에서 주변 차량의 움직임, 직진 장면에서 도로변 차량을 피하는 trajectory, 도로 표식과 pole의 geometry가 보이지만 세 사례만으로 failure rate나 calibration을 알 수 없다. 저자의 설계 가설은 geometry·planning 두 benchmark에서 일관된 방향을 보였지만, 구성 요소별 인과 효과는 후속 ablation과 독립 재현이 필요하다.</p>
+
+
+
+<h2 class="wp-block-heading">11. 이 논문의 장점</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>World model의 prediction space를 action과 맞춘다.</strong> 미래 appearance보다 metric 3D structure를 먼저 예측해 scene dynamics와 ego trajectory를 가까운 좌표 표현에 놓는다.</li>
+
+<li><strong>미래 RGB 합성을 거치지 않는다.</strong> GeoWAM은 geometry를 직접 decoding하므로 RGB 생성 후 별도 3D reconstruction을 수행하는 두 단계 pipeline이 필요 없다.</li>
+
+<li><strong>Occupancy annotation 의존성을 줄인다.</strong> Off-the-shelf geometry model의 point map을 이용해 서로 다른 RGB driving log를 공통 pretraining target으로 묶는다.</li>
+
+<li><strong>미래 표현이 실제 planning까지 이어지는지 함께 평가한다.</strong> nuScenes의 geometry accuracy뿐 아니라 NAVSIM v2 navtest와 error feedback이 있는 navhard를 모두 보고한다.</li>
+
+<li><strong>Action path가 단순하다.</strong> Anchor나 iterative sampling 없이 한 trajectory를 직접 회귀해 복잡한 candidate-selection stage가 없다.</li>
+
+<li><strong>Geometry representation을 보호하는 연결이 명확하다.</strong> Stop-gradient로 action loss의 역전파 범위를 끊어 pretraining objective와 planning objective의 역할을 구분한다.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">12. 한계와 결과 해석의 경계</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>Pseudo-target의 출처와 생성 recipe가 불명확하다.</strong> 정확한 geometry foundation model, checkpoint, scale 보정과 validity filtering이 없어 supervision을 재구성하기 어렵다.</li>
+
+<li><strong>Teacher error를 그대로 배울 수 있다.</strong> 반사면, 먼 거리, moving object, poor overlap에서 geometry foundation model이 틀리면 미래 target도 편향된다. 이에 대한 quality audit가 없다.</li>
+
+<li><strong>단일 trajectory만 낸다.</strong> Multimodal future의 확률, 불확실성, 여러 안전 후보를 표현하지 않는다.</li>
+
+<li><strong>행동이 geometry를 다시 조건화하지 않는다.</strong> 예측된 미래 장면으로 action을 추론하지만 “이 action을 실행하면 world가 어떻게 바뀌는가”를 반복 rollout하는 action-conditioned simulator는 아니다.</li>
+
+<li><strong>명시적인 ablation이 없다.</strong> Geometry objective, decoder, stop-gradient와 mixed dataset 각각의 기여를 분리할 수 없다.</li>
+
+<li><strong>효율성 수치가 없다.</strong> Parameter, FLOPs, latency, memory와 point-map decoding 비용이 보고되지 않아 video WAM 대비 계산 이점을 주장할 근거는 아직 없다.</li>
+
+<li><strong>실차 closed-loop가 아니다.</strong> navhard는 error feedback을 반영하지만 3DGS 기반 pseudo-simulation이며, 실제 차량과 현실 센서에서의 안전성을 입증하지 않는다.</li>
+
+<li><strong>독립 재현 전의 저자 수치다.</strong> Baseline마다 backbone, pretraining data, parameter와 compute budget이 동일하게 통제된 비교는 아니다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">현재 가능한 안전한 결론은 이렇다. <strong>GeoWAM은 저자 protocol에서 미래 RGB보다 미래 metric geometry를 직접 예측하는 설계로 낮은 future ray-depth error와 높은 NAVSIM aggregate를 함께 기록했다.</strong> 그러나 어떤 구성 요소가 planning 향상의 직접 원인인지, target generator가 바뀌어도 유지되는지, 계산 비용이 실제로 줄어드는지는 아직 검증되지 않았다.</p>
+
+
+
+<h2 class="wp-block-heading">13. 실무에서 어디에 연결할 수 있나</h2>
+
+
+
+<p class="wp-block-paragraph">가장 직접적인 응용은 surround-view camera log는 많지만 dense occupancy label이 부족한 자율주행 연구다. 기존 log에 geometry foundation model을 offline으로 적용해 point-map target을 만들고, scene evolution pretraining 뒤 trajectory planner를 붙이는 흐름을 시험할 수 있다.</p>
+
+
+
+<ul class="wp-block-list">
+<li>카메라 기반 자율주행의 0.5~4초 scene-geometry forecasting</li>
+
+<li>Warehouse AMR·배송 robot의 통로와 moving agent 예측</li>
+
+<li>공장 이동 설비 주변의 spatiotemporal free-space representation</li>
+
+<li>Robot manipulation 영상에서 future object geometry를 action feature로 쓰는 연구</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">다만 자동차 밖으로 확장하는 부분은 논문이 직접 검증한 결과가 아니라 <strong>구조에서 도출한 실무적 가능성</strong>이다. Camera motion, workspace scale, deformable object가 달라지면 point-map teacher와 action head를 새로 검증해야 한다.</p>
+
+
+
+<h3 class="wp-block-heading">재현을 시작한다면 먼저 확인할 것</h3>
+
+
+
+<ol class="wp-block-list">
+<li>공식 코드가 공개되면 pseudo-target generator와 metric-scale 정렬 recipe부터 고정한다.</li>
+
+<li>같은 과거 3-frame·8-future-frame split으로 current reconstruction과 future forecasting error를 따로 측정한다.</li>
+
+<li>DVGT-2 planner, geometry pretraining 없는 action head, full GeoWAM을 같은 data와 compute로 비교한다.</li>
+
+<li>Point-map teacher가 다른 실험과 LiDAR가 있는 subset의 geometry audit를 추가한다.</li>
+
+<li>EPDMS aggregate뿐 아니라 NC·EP·TTC·EC와 corner-case failure를 scenario별로 나눈다.</li>
+
+<li>End-to-end latency에는 encoder, 8-step geometry decoder, Point DPT와 trajectory head를 모두 포함한다.</li>
+</ol>
+
+
+
+<h2 class="wp-block-heading">14. 코드·checkpoint·라이선스 공개 상태</h2>
+
+
+
+<p class="wp-block-paragraph">2026년 8월 26일 기준 공식 project page에는 paper와 arXiv link가 공개돼 있다. Page source에는 <code>github.com/vulab-AI/GeoWAM</code>으로 향하는 code button이 TODO comment 상태로 남아 있지만, 해당 repository는 공개 접근 시 404를 반환한다. 실행 가능한 training·inference code와 GeoWAM checkpoint, pseudo-target 생성 script는 확인되지 않는다.</p>
+
+
+
+<p class="wp-block-paragraph">논문은 <strong>CC BY 4.0</strong>으로 배포된다. Project page footer의 CC BY-SA 4.0 표기는 website source/template에 관한 안내이며, 아직 공개되지 않은 software나 model weight의 license로 볼 수 없다. 향후 repository가 열리면 GeoWAM 자체 license뿐 아니라 DVGT-2, point-map target generator, NAVSIM과 일곱 pretraining dataset의 이용 조건을 각각 확인해야 한다.</p>
+
+
+
+<p class="wp-block-paragraph">구조와 저자 수치는 논문에서 읽을 수 있지만 현재는 독립 재현이 가능한 release 상태가 아니다. Batch size, hardware, image preprocessing, data mixture, target generator가 빠져 있어 공개 code·checkpoint 전에는 동일 수치를 검증했다고 말할 수 없다.</p>
+
+
+
+<p class="wp-block-paragraph"><a href="/ai-cv-sota-briefing-2026-08-26/">GeoWAM이 포함된 AI CV 브리핑으로 돌아가기</a></p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity" />
+
+
+
+<h3 class="wp-block-heading">원문과 공식 자료</h3>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://arxiv.org/abs/2608.23486">arXiv 초록·제출 이력·라이선스</a></li>
+
+<li><a href="https://arxiv.org/html/2608.23486v2">arXiv v2 HTML 전문</a></li>
+
+<li><a href="https://arxiv.org/pdf/2608.23486">논문 PDF</a></li>
+
+<li><a href="https://yiren-lu.com/project_pages/geowam/">공식 project page</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><em>공식 arXiv v2와 project page를 2026년 8월 26일 확인했습니다. 모든 benchmark 수치는 논문 저자 평가이며 독립 재현 결과가 아닙니다. 이 글의 “비교표 최고”는 논문에 포함된 방법과 해당 protocol 안에서만 의미합니다.</em></p>
+
+]]></content:encoded>
+
+
+
+			</item>
+		<item>
+		<title>FixAnything 논문 분석: 하나의 Video Model로 3DGS·NeRF·Mesh 렌더를 보정하는 법</title>
+		<link>https://odd-note.invalid/fixanything-3d-reconstruction-repair-paper-analysis/</link>
+
+		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
+		<pubDate>Wed, 26 Aug 2026 03:56:35 +0000</pubDate>
+				<category><![CDATA[AI 논문 분석]]></category>
+		<category><![CDATA[3D Reconstruction]]></category>
+		<category><![CDATA[3DGS]]></category>
+		<category><![CDATA[ECCV 2026]]></category>
+		<category><![CDATA[FixAnything]]></category>
+		<category><![CDATA[Flow-DPO]]></category>
+		<category><![CDATA[NeRF]]></category>
+		<category><![CDATA[Video Diffusion]]></category>
+		<category><![CDATA[Wan2.1]]></category>
+		<guid isPermaLink="false">https://odd-note.invalid/fixanything-3d-reconstruction-repair-paper-analysis/</guid>
+
+					<description><![CDATA[3D rendering video와 clean-frame mask를 Wan2.1-I2V·LoRA·Flow-DPO로 처리하는 과정, DL3DV 데이터와 네 representation의 비교 결과를 분석합니다.]]></description>
+										<content:encoded><![CDATA[
+<p class="article-lead wp-block-paragraph"><strong>사진 몇 장으로 만든 3DGS에는 공중에 뜬 점이 생기고, NeRF는 안개처럼 흐려지며, mesh에는 구멍과 뒤틀린 texture가 남는다.</strong> FixAnything은 이 서로 다른 오류를 각각 고치지 않는다. 3D 표현을 camera path를 따라 영상으로 렌더링한 뒤, 하나의 Wan2.1 기반 video model이 자연스러운 영상으로 복원한다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>FixAnything: 3D-Consistent Rendering Refinement via Video Generative Priors</strong>는 3DGS·NeRF·mesh·sparse SfM point cloud를 같은 video-to-video 문제로 바꾼다. 이 글에서는 Input·Process·Output, clean anchor와 Flow-DPO의 역할, DL3DV-10K 학습 데이터, 3·6·9-view 비교 결과, 실행 비용과 공개 코드의 실제 범위를 나눠 살펴본다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>arXiv:</strong> 2608.23549 · <strong>v1 제출:</strong> 2026년 8월 24일 17:51 UTC · <strong>학회:</strong> ECCV 2026 · <strong>분야:</strong> Novel View Synthesis · Video Diffusion · 3D Reconstruction · <strong>확인 기준:</strong> 2026년 8월 26일</p>
+
+
+
+<p class="wp-block-paragraph">같은 날 공개된 연구를 요약한 <a href="/ai-cv-sota-briefing-2026-08-26/">AI CV SOTA 브리핑 — 2026년 8월 26일</a>에서 이 논문만 분리해 확장한 분석이다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>FixAnything의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>3DGS·NeRF·mesh·sparse point cloud 중 하나를 주어진 camera path로 렌더링한 RGB video와, 신뢰할 clean frame을 표시한 frame-level binary mask.</td></tr><tr><td><strong>Process</strong></td><td>Wan2.1-I2V-14B-480P의 VAE latent에 degraded video와 anchor mask를 channel-concatenate → rank-64 LoRA SFT → COLMAP pose 정확도로 preference를 만든 Flow-DPO.</td></tr><tr><td><strong>Output</strong></td><td>입력과 같은 camera trajectory를 따르는 복원 RGB video. 공개 CLI의 기본 출력은 <code>generated.mp4</code>이며 수정된 3DGS·NeRF·mesh를 직접 출력하지 않는다.</td></tr><tr><td><strong>대표 결과</strong></td><td>DL3DV 6-view, 3DGS input에서 PSNR 17.65 / SSIM 0.561 / LPIPS 0.289. 같은 모델의 mesh input은 17.95 / 0.583 / 0.269.</td></tr></tbody></table></figure>
+
+
+
+<h2 class="wp-block-heading">1. 무엇을 고치고, 무엇은 고치지 않는가</h2>
+
+
+
+<p class="wp-block-paragraph">입력 사진이 적으면 관측하지 못한 영역이 많아진다. 3DGS는 floater가 생기고, NeRF는 흐림과 foggy geometry를 만들며, mesh는 깊이가 불확실한 경계에서 구멍이나 texture distortion을 보인다. Sparse point cloud는 애초에 feature가 검출된 위치에만 점이 있어 벽과 하늘 같은 무늬 없는 영역이 비어 있다.</p>
+
+
+
+<p class="wp-block-paragraph">기존 후처리 연구는 대개 특정 표현에 맞춰 설계된다. FixAnything은 3D 내부 구조를 직접 읽지 않고, 모든 표현이 만들 수 있는 <strong>camera-path rendering video</strong>를 공통 인터페이스로 사용한다. 심하게 망가진 render에도 camera motion과 대략적인 scene layout은 남는다는 가정이다.</p>
+
+
+
+<p class="wp-block-paragraph">따라서 “3D reconstruction을 고친다”는 표현에는 경계가 있다. FixAnything이 직접 정제하는 대상은 novel-view 영상이다. 원래 Gaussian 위치·opacity, NeRF field, mesh vertex·texture, point coordinate를 업데이트하지 않는다. 복원 video로 다시 SfM이나 3D reconstruction을 수행할 수는 있지만, 그 downstream 단계는 논문의 기본 출력과 공개 inference CLI에 포함된 3D asset repair가 아니다.</p>
+
+
+
+<h2 class="wp-block-heading">2. Input — 모델에 무엇을 넣는가</h2>
+
+
+
+<h3 class="wp-block-heading">Camera path를 따라 렌더링한 RGB video</h3>
+
+
+
+<p class="wp-block-paragraph">첫 입력 <code>x ∈ R^(T×3×H×W)</code>는 3D representation을 원하는 camera trajectory로 렌더링한 RGB frame sequence다. 모델이 camera pose matrix나 Plücker ray를 별도 token으로 받지는 않는다. 움직이는 시점에서 나온 흐릿한 윤곽, 점의 이동, 가려짐 순서가 camera control 역할을 맡는다.</p>
+
+
+
+<p class="wp-block-paragraph">논문과 공개 모델의 기본 단위는 61 frame, 480×832 해상도다. 저장·CLI 표기로는 832×480이다. 61 frame보다 긴 영상은 겹치는 chunk로 나눈다. 프로젝트 페이지는 각 chunk 경계가 clean anchor를 공유하도록 구성한다고 설명하지만, 긴 전체 trajectory에서 chunk seam이 얼마나 누적되는지에 대한 정량 표는 없다.</p>
+
+
+
+<h3 class="wp-block-heading">Anchor를 표시하는 frame-level binary mask</h3>
+
+
+
+<p class="wp-block-paragraph">두 번째 입력 <code>m ∈ {0,1}^T</code>는 frame마다 하나의 값을 갖는다. Training viewpoint에서 만든 깨끗한 frame에는 1, 복구할 novel-view frame에는 0을 준다. 이름은 mask지만 물체나 pixel 영역을 칠하는 inpainting mask가 아니다. 시간축의 frame label을 spatial dimension 전체로 broadcast해 latent channel에 붙인다.</p>
+
+
+
+<p class="wp-block-paragraph">Clean frame은 두 역할을 한다. 이미 맞는 내용을 다시 생성하지 않도록 신뢰 지점을 알려주고, 주변 degraded frame이 appearance·lighting·scene structure를 가져올 anchor가 된다. Anchor가 처음과 끝에만 있어야 하는 것은 아니다. 논문 Figure 1처럼 trajectory 중간에 섞여 있어도 된다.</p>
+
+
+
+<p class="wp-block-paragraph">공개 CLI는 <code>--clean_frame_indices</code>로 anchor를 지정하며 기본값은 첫 frame 0과 마지막 frame 60이다. 입력은 내부에서 마지막 frame을 네 번 반복해 65 frame으로 만든 뒤 출력 시 다시 61 frame으로 자른다. Wan VAE가 첫 frame은 독립적으로, 나머지는 시간축으로 압축하는 특성 때문에 마지막 anchor의 영향력을 보강하려는 구현이다.</p>
+
+
+
+<h2 class="wp-block-heading">3. Output — 정확히 무엇이 나오는가</h2>
+
+
+
+<p class="wp-block-paragraph">출력 <code>y ∈ R^(T×3×H×W)</code>는 복원된 RGB video다. 목표는 scene content와 입력 camera motion을 유지하면서 floater, blur, fog, hole, scattered-point artifact를 자연스러운 frame으로 바꾸는 것이다.</p>
+
+
+
+<ul class="wp-block-list">
+<li><strong>직접 출력:</strong> 복원 영상 <code>generated.mp4</code>, resize된 <code>input.mp4</code>, 입력·출력 비교 <code>side_by_side.mp4</code></li>
+
+<li><strong>출력하지 않음:</strong> 수정된 3DGS, NeRF checkpoint, triangle mesh, dense point cloud, metric depth, uncertainty map</li>
+
+<li><strong>확률적 결과:</strong> Gaussian noise에서 시작하므로 seed가 달라지면 보이지 않던 영역의 완성도 달라진다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">공개 MapAnything 예제는 사진에서 <code>reconstruction.glb</code>와 <code>rendered.mp4</code>를 먼저 만든다. 여기서 GLB는 MapAnything 단계의 산출물이고, FixAnything 단계가 추가하는 것은 <code>generated.mp4</code>다. 영상이 좋아졌다고 GLB geometry까지 자동으로 고쳐진 것은 아니다.</p>
+
+
+
+<h2 class="wp-block-heading">4. Process — Wan2.1을 V2V 복원기로 바꾸는 일곱 단계</h2>
+
+
+
+<h3 class="wp-block-heading">Step 1. 3D representation을 영상이라는 공통 형식으로 변환</h3>
+
+
+
+<p class="wp-block-paragraph">3DGS·NeRF·mesh·sparse point cloud에서 동일한 camera trajectory를 따라 frame을 렌더링한다. Representation별 artifact 모양은 달라도 물체 윤곽과 camera 이동 방향은 어느 정도 보존된다. FixAnything은 이 render를 geometry scaffold로 삼는다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 2. Frozen VAE가 degraded·clean video를 latent로 압축</h3>
+
+
+
+<p class="wp-block-paragraph">기반 모델은 rectified flow로 학습된 <strong>Wan2.1-I2V-14B-480P</strong>다. Wan VAE encoder <code>E</code>가 degraded render <code>x</code>를 condition latent <code>z_cond</code>로, clean target <code>y</code>를 <code>z_0</code>로 바꾼다. Base model weight와 VAE는 동결한다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 3. Noisy target·degraded condition·mask를 channel 방향으로 연결</h3>
+
+
+
+<p class="wp-block-paragraph">학습 시 clean latent와 Gaussian noise를 시간 <code>t</code>에 따라 섞어 noisy latent <code>z_t</code>를 만든다. DiT 입력은 다음 세 항목을 channel 방향으로 이어 붙인 tensor다.</p>
+
+
+
+<pre class="wp-block-code"><code>z_t = (1 - t) · z_0 + t · ε
+DiT input = [z_t ; z_cond ; broadcast(mask)]</code></pre>
+
+
+
+<p class="wp-block-paragraph"><code>z_cond</code>가 camera motion과 coarse layout을 전달하고 mask가 trust/fix 경계를 알려준다. 논문은 이 channel concatenation을 “minor architectural change”로 설명하지만, backbone block을 새로 설계하는 방식은 아니다. 공개 설명 기준으로는 기존 Wan2.1 DiT에 conditioning channel을 추가하고 LoRA만 학습한다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 4. Rank-64 LoRA로 supervised flow matching</h3>
+
+
+
+<p class="wp-block-paragraph">목표 velocity는 <code>v = ε - z_0</code>이며 모델이 예측한 velocity와의 제곱 오차로 학습한다. Rank 64 LoRA가 전체 parameter의 1% 미만을 갱신한다. 일반 video generation을 처음부터 배우는 것이 아니라 degraded render를 조건으로 clean video 방향을 찾는 방법만 적응시키는 단계다.</p>
+
+
+
+<p class="wp-block-paragraph">최종 SFT에는 DL3DV-10K에서 만든 500개 paired video가 쓰인다. 먼저 288×512에서 학습하고 480×832, 61 frame으로 올린다. SFT는 single H100에서 3,000 iteration 수행됐다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 5. 같은 scene을 다섯 seed로 생성해 pose consistency를 측정</h3>
+
+
+
+<p class="wp-block-paragraph">SFT 영상은 한 frame만 보면 그럴듯해도, 새로 만든 나무나 건물 모양이 시점마다 움직일 수 있다. 저자들은 별도 DL3DV scene 1,000개에서 scene마다 다섯 candidate를 서로 다른 random seed로 생성한다.</p>
+
+
+
+<p class="wp-block-paragraph">각 output에 SuperPoint feature와 LightGlue matching을 사용한 COLMAP SfM을 실행해 camera pose를 다시 구한다. 복원 pose를 known ground-truth pose와 비교하고 relative rotation accuracy와 relative translation accuracy의 <strong>AUC@5°</strong>를 계산한다. 영상의 feature가 여러 view에서 일관될수록 SfM이 원래 camera path를 잘 회수한다는 proxy다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 6. AUC 차이가 큰 candidate로 Flow-DPO</h3>
+
+
+
+<p class="wp-block-paragraph">다섯 candidate를 AUC@5°로 순위화하고 높은 sample을 winner, 낮은 sample을 loser로 묶는다. 두 점수 차이가 0.2 이상인 pair만 남긴다. SFT LoRA checkpoint를 reference model로 고정한 뒤 preferred·dispreferred sample의 velocity prediction 차이를 비교하는 Flow-DPO로 LoRA를 2,000 iteration 더 학습한다.</p>
+
+
+
+<p class="wp-block-paragraph">COLMAP은 학습용 preference를 만드는 데만 쓰인다. 추론 때 pose estimation을 매번 실행하는 구조가 아니다. Geometry 선호가 LoRA weight에 반영되므로 DPO 전후 inference graph와 denoising step 수는 같다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 7. Noise에서 clean video까지 flow ODE를 적분</h3>
+
+
+
+<p class="wp-block-paragraph">추론은 <code>t=1</code>의 Gaussian noise에서 출발해 학습한 velocity field를 <code>t=0</code> 방향으로 적분한다. Degraded video latent와 mask는 매 step condition으로 들어간다. 논문의 기본값은 50 denoising step이며 공개 CLI도 61-frame clip을 기본 입력으로 안내한다.</p>
+
+
+
+<h2 class="wp-block-heading">5. 학습 데이터 — 네 종류의 오류를 어떻게 만들었나</h2>
+
+
+
+<p class="wp-block-paragraph">원본은 다양한 실제 장면 영상과 COLMAP reconstruction을 제공하는 DL3DV-10K다. Scene마다 training view 수 <code>k</code>를 3~12 사이에서 균일하게 뽑고, 그중 최소 두 view를 통과하는 61-frame camera trajectory를 만든다. 같은 trajectory를 네 3D 표현으로 렌더링해 degraded video를 얻고, 원본 frame sequence를 clean target으로 둔다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>3D 입력 표현</th><th>학습 pair 생성 방식</th><th>주요 artifact</th></tr></thead><tbody><tr><td><strong>NeRF</strong></td><td>Sparse training view로 Nerfacto 실행</td><td>Novel view의 blur와 fog</td></tr><tr><td><strong>3DGS</strong></td><td>Random point cloud에서 gsplat 7K iteration. Artifact가 남도록 의도적으로 underfit</td><td>Floater와 빈 영역</td></tr><tr><td><strong>Mesh</strong></td><td>MapAnything depth로 triangular mesh fitting. Training viewpoint frame은 원본 이미지로 대체</td><td>Sky·occlusion boundary의 hole, texture distortion</td></tr><tr><td><strong>Sparse SfM points</strong></td><td>선택한 view에서 보인 COLMAP keypoint만 유지. Training viewpoint frame은 원본 이미지로 대체</td><td>검출점 주변 patch만 남고 textureless region은 비어 있음</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">네 representation은 별도 model을 학습하지 않고 한 LoRA의 SFT batch에서 함께 사용된다. “20개 video만으로 학습했다”는 설명은 data-efficiency ablation을 가리킨다. 논문에서 보고한 최종 model은 <strong>SFT paired video 500개</strong>와, preference candidate를 만드는 <strong>별도 DL3DV scene 1,000개×seed 5개</strong>를 사용한다. 20개는 final training volume이 아니다.</p>
+
+
+
+<h2 class="wp-block-heading">6. 평가 데이터와 지표</h2>
+
+
+
+<p class="wp-block-paragraph">주 평가는 DL3DV-10K의 held-out scene 20개다. 각 scene에서 3·6·9개 frame을 training view로 균일하게 고르고, 그 view를 제외한 나머지 영상에서 8 frame 간격으로 query를 뽑는다. FixAnything의 네 입력 representation도 같은 sparse training view로 만든다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>지표</th><th>무엇을 보는가</th><th>방향</th></tr></thead><tbody><tr><td><strong>PSNR</strong></td><td>Ground-truth frame과 pixel 오차를 신호 대 잡음비로 표현</td><td>높을수록 좋음</td></tr><tr><td><strong>SSIM</strong></td><td>밝기·대비·구조 유사도</td><td>높을수록 좋음</td></tr><tr><td><strong>LPIPS</strong></td><td>Deep feature 공간의 perceptual distance</td><td>낮을수록 좋음</td></tr><tr><td><strong>AUC@5°</strong></td><td>생성 영상에서 SfM으로 회수한 relative rotation·translation pose accuracy</td><td>높을수록 좋음</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">AUC@5°는 유용하지만 완전한 3D 정확도 지표는 아니다. Camera pose가 잘 복원된다는 사실은 view 사이의 feature가 일관됨을 뜻할 뿐, surface depth·mesh topology·Gaussian geometry가 ground truth와 일치한다는 보장은 아니다. 논문은 Chamfer distance나 depth error로 출력 3D asset을 평가하지 않는다. 애초에 기본 출력도 video다.</p>
+
+
+
+<h2 class="wp-block-heading">7. DL3DV 비교 결과 — 3·6·9-view에서 무엇이 달라졌나</h2>
+
+
+
+<p class="wp-block-paragraph">비교군은 sparse-view reconstruction과 3DGS rendering 후처리로 나뉜다. 표의 <code>†</code> 값은 3DGS-Enhancer와 Xu et al.에서 가져온 저자 보고값이고, 모든 방법을 FixAnything 코드베이스에서 같은 설정으로 재실행한 head-to-head 표는 아니다.</p>
+
+
+
+<h3 class="wp-block-heading">3-view 결과</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>종류·입력</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th></tr></thead><tbody><tr><td>3DGS†</td><td>Sparse reconstruction</td><td>10.97</td><td>0.248</td><td>0.567</td></tr><tr><td>RegNeRF†</td><td>Sparse reconstruction</td><td>11.46</td><td>0.214</td><td>0.600</td></tr><tr><td>FreeNeRF†</td><td>Sparse reconstruction</td><td>10.91</td><td>0.211</td><td>0.595</td></tr><tr><td>DNGaussian†</td><td>Sparse reconstruction</td><td>11.10</td><td>0.273</td><td>0.579</td></tr><tr><td>FSGS†</td><td>Sparse reconstruction</td><td>12.22</td><td>0.296</td><td>0.535</td></tr><tr><td>3DGS-Enhancer†</td><td>3DGS post-hoc</td><td>14.33</td><td>0.424</td><td>0.464</td></tr><tr><td>Xu et al.†</td><td>3DGS post-hoc</td><td>14.62</td><td>0.471</td><td>0.491</td></tr><tr><td>Difix3D</td><td>3DGS post-hoc</td><td>12.85</td><td>0.392</td><td>0.557</td></tr><tr><td>Difix3D+</td><td>3DGS post-hoc</td><td>12.37</td><td>0.363</td><td>0.512</td></tr><tr><td>FixAnything</td><td>NeRF render</td><td>14.22</td><td>0.427</td><td>0.451</td></tr><tr><td>FixAnything</td><td>3DGS render</td><td>15.18</td><td>0.452</td><td>0.408</td></tr><tr><td><strong>FixAnything</strong></td><td><strong>Mesh render</strong></td><td><strong>15.74</strong></td><td><strong>0.482</strong></td><td><strong>0.366</strong></td></tr><tr><td>FixAnything</td><td>Sparse SfM points</td><td>15.52</td><td>0.463</td><td>0.381</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">같은 3DGS input끼리 보면 FixAnything PSNR 15.18은 강한 기존 후처리 Xu et al. 14.62보다 0.56 dB 높다. LPIPS 0.408도 3DGS-Enhancer 0.464보다 0.056 낮다. 다만 SSIM은 Xu et al. 0.471보다 0.019 낮다. 세 metric을 모두 같은 폭으로 이긴 결과는 아니다.</p>
+
+
+
+<h3 class="wp-block-heading">6-view 결과</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>종류·입력</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th></tr></thead><tbody><tr><td>3DGS†</td><td>Sparse reconstruction</td><td>13.34</td><td>0.332</td><td>0.498</td></tr><tr><td>RegNeRF†</td><td>Sparse reconstruction</td><td>12.69</td><td>0.236</td><td>0.579</td></tr><tr><td>FreeNeRF†</td><td>Sparse reconstruction</td><td>12.13</td><td>0.230</td><td>0.576</td></tr><tr><td>DNGaussian†</td><td>Sparse reconstruction</td><td>12.67</td><td>0.329</td><td>0.547</td></tr><tr><td>FSGS†</td><td>Sparse reconstruction</td><td>13.73</td><td>0.429</td><td>0.540</td></tr><tr><td>3DGS-Enhancer†</td><td>3DGS post-hoc</td><td>16.94</td><td>0.565</td><td>0.356</td></tr><tr><td>Xu et al.†</td><td>3DGS post-hoc</td><td>17.35</td><td>0.566</td><td>0.396</td></tr><tr><td>Difix3D</td><td>3DGS post-hoc</td><td>14.84</td><td>0.445</td><td>0.462</td></tr><tr><td>Difix3D+</td><td>3DGS post-hoc</td><td>14.41</td><td>0.424</td><td>0.400</td></tr><tr><td>FixAnything</td><td>NeRF render</td><td>17.01</td><td>0.522</td><td>0.329</td></tr><tr><td>FixAnything</td><td>3DGS render</td><td>17.65</td><td>0.561</td><td>0.289</td></tr><tr><td><strong>FixAnything</strong></td><td><strong>Mesh render</strong></td><td><strong>17.95</strong></td><td><strong>0.583</strong></td><td><strong>0.269</strong></td></tr><tr><td>FixAnything</td><td>Sparse SfM points</td><td>17.74</td><td>0.568</td><td>0.271</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">사용자 브리핑에서 비교한 3DGS-Enhancer 대비 FixAnything 3DGS의 PSNR 차이는 16.94→17.65, +0.71 dB이고 LPIPS는 0.356→0.289로 0.067 낮다. 그러나 가장 높은 기존 PSNR은 Xu et al. 17.35이므로 최고 prior 대비 차이는 +0.30 dB다. SSIM은 Xu et al. 0.566보다 0.005 낮다.</p>
+
+
+
+<p class="wp-block-paragraph">같은 FixAnything weight에 mesh render를 넣으면 17.95 / 0.583 / 0.269로 네 입력 중 가장 좋고, sparse point도 17.74 / 0.568 / 0.271이다. 이는 point cloud만으로 3DGS를 완전히 대체할 수 있다는 제품 수준의 결론보다, <strong>clean anchor와 camera-motion scaffold가 충분하면 생성 prior가 많은 appearance를 채울 수 있다</strong>는 증거에 가깝다.</p>
+
+
+
+<h3 class="wp-block-heading">9-view 결과</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>종류·입력</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th></tr></thead><tbody><tr><td>3DGS†</td><td>Sparse reconstruction</td><td>14.99</td><td>0.403</td><td>0.446</td></tr><tr><td>RegNeRF†</td><td>Sparse reconstruction</td><td>12.33</td><td>0.219</td><td>0.598</td></tr><tr><td>FreeNeRF†</td><td>Sparse reconstruction</td><td>12.85</td><td>0.241</td><td>0.573</td></tr><tr><td>DNGaussian†</td><td>Sparse reconstruction</td><td>13.44</td><td>0.365</td><td>0.539</td></tr><tr><td>FSGS†</td><td>Sparse reconstruction</td><td>15.52</td><td>0.468</td><td>0.416</td></tr><tr><td>3DGS-Enhancer†</td><td>3DGS post-hoc</td><td>18.50</td><td>0.630</td><td>0.305</td></tr><tr><td>Xu et al.†</td><td>3DGS post-hoc</td><td>19.19</td><td>0.616</td><td>0.335</td></tr><tr><td>Difix3D</td><td>3DGS post-hoc</td><td>16.76</td><td>0.520</td><td>0.399</td></tr><tr><td>Difix3D+</td><td>3DGS post-hoc</td><td>16.39</td><td>0.498</td><td>0.330</td></tr><tr><td>FixAnything</td><td>NeRF render</td><td>18.86</td><td>0.605</td><td>0.297</td></tr><tr><td>FixAnything</td><td>3DGS render</td><td>19.76</td><td>0.632</td><td>0.269</td></tr><tr><td><strong>FixAnything</strong></td><td><strong>Mesh render</strong></td><td><strong>19.86</strong></td><td><strong>0.646</strong></td><td><strong>0.233</strong></td></tr><tr><td>FixAnything</td><td>Sparse SfM points</td><td>19.72</td><td>0.624</td><td>0.241</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">9-view에서는 FixAnything 3DGS가 강한 prior보다 세 지표 모두 앞선다. PSNR은 Xu et al. 19.19보다 0.57 dB 높고, SSIM은 3DGS-Enhancer 0.630보다 0.002 높으며, LPIPS는 0.305에서 0.269로 0.036 낮다. 브리핑의 3DGS-Enhancer 대비 PSNR +1.26 dB도 맞지만, strongest-PSNR baseline과 비교하면 +0.57 dB다.</p>
+
+
+
+<p class="wp-block-paragraph">논문 supplementary와 프로젝트 페이지에는 MipNeRF-360·LLFF cross-dataset 결과도 제시된다. 본문은 3DGS input에서 기존 방법과 비슷한 PSNR·SSIM, 더 좋은 LPIPS라고 요약하지만 arXiv HTML 본문에는 숫자 표가 포함되지 않았다. 이 글의 headline 수치는 평가 protocol이 완전히 공개된 DL3DV main table로 제한한다.</p>
+
+
+
+<h2 class="wp-block-heading">8. Ablation — anchor와 Flow-DPO가 실제로 한 일</h2>
+
+
+
+<h3 class="wp-block-heading">Flow-DPO는 pixel 점수보다 pose consistency를 크게 올렸다</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>모델</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th><th>AUC@5° ↑</th></tr></thead><tbody><tr><td>SFT only</td><td>17.51</td><td>0.554</td><td>0.296</td><td>61.12</td></tr><tr><td><strong>+ Flow-DPO</strong></td><td><strong>17.65</strong></td><td><strong>0.561</strong></td><td><strong>0.289</strong></td><td><strong>68.32</strong></td></tr><tr><td>차이</td><td>+0.14 dB</td><td>+0.007</td><td>-0.007</td><td><strong>+7.20%p</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">PSNR·SSIM·LPIPS 변화는 작고 AUC@5°가 61.12→68.32로 크게 오른다. 저자 표현의 “7.2% improvement”는 표의 절대 차이 7.20 point다. Flow-DPO는 개별 frame을 더 선명하게 만드는 단계라기보다, seed에 따라 생기던 움직이는 hallucination을 줄여 SfM이 camera path를 회수하기 쉽게 만든다.</p>
+
+
+
+<h3 class="wp-block-heading">Mask가 없으면 이미 깨끗한 frame도 다시 그린다</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>조건</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th></tr></thead><tbody><tr><td>Mask 없음, 모든 entry=1</td><td>16.37</td><td>0.525</td><td>0.311</td></tr><tr><td><strong>Mask-aware conditioning</strong></td><td><strong>17.65</strong></td><td><strong>0.561</strong></td><td><strong>0.289</strong></td></tr><tr><td>차이</td><td><strong>+1.28 dB</strong></td><td>+0.036</td><td>-0.022</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">Mask의 PSNR 효과는 논문 서술처럼 약 1.3 dB다. Model이 clean frame과 살짝 손상된 frame을 영상만 보고 구분하도록 맡기면, 원래 있던 표지판 같은 물체를 지우고 그 오류가 이웃 frame으로 퍼질 수 있다. Anchor는 content preservation의 핵심 입력이지 부가 옵션이 아니다.</p>
+
+
+
+<h3 class="wp-block-heading">20개 paired video는 가능성을 보인 최소 실험</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>SFT paired videos</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th></tr></thead><tbody><tr><td>20</td><td>16.70</td><td>0.531</td><td>0.309</td></tr><tr><td>50</td><td>17.20</td><td>0.548</td><td>0.297</td></tr><tr><td>100</td><td>17.45</td><td>0.556</td><td>0.292</td></tr><tr><td><strong>500</strong></td><td><strong>17.65</strong></td><td><strong>0.561</strong></td><td><strong>0.289</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">20개만으로도 PSNR 16.70을 얻지만 final 500-video model보다 0.95 dB 낮다. 100→500에서는 +0.20 dB라 diminishing return도 보인다. 적은 paired data로 LoRA를 적응시킬 수 있다는 주장은 지지하지만, 최종 공개 weight가 20개만으로 만들어졌다고 쓰면 틀린다.</p>
+
+
+
+<h3 class="wp-block-heading">Denoising 5 step은 10배 빠르지만 LPIPS trade-off가 있다</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>Steps</th><th>PSNR ↑</th><th>SSIM ↑</th><th>LPIPS ↓</th><th>61-frame 시간</th></tr></thead><tbody><tr><td><strong>5</strong></td><td><strong>18.02</strong></td><td><strong>0.574</strong></td><td>0.313</td><td><strong>31초</strong></td></tr><tr><td>10</td><td>17.91</td><td>0.570</td><td>0.296</td><td>62초</td></tr><tr><td>25</td><td>17.75</td><td>0.564</td><td><strong>0.289</strong></td><td>155초</td></tr><tr><td>50</td><td>17.65</td><td>0.561</td><td><strong>0.289</strong></td><td>309초</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">Single H100에서 50→5 step은 309→31초로 약 9.97배 빠르다. 5 step의 PSNR·SSIM은 오히려 높지만 LPIPS는 0.289→0.313으로 나빠진다. 31초는 61 frame 생성 시간이지 camera stream을 즉시 처리하는 31 FPS가 아니다. Clip 전체를 받은 뒤 생성하는 offline 처리이며 real-time cleanup으로 부르기 어렵다.</p>
+
+
+
+<h2 class="wp-block-heading">9. Hallucination과 uncertainty</h2>
+
+
+
+<p class="wp-block-paragraph">관측하지 않은 건물 뒷면을 “복구”할 때 유일한 정답을 알아낼 수는 없다. FixAnything은 video prior로 그럴듯한 내용을 만든다. 저자들은 기존 관측과 모순될 때를 실패하는 hallucination으로 구분하지만, 출력 하나만 보고 추론과 관측을 완전히 분리하는 내장 uncertainty head는 없다.</p>
+
+
+
+<p class="wp-block-paragraph">논문은 같은 입력을 seed 다섯 개로 반복 생성하고 pixel별 표준편차를 uncertainty proxy로 삼는다. DL3DV 6-view에서 confidence가 가장 높은 pixel 25%의 평균 PSNR은 25.7 dB, 가장 낮은 25%는 14.4 dB다. Error와 상관은 있지만, 다섯 번의 14B inference가 필요하고 calibration metric이나 failure threshold는 제공하지 않은 예비 분석이다.</p>
+
+
+
+<h2 class="wp-block-heading">10. 하드웨어와 실행 요구</h2>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>항목</th><th>공식 공개 내용</th></tr></thead><tbody><tr><td><strong>Base model</strong></td><td>Wan-AI/Wan2.1-I2V-14B-480P, repository 안내상 약 60GB 별도 다운로드</td></tr><tr><td><strong>Adapter</strong></td><td>Hugging Face의 <code>fixanything_lora.safetensors</code>, rank 64</td></tr><tr><td><strong>환경</strong></td><td>Python 3.10, PyTorch 2.6.0, torchvision 0.21.0, CUDA 12.6 설치 예시</td></tr><tr><td><strong>가속</strong></td><td>FlashAttention-2 optional but recommended</td></tr><tr><td><strong>저자 학습</strong></td><td>SFT single H100 3,000 iterations, Flow-DPO 2,000 additional iterations</td></tr><tr><td><strong>저자 추론 측정</strong></td><td>Single H100, 61 frame·480×832: 5 steps 31초 / 50 steps 309초</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">약 60GB는 checkpoint download 용량 안내이지 최소 VRAM 수치가 아니다. 공식 README는 최소 GPU memory, CPU offload 성능, multi-GPU 설정을 따로 제시하지 않는다. 14B DiT와 VAE·T5·CLIP 계열 파일을 함께 준비해야 하므로 LoRA 파일이 작다고 전체 실행이 가벼운 것은 아니다.</p>
+
+
+
+<p class="wp-block-paragraph">M1 Pro MacBook은 공식 설치 경로가 아니다. 공개 환경은 CUDA·PyTorch 2.6과 선택적 FlashAttention-2를 전제로 하며 Apple Silicon용 MPS 검증, memory requirement, runtime이 보고되지 않았다. 개인 Mac에서 바로 돌릴 수 있다고 안내하기보다 NVIDIA CUDA 환경이나 cloud H100에서 먼저 재현하는 편이 현실적이다.</p>
+
+
+
+<h2 class="wp-block-heading">11. 이 논문의 장점</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>표현 독립적인 interface가 단순하다.</strong> 3D 내부 parameter가 아니라 어느 renderer든 만들 수 있는 RGB video를 입력으로 쓴다.</li>
+
+<li><strong>하나의 weight로 네 표현을 처리한다.</strong> NeRF·3DGS·mesh·sparse point별 전용 복원기를 따로 학습하지 않는다.</li>
+
+<li><strong>Camera control을 render 자체에서 얻는다.</strong> 별도 SE(3) conditioning architecture를 추가하지 않아 적은 paired data로 적응했다.</li>
+
+<li><strong>Anchor의 역할이 명확하다.</strong> 관측한 clean view를 보존하고 appearance가 이웃 frame으로 퍼질 기준을 제공한다.</li>
+
+<li><strong>Geometry consistency를 학습 신호로 쓴다.</strong> SfM pose recovery를 reward proxy로 바꿔 Flow-DPO에 넣고 추론 비용은 늘리지 않는다.</li>
+
+<li><strong>공개 상태가 좋다.</strong> Inference code, 예제, LoRA weight, 자체 사진용 MapAnything pipeline과 Apache-2.0 license가 실제 공개됐다.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">12. 한계와 결과 해석의 경계</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>3D asset을 직접 고치지 않는다.</strong> 출력은 video이며 새로운 camera path가 필요하면 다시 render·inference해야 한다.</li>
+
+<li><strong>“Anything”은 검증된 네 표현 안에서 읽어야 한다.</strong> Dynamic scene, deformable object, outdoor city-scale path, 비RGB renderer를 포괄하는 실험은 아니다.</li>
+
+<li><strong>Anchor와 coarse geometry가 필요하다.</strong> Camera motion이나 scene layout이 render에 남지 않을 정도로 reconstruction이 무너지면 condition 자체가 잘못된다.</li>
+
+<li><strong>보이지 않은 영역은 생성한다.</strong> 그럴듯한 영상과 실제 현장의 물리적 사실은 다를 수 있어 측량·검사·안전 판단의 ground truth로 쓰기 어렵다.</li>
+
+<li><strong>Pose AUC는 geometry accuracy의 proxy다.</strong> Metric depth, surface error, topology correctness를 직접 검증하지 않는다.</li>
+
+<li><strong>Long video는 chunk 처리다.</strong> 61 frame을 넘는 trajectory의 장기 identity·texture consistency와 seam 누적에 대한 정량 평가가 없다.</li>
+
+<li><strong>최종 학습량은 20 pair보다 크다.</strong> 500 SFT pair 외에 1,000 scene의 다섯 candidate를 생성하고 COLMAP을 반복 실행한 Flow-DPO 준비 비용이 있다.</li>
+
+<li><strong>비교표 일부는 prior paper 보고값이다.</strong> 모든 baseline이 동일 code·hardware·random seed로 재실행된 결과는 아니다.</li>
+
+<li><strong>공개 문서는 inference 중심이다.</strong> SFT dataset 생성과 Flow-DPO 전체 training을 그대로 재현하는 end-to-end recipe는 README에 제공되지 않는다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">가장 안전한 결론은 이렇다. <strong>FixAnything은 저자 평가에서 네 3D representation의 render를 하나의 LoRA로 복원했고, clean anchor와 pose-based Flow-DPO가 content preservation과 view consistency를 개선했다.</strong> 그러나 고친 영상은 실제 3D geometry의 정답이 아니며, 독립 재현과 현장 데이터 검증 전에는 시각화·콘텐츠 제작용 결과와 계측용 결과를 분리해야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">13. 실무에서 어떻게 시험할까</h2>
+
+
+
+<p class="wp-block-paragraph">가장 가까운 용도는 적은 사진으로 만든 scene을 사람이 둘러볼 수 있는 영상으로 정리하는 작업이다. Digital twin preview, AR/VR 배경, 부동산·공간 기록, 로봇 학습용 scene visualization처럼 photorealistic novel view가 필요하지만 모든 영역의 metric geometry가 필수는 아닌 경우에 맞는다.</p>
+
+
+
+<ol class="wp-block-list">
+<li>같은 scene의 사진을 시간·노출이 크게 다르지 않게 촬영한다.</li>
+
+<li>COLMAP·MapAnything·3DGS 등으로 camera pose와 최소한의 3D scaffold를 만든다.</li>
+
+<li>Training view를 반드시 통과하는 61-frame camera path를 렌더링한다.</li>
+
+<li>실제 촬영 view의 frame index만 anchor mask로 지정한다.</li>
+
+<li>먼저 5·10 step으로 seed를 여러 개 시험하고, 중요한 결과만 25·50 step으로 비교한다.</li>
+
+<li>원본 anchor 보존, frame flicker, object drift, camera pose recovery를 함께 검사한다.</li>
+
+<li>3D asset이 필요하면 복원 video를 별도 reconstruction pipeline에 넣고 geometry metric을 다시 평가한다.</li>
+</ol>
+
+
+
+<p class="wp-block-paragraph">자사 PoC에서는 PSNR만 보지 말고 anchor pixel change, LPIPS, COLMAP registered-frame ratio, pose AUC, seed 간 variance, 61-frame latency를 같이 기록하는 편이 좋다. 설비 결함이나 안전 영역이라면 생성된 부분을 색으로 표시하고 원본 관측이 없는 영역을 사람이 확인할 수 있어야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">14. 코드·가중치·라이선스 상태</h2>
+
+
+
+<p class="wp-block-paragraph">2026년 8월 26일 기준 <a href="https://github.com/kvuong2711/fix-anything">공식 GitHub</a>에는 실행 가능한 inference code, 3DGS·sparse point 예제, model downloader와 자체 사진을 처리하는 MapAnything wrapper가 있다. Repository는 Python 3.10과 CUDA용 설치법, 61-frame 입력 형식, anchor index 옵션을 문서화했다.</p>
+
+
+
+<p class="wp-block-paragraph"><a href="https://huggingface.co/kvuong2711/fix-anything">Hugging Face model card</a>에는 rank-64 <code>fixanything_lora.safetensors</code>가 공개됐다. LoRA만으로는 실행할 수 없고 <a href="https://huggingface.co/Wan-AI/Wan2.1-I2V-14B-480P">Wan2.1-I2V-14B-480P base model</a>을 별도로 내려받아야 한다. 공식 downloader는 base checkpoint를 약 60GB로 안내한다.</p>
+
+
+
+<p class="wp-block-paragraph">코드와 FixAnything weight는 Apache-2.0이며 Wan2.1 model card도 Apache-2.0이다. 논문 자체는 arXiv perpetual non-exclusive license다. 선택 설치 항목인 MapAnything, DiffSynth-Studio, gsplat, DL3DV 데이터와 사용자가 투입하는 촬영물은 각각의 라이선스·개인정보 조건을 별도로 확인해야 한다.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity" />
+
+
+
+<h3 class="wp-block-heading">원문과 공개 자료</h3>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://arxiv.org/abs/2608.23549">arXiv 초록과 제출 이력</a></li>
+
+<li><a href="https://arxiv.org/html/2608.23549v1">arXiv HTML 전문</a></li>
+
+<li><a href="https://arxiv.org/pdf/2608.23549">논문 PDF</a></li>
+
+<li><a href="https://fix-anything.github.io/">공식 프로젝트 페이지와 영상 비교</a></li>
+
+<li><a href="https://github.com/kvuong2711/fix-anything">공식 GitHub</a></li>
+
+<li><a href="https://huggingface.co/kvuong2711/fix-anything">FixAnything LoRA model card</a></li>
+
+<li><a href="https://huggingface.co/Wan-AI/Wan2.1-I2V-14B-480P">Wan2.1-I2V-14B-480P model card</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><em>공식 arXiv v1, 프로젝트 페이지, GitHub와 Hugging Face model card를 2026년 8월 26일 확인했습니다. 모든 성능 수치는 저자 평가이며 독립 재현 결과가 아닙니다. 서로 다른 3D representation이나 출처가 다른 baseline 수치는 같은 조건인 경우에만 직접 비교했습니다.</em></p>
+
+]]></content:encoded>
+
+
+
+			</item>
+		<item>
+		<title>E2S-Pruner 논문 분석: 학습 없이 VLM Visual Token을 줄이는 Evidence Fusion</title>
+		<link>https://odd-note.invalid/e2s-pruner-vlm-token-pruning-paper-analysis/</link>
+
+		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
+		<pubDate>Wed, 26 Aug 2026 03:56:34 +0000</pubDate>
+				<category><![CDATA[AI 논문 분석]]></category>
+		<category><![CDATA[Dempster-Shafer]]></category>
+		<category><![CDATA[E2S-Pruner]]></category>
+		<category><![CDATA[Inference Optimization]]></category>
+		<category><![CDATA[LLaVA]]></category>
+		<category><![CDATA[Qwen2-VL]]></category>
+		<category><![CDATA[Visual Token Pruning]]></category>
+		<category><![CDATA[VLM]]></category>
+		<guid isPermaLink="false">https://odd-note.invalid/e2s-pruner-vlm-token-pruning-paper-analysis/</guid>
+
+					<description><![CDATA[이미지·prompt와 VLM attention을 받아 head·layer evidence를 결합하고 token을 줄이는 과정, 여섯 benchmark의 유지율과 latency·memory·OCR 한계를 분석합니다.]]></description>
+										<content:encoded><![CDATA[
+<p class="article-lead wp-block-paragraph"><strong>같은 이미지를 본 attention head들이 서로 다른 곳을 중요하다고 말할 때, 점수를 평균내는 것이 정말 안전할까?</strong> E2S-Pruner는 이 불일치를 잡음으로 지우지 않고 증거의 불확실성과 충돌로 모델링한다. 추가 학습 없이 LLM 내부의 visual token을 단계적으로 줄이되, 서로 다른 head와 layer가 지지한 정보를 Dempster–Shafer evidence theory로 결합하는 방식이다.</p>
+
+
+
+<p class="wp-block-paragraph">논문은 LLaVA-1.5-7B의 평균 visual-token budget을 128과 64로 줄였을 때 MMBench 평가 환경에서 throughput이 각각 1.96배와 2.09배가 됐다고 보고한다. 하지만 aggressive pruning은 작은 글자에 약하고, peak GPU memory는 dense model보다 약 21% 늘었다. 더 중요한 해석상의 주의점도 있다. 논문의 “64 tokens”는 마지막까지 64개를 유지한다는 뜻이 아니라 <strong>32개 LLM layer 전체에서 평균한 budget</strong>이다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>정식 제목:</strong> E2S-Pruner: Progressive Two-Stage Evidence Fusion for Visual Token Pruning in Vision-Language Models · <strong>arXiv:</strong> 2608.23253v1 · <strong>제출:</strong> 2026년 8월 24일 13:44:41 UTC · <strong>확인 기준:</strong> 2026년 8월 26일</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>E2S-Pruner의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>이미지에서 만든 visual token, 사용자 질문의 text token, 지정 LLM layer의 head별 text-to-visual attention, pruning layer와 token budget.</td></tr><tr><td><strong>Process</strong></td><td>Head별 attention 정규화 → clarity·consistency 기반 reliability → important/unimportant/uncertain mass → layer 간 Dempster–Shafer 결합 → conflict protection → spatial novelty bonus → Top-K pruning.</td></tr><tr><td><strong>Output</strong></td><td>각 pruning layer 뒤에 남길 visual-token subset. VLM은 줄어든 sequence로 기존과 같은 형태의 자연어 답변을 생성한다.</td></tr><tr><td><strong>학습 조건</strong></td><td>Auxiliary model, 새 trainable parameter, fine-tuning이 없는 inference-time 방식. 단, pretrained base VLM과 내부 attention 접근은 필요하다.</td></tr><tr><td><strong>핵심 trade-off</strong></td><td>64 average-token budget에서 MMBench throughput 2.09×, total latency -51.5%, peak memory +20.8%, MMBench score 64.6→57.3.</td></tr></tbody></table></figure>
+
+
+
+<h2 class="wp-block-heading">1. 어떤 문제를 풀려는 논문인가</h2>
+
+
+
+<p class="wp-block-paragraph">VLM은 vision encoder가 이미지를 여러 patch token으로 바꾼 뒤 text token과 함께 LLM에 넣는다. LLaVA-1.5-7B의 논문 설정에서는 이미지 한 장이 24×24, 즉 <strong>576개 visual token</strong>이 된다. 이 token이 LLM의 모든 layer를 지나면 self-attention과 feed-forward 계산, activation과 KV 관련 memory 부담이 커진다.</p>
+
+
+
+<p class="wp-block-paragraph">일반적인 attention pruning은 text가 많이 바라보는 visual token을 중요하다고 보고 score를 평균한 뒤 Top-K만 남긴다. 문제는 head와 layer마다 역할이 다르다는 데 있다. Shallow layer는 texture와 edge, middle layer는 object structure, deep layer는 global semantics에 더 반응할 수 있다. 어떤 token이 한 layer에서는 약하지만 다른 layer에서는 강한 증거를 얻었을 때 단순 평균은 그 이유와 충돌을 구분하지 못한다.</p>
+
+
+
+<p class="wp-block-paragraph">E2S-Pruner의 질문은 “점수가 얼마나 큰가”에서 “그 점수를 낸 증거가 얼마나 명확하고 서로 일치하는가”로 바뀐다. 여러 head가 비슷한 방향을 지지하면 reliability를 높이고, head끼리 엇갈리면 일부 mass를 uncertainty에 남긴다. Layer끼리 의견이 충돌한 token은 바로 버리지 않고 retention priority를 올려 보호한다.</p>
+
+
+
+<h3 class="wp-block-heading">Training-free의 정확한 뜻</h3>
+
+
+
+<p class="wp-block-paragraph">이 논문에서 training-free는 E2S-Pruner를 위해 별도 model을 학습하거나 base VLM을 fine-tuning하지 않는다는 뜻이다. 추가 weight나 전용 checkpoint도 필요하지 않다. 이미 학습된 LLaVA-1.5-7B 또는 Qwen2-VL-7B의 inference graph 안에서 attention을 읽고 token index를 선택한다.</p>
+
+
+
+<ul class="wp-block-list">
+<li>Base VLM 자체는 대규모 데이터로 사전학습된 모델이다.</li>
+
+<li>Pruning layer, 단계별 keep count, spatial grid와 λ는 사람이 설정한다.</li>
+
+<li>Evidence fusion 계산과 intermediate tensor는 추가된다.</li>
+
+<li>모델 내부 Q·K 또는 head별 attention에 접근해야 하므로 closed VLM API에 설정 하나로 붙이는 방식은 아니다.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">2. Input — 무엇을 받아 token을 고르는가</h2>
+
+
+
+<h3 class="wp-block-heading">이미지와 사용자 질문</h3>
+
+
+
+<p class="wp-block-paragraph">사용자 수준의 입력은 일반 VLM과 같다. 이미지와 “표지판에 무엇이라고 쓰였나?”, “사진 속 동물은 몇 마리인가?” 같은 text prompt를 넣는다. Vision encoder는 이미지를 visual token 집합으로 만들고 tokenizer는 질문을 text token 집합으로 만든다.</p>
+
+
+
+<p class="wp-block-paragraph">E2S-Pruner는 image saliency만 보는 방법이 아니다. 각 LLM head에서 모든 text token의 query와 visual token의 key 사이 scaled dot product를 평균해 <strong>text-to-visual attention evidence</strong>를 만든다. 같은 이미지라도 질문이 달라지면 text query가 달라지므로 남는 visual token도 달라질 수 있다.</p>
+
+
+
+<h3 class="wp-block-heading">모델 내부에서 필요한 정보</h3>
+
+
+
+<ul class="wp-block-list">
+<li>현재 layer의 visual-token activation과 원래 2D patch 위치</li>
+
+<li>각 attention head의 text query와 visual key</li>
+
+<li>이전 pruning layer까지 누적한 token별 D-S mass</li>
+
+<li>Pruning layer 목록과 각 단계의 keep budget</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">LLaVA 실험은 32-layer LLM에서 layer 3, 17, 22를 통과한 뒤 세 번 pruning한다. 따라서 layer 4, 18, 23의 입력 visual-token 수가 단계적으로 줄어든다. 이 위치는 학습으로 찾는 것이 아니라 논문 설정으로 고정한다.</p>
+
+
+
+<h2 class="wp-block-heading">3. Output — 무엇이 나오고 무엇은 나오지 않나</h2>
+
+
+
+<p class="wp-block-paragraph">E2S-Pruner 자체의 직접 출력은 각 pruning 시점에 계속 전달할 <strong>visual-token index와 token subset</strong>이다. 선택되지 않은 token은 이후 LLM layer에서 제거된다. 남은 token과 text representation으로 base VLM이 원래와 같은 자연어 답변을 만든다.</p>
+
+
+
+<ul class="wp-block-list">
+<li>최종 사용자 출력 형식은 base VLM의 text answer와 같다.</li>
+
+<li>D-S uncertainty는 token selection용 내부 값이며, 답변의 calibrated confidence로 출력되지 않는다.</li>
+
+<li>삭제한 patch를 OCR detector로 복구하거나 고해상도로 다시 읽는 fallback은 없다.</li>
+
+<li>Token merging처럼 제거 token의 feature를 보존 token에 합치는 것이 아니라 Top-K 밖 token을 prune한다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">따라서 성능 손실은 “답변 생성 능력이 새로 학습되지 않아서”가 아니라, 뒤쪽 layer가 더 이상 볼 수 없는 visual evidence가 생겨서 발생한다. 작은 글자나 얇은 선처럼 한두 patch에 정보가 몰린 task에서 특히 위험하다.</p>
+
+
+
+<h2 class="wp-block-heading">4. ‘192·128·64 tokens’는 실제로 무엇을 뜻하나</h2>
+
+
+
+<p class="wp-block-paragraph">논문은 방법마다 pruning 위치와 최종 token 수가 다르기 때문에 <strong>AvgTokens</strong>를 비교 기준으로 쓴다. 각 LLM layer에 들어간 visual-token 수를 모두 더한 뒤 전체 32개 layer로 나눈 값이다. 즉 average budget 64는 모든 layer에서 64개를 유지한다는 설정이 아니다.</p>
+
+
+
+<pre class="wp-block-code"><code>AvgTokens = (각 LLM layer가 처리한 visual-token 수의 합) / LLM layer 수</code></pre>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>표기된 average budget</th><th>초기 token</th><th>Layer 3 뒤</th><th>Layer 17 뒤</th><th>Layer 22 뒤</th><th>논문상 reduction</th></tr></thead><tbody><tr><td><strong>192</strong></td><td>576</td><td>194</td><td>148</td><td>96</td><td>66.7%</td></tr><tr><td><strong>128</strong></td><td>576</td><td>122</td><td>48</td><td>42</td><td>77.8%</td></tr><tr><td><strong>64</strong></td><td>576</td><td>20</td><td>8</td><td>0</td><td>88.9%</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">64-budget에서는 layer 22 뒤에 visual token이 0개다. 이후 layer는 앞선 layer에서 image information이 섞인 text representation만 이어서 처리한다. “576개를 64개로 줄여 마지막까지 64개가 남는다”는 요약과 실제 계산 graph가 다른 이유다.</p>
+
+
+
+<p class="wp-block-paragraph">Baseline과의 공정성도 이 평균 budget 안에서 해석해야 한다. 논문은 서로 다른 pruning schedule을 같은 AvgTokens로 맞췄지만, 모든 방법이 같은 layer에서 같은 최종 token 수를 쓰는 것은 아니다.</p>
+
+
+
+<h2 class="wp-block-heading">5. Process — attention에서 Top-K token까지</h2>
+
+
+
+<h3 class="wp-block-heading">Step 1. Head별 text-to-visual attention 계산</h3>
+
+
+
+<p class="wp-block-paragraph">Pruning layer l의 head h에서 visual token n이 받은 score는 모든 text token의 query와 해당 visual key의 scaled dot product를 평균한 값이다. 그 뒤 같은 head 안의 visual-token 축으로 softmax해 상대 attention <code>r(l,h,n)</code>을 만든다.</p>
+
+
+
+<pre class="wp-block-code"><code>a(l,h,n) = mean_text(Q_text · K_visual(n) / sqrt(d))
+r(l,h,n) = softmax_over_visual_tokens(a(l,h,n))</code></pre>
+
+
+
+<h3 class="wp-block-heading">Step 2. Attention을 0.5 기준의 support로 변환</h3>
+
+
+
+<p class="wp-block-paragraph">현재 visual-token 수를 N이라고 하면 support는 <code>p = N·r / (1 + N·r)</code>로 바꾼다. 모든 token이 균등 attention <code>1/N</code>을 받으면 p=0.5다. 0.5보다 크면 보존 쪽, 작으면 제거 쪽의 증거로 읽고, 값은 0 이상 1 미만 범위에 놓인다.</p>
+
+
+
+<p class="wp-block-paragraph">이 변환은 서로 다른 pruning stage에서 token 수가 바뀌어도 “평균 attention”을 같은 0.5 기준으로 맞추려는 장치다. Raw attention magnitude를 layer 사이에서 바로 더하는 방식과 차이가 있다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 3. Head들의 명확성과 일치도로 reliability 계산</h3>
+
+
+
+<p class="wp-block-paragraph">한 token에 대해 여러 head의 support가 0.5에서 멀고 같은 방향을 가리키면 증거가 명확하고 일관적이다. 반대로 일부 head는 0.9, 일부는 0.1이라면 평균만으로는 보존 여부를 결정하기 어렵다. E2S-Pruner는 <strong>decision clarity</strong>와 head support의 평균 편차로 만든 <strong>consistency</strong>를 곱해 reliability ρ를 만든다.</p>
+
+
+
+<p class="wp-block-paragraph">여기서 첫 단계는 각 head를 Dempster rule로 하나씩 결합하는 구현이 아니다. Head별 support의 평균과 head 간 명확성·일치성으로 하나의 layer-wise mass function을 구성한다. Dempster–Shafer의 명시적인 recursive combination은 다음 layer-fusion 단계에서 수행된다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 4. Important·Unimportant·Uncertain mass 구성</h3>
+
+
+
+<p class="wp-block-paragraph">Token n의 head-average support를 <code>p̄</code>라고 하면 layer l의 mass는 다음과 같다.</p>
+
+
+
+<pre class="wp-block-code"><code>m(I) = ρ · p̄
+m(U) = ρ · (1 - p̄)
+m(Θ) = 1 - ρ</code></pre>
+
+
+
+<p class="wp-block-paragraph"><code>I</code>는 important, <code>U</code>는 unimportant다. <code>Θ={I,U}</code>는 “중요하거나 중요하지 않을 수 있으나 현재 증거로 구분할 수 없음”에 배정한 mass다. 즉 uncertain은 I·U와 나란히 놓인 세 번째 독립 class가 아니라 <strong>두 가설을 포괄하는 ignorance set</strong>이다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 5. Dempster–Shafer로 layer 증거를 재귀 결합</h3>
+
+
+
+<p class="wp-block-paragraph">첫 pruning layer의 mass를 시작점으로 두고, 다음 pruning layer가 올 때마다 이전 누적 mass와 현재 mass를 합친다. 두 source의 직접 충돌은 이전이 important인데 현재가 unimportant인 경우와 그 반대의 곱을 더해 계산한다.</p>
+
+
+
+<pre class="wp-block-code"><code>K = m_prev(I)·m_now(U) + m_prev(U)·m_now(I)
+
+Bel(I) = m_fused(I)
+Pl(I)  = m_fused(I) + m_fused(Θ) = 1 - m_fused(U)</code></pre>
+
+
+
+<p class="wp-block-paragraph">Dempster’s rule은 서로 모순되지 않는 조합의 mass를 더하고 <code>1-K</code>로 정규화한다. Belief는 중요하다고 직접 지지된 mass의 하한이고, plausibility는 uncertainty까지 포함해 “중요할 가능성을 아직 배제할 수 없는” 상한이다. E2S-Pruner는 보수적으로 Bel이 아니라 Pl을 pruning 기준에 쓴다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 6. Layer conflict가 큰 token을 보호</h3>
+
+
+
+<p class="wp-block-paragraph">최종 retention priority는 다음 식이다.</p>
+
+
+
+<pre class="wp-block-code"><code>q = 1 - (1 - Pl(I)) · (1 - K)</code></pre>
+
+
+
+<p class="wp-block-paragraph">중요 plausibility가 높거나, 이전·현재 layer의 판단 충돌 K가 크면 q가 올라간다. Layer끼리 의견이 다르다는 이유로 평균 score가 낮아진 token을 즉시 지우지 않고 다음 layer까지 보존하려는 conflict protection이다. 이 uncertainty는 답변 확률을 보정하는 것이 아니라 token 삭제 결정을 늦추는 데 쓰인다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 7. Spatial novelty bonus 뒤 global Top-K</h3>
+
+
+
+<p class="wp-block-paragraph">Semantic relevance만으로 global Top-K를 하면 한 물체 주변에 token이 몰릴 수 있다. LLaVA의 24×24 patch grid를 4×4 spatial cell로 나누면 cell 하나에는 처음에 6×6 token이 들어간다. 각 occupied cell에서 q가 가장 높은 대표 token 하나에 indicator <code>b=1</code>을 주고, λ=0.1의 soft bonus를 더한다.</p>
+
+
+
+<pre class="wp-block-code"><code>q_spatial = (1 - λ)·q + λ·b,  λ = 0.1</code></pre>
+
+
+
+<p class="wp-block-paragraph">이것은 각 cell에서 반드시 하나를 남기는 hard quota가 아니다. 대표 token의 순위를 조금 올린 뒤 전체 후보에서 다시 Top-K를 고른다. 따라서 coverage를 유도하지만 모든 공간 영역 보존을 보장하지 않고, 글자가 있는 cell을 특별히 인식해 보호하지도 않는다.</p>
+
+
+
+<h2 class="wp-block-heading">6. Dempster–Shafer 결합이 단순 평균과 다른 이유</h2>
+
+
+
+<p class="wp-block-paragraph">가령 작은 표지판 token을 shallow layer는 0.02로 거의 무시하지만 middle·deep layer는 0.65와 0.62로 지지한다고 하자. 단순 평균은 0.43이 되어 쉽게 잘릴 수 있다. E2S-Pruner는 각 layer의 reliability와 uncertainty를 따로 남기고, shallow와 deep evidence가 충돌했다는 K까지 retention score에 반영한다.</p>
+
+
+
+<p class="wp-block-paragraph">이 설계의 장점은 “모든 layer가 동의한 token”뿐 아니라 “어떤 layer에서는 강한데 다른 layer에서는 판단이 보류된 token”을 살릴 여지가 있다는 것이다. 반면 높은 conflict가 항상 유용한 정보라는 보장은 없다. 잡음 때문에 layer 의견이 갈린 token도 추가로 보호될 수 있으므로, 실제 이득은 ablation과 task별 결과로 확인해야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">7. 어떤 데이터셋으로 평가했나</h2>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>Benchmark</th><th>평가 모델</th><th>주로 보는 능력</th></tr></thead><tbody><tr><td><strong>GQA</strong></td><td>LLaVA</td><td>실사 이미지의 object attribute, spatial relation, compositional reasoning</td></tr><tr><td><strong>ScienceQA</strong></td><td>LLaVA·Qwen</td><td>이미지·도표가 포함된 과학 객관식 reasoning</td></tr><tr><td><strong>TextVQA</strong></td><td>LLaVA</td><td>간판·메뉴·문서 등 scene text 읽기와 질의응답</td></tr><tr><td><strong>POPE</strong></td><td>LLaVA·Qwen</td><td>존재하지 않는 object를 답하는 hallucination</td></tr><tr><td><strong>MME</strong></td><td>LLaVA·Qwen</td><td>존재·수량·위치·OCR·상식·reasoning을 포함한 종합 능력</td></tr><tr><td><strong>MMBench</strong></td><td>LLaVA</td><td>Attribute, spatial relation, 논리, chart 등 객관식 multimodal 능력</td></tr><tr><td><strong>AI2D</strong></td><td>Qwen</td><td>과학 diagram과 instructional illustration 이해</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">LLaVA-1.5-7B의 main 비교는 GQA, SQA, TextVQA, POPE, MME, MMBench 여섯 개다. Qwen2-VL-7B cross-model 비교는 SQA, POPE, MME, AI2D 네 개다. 논문은 각 benchmark의 공식 prompt template과 evaluator를 사용했다고 밝힌다.</p>
+
+
+
+<h3 class="wp-block-heading">Aggregate retention은 accuracy가 아니다</h3>
+
+
+
+<p class="wp-block-paragraph">여섯 benchmark는 score 단위가 다르므로 각 pruned score를 dense baseline score로 나눈 뒤 여섯 비율을 동일 가중 평균한다. Dense LLaVA의 기준값은 GQA 61.9, SQA 69.5, TextVQA 58.2, POPE 85.9, MME 1862, MMBench 64.6이다.</p>
+
+
+
+<p class="wp-block-paragraph">따라서 “90.6% performance retention”은 문제 100개 중 90.6개를 맞혔다는 accuracy가 아니다. 서로 다른 여섯 metric의 <strong>dense 대비 비율 평균</strong>이다. 특정 task가 크게 떨어져도 다른 task가 버티면 aggregate가 높게 나올 수 있어 개별 score를 함께 봐야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">8. LLaVA-1.5-7B 비교 결과</h2>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>Average budget</th><th>E2S-Pruner</th><th>V2Drop</th><th>SparseVLM</th><th>E2S 차이</th></tr></thead><tbody><tr><td><strong>192</strong></td><td><strong>98.0%</strong></td><td>97.6%</td><td>95.9%</td><td>+0.4%p / +2.1%p</td></tr><tr><td><strong>128</strong></td><td><strong>96.8%</strong></td><td>94.0%</td><td>93.2%</td><td>+2.8%p / +3.6%p</td></tr><tr><td><strong>64</strong></td><td><strong>90.6%</strong></td><td>86.9%</td><td>86.5%</td><td>+3.7%p / +4.1%p</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">논문 비교표에서는 세 average budget 모두 E2S-Pruner의 aggregate retention이 가장 높다. Budget이 작아질수록 V2Drop·SparseVLM과의 차이가 커져, evidence fusion의 이득이 aggressive pruning에서 더 두드러진다. 128-budget에서는 여섯 benchmark 모두 표의 다른 pruning method보다 높은 개별 score를 기록했다.</p>
+
+
+
+<p class="wp-block-paragraph">하지만 192-budget에서는 POPE와 MME가 V2Drop보다 낮다. E2S-Pruner는 POPE 83.6 대 85.1, MME 1814 대 1826이고, aggregate만 98.0 대 97.6으로 높다. “모든 budget의 모든 task에서 최고”가 아니라 <strong>세 budget의 정규화 평균에서 최고</strong>라고 한정해야 한다.</p>
+
+
+
+<h3 class="wp-block-heading">가장 공격적인 64-budget의 실제 score</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>GQA</th><th>SQA</th><th>TextVQA</th><th>POPE</th><th>MME</th><th>MMBench</th><th>Avg</th></tr></thead><tbody><tr><td>Dense LLaVA</td><td>61.9</td><td>69.5</td><td>58.2</td><td>85.9</td><td>1862</td><td>64.6</td><td>100.0%</td></tr><tr><td>LLaVA-PruMerge</td><td>51.9</td><td>68.1</td><td><strong>54.0</strong></td><td>65.3</td><td>1549</td><td>55.2</td><td>86.5%</td></tr><tr><td>SparseVLM</td><td>52.7</td><td>62.2</td><td>51.8</td><td>75.1</td><td>1505</td><td>56.2</td><td>86.5%</td></tr><tr><td>V2Drop</td><td>50.5</td><td>68.9</td><td>51.8</td><td>75.1</td><td>1470</td><td>55.2</td><td>86.9%</td></tr><tr><td><strong>E2S-Pruner</strong></td><td><strong>55.5</strong></td><td><strong>69.4</strong></td><td>49.5</td><td><strong>78.5</strong></td><td><strong>1656</strong></td><td><strong>57.3</strong></td><td><strong>90.6%</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">E2S-Pruner는 TextVQA를 제외한 다섯 task와 aggregate에서 이 표의 pruning baseline보다 높다. 특히 V2Drop 대비 GQA +5.0, POPE +3.4, MME +186, MMBench +2.1이다. 반면 TextVQA는 뒤집힌다. 이 한 열이 실무에서 중요한 한계를 보여준다.</p>
+
+
+
+<h2 class="wp-block-heading">9. OCR 한계 — 작은 글자는 왜 먼저 사라지나</h2>
+
+
+
+<p class="wp-block-paragraph">64 average-token budget에서 E2S-Pruner의 TextVQA는 49.5다. Dense LLaVA 58.2의 약 85.1%이며, LLaVA-PruMerge 54.0보다 <strong>4.5점 낮다</strong>. 전체 평균은 E2S-Pruner가 높아도 scene-text task만 보면 다른 선택이 더 낫다.</p>
+
+
+
+<p class="wp-block-paragraph">문자는 물체 전체보다 훨씬 작은 patch에 정보가 몰리고 획 하나가 빠져도 의미가 달라진다. 64-budget schedule은 첫 pruning부터 576개를 20개로 줄이고 마지막에는 visual token이 0개가 된다. Spatial novelty는 4×4 cell의 대표 token에 bonus를 줄 뿐 text region을 검출하거나 문자 patch를 묶어서 보존하지 않는다.</p>
+
+
+
+<p class="wp-block-paragraph">128-budget의 default schedule에서는 TextVQA가 56.0으로 dense 58.2에 비교적 가깝고, 같은 표의 pruning 방법 중 가장 높다. 논문의 schedule analysis에서도 deep layer에 42 token을 남긴 기본 schedule이 TextVQA 56.0으로, deep token을 32·22·12·2개로 더 줄인 대안의 55.9·55.6·55.6·55.8보다 높았다. OCR 서비스라면 64-budget headline보다 <strong>128 이상에서 text-heavy validation을 먼저 수행</strong>하는 편이 합리적이다.</p>
+
+
+
+<ul class="wp-block-list">
+<li>상품 라벨·영수증·문서 OCR은 TextVQA와 별도 내부 benchmark를 둔다.</li>
+
+<li>문자 크기, 저대비, 기울기, 여러 줄 text 조건으로 retention을 나눠 본다.</li>
+
+<li>OCR 질문에는 pruning budget을 높이거나 text detector 기반 보호 규칙을 별도로 검토한다.</li>
+
+<li>일반 VQA 평균이 유지돼도 serial number 한 글자 오류는 제품상 실패로 계산한다.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">10. Qwen2-VL-7B에서도 통했나</h2>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>Reduction</th><th>방법</th><th>SQA</th><th>POPE</th><th>MME</th><th>AI2D</th><th>Avg</th></tr></thead><tbody><tr><td>0%</td><td>Dense Qwen2-VL-7B</td><td>84.7</td><td>86.1</td><td>2317</td><td>80.5</td><td>100.0%</td></tr><tr><td>66.7%</td><td>V2Drop</td><td>81.6</td><td><strong>87.2</strong></td><td>2224</td><td>78.0</td><td>97.6%</td></tr><tr><td>66.7%</td><td><strong>E2S-Pruner</strong></td><td><strong>83.8</strong></td><td>86.8</td><td>2228</td><td><strong>80.2</strong></td><td><strong>98.9%</strong></td></tr><tr><td>77.8%</td><td>V2Drop</td><td>78.9</td><td><strong>85.1</strong></td><td><strong>2173</strong></td><td><strong>75.6</strong></td><td>94.9%</td></tr><tr><td>77.8%</td><td><strong>E2S-Pruner</strong></td><td><strong>82.9</strong></td><td>83.9</td><td>2156</td><td>74.9</td><td><strong>95.4%</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">66.7% reduction에서 E2S-Pruner의 98.9%는 V2Drop 97.6보다 +1.3%p, 77.8%에서는 95.4 대 94.9로 +0.5%p다. 별도 fine-tuning 없이 다른 model family에도 적용했다는 점은 의미가 있다.</p>
+
+
+
+<p class="wp-block-paragraph">다만 두 번째 조건에서 E2S-Pruner가 이긴 개별 task는 SQA뿐이다. POPE, MME, AI2D는 V2Drop이 더 높고, 큰 SQA 차이가 정규화 평균을 끌어올린다. Cross-model 검증도 Qwen2-VL-7B 한 모델과 네 benchmark에 한정되며, Qwen에서의 latency·memory 표는 없다. “모든 VLM에서 같은 2.09×”로 일반화할 수 없다.</p>
+
+
+
+<h2 class="wp-block-heading">11. Ablation — 어떤 구성요소가 필요했나</h2>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>128 average-budget variant</th><th>SQA</th><th>TextVQA</th><th>MME</th><th>MMBench</th><th>4-task retention</th></tr></thead><tbody><tr><td>Vanilla Attention Top-K</td><td>64.9</td><td>55.8</td><td>1692</td><td>59.2</td><td>92.9%</td></tr><tr><td>Head reliability 제거</td><td>68.0</td><td>55.8</td><td>1769</td><td>61.1</td><td>95.8%</td></tr><tr><td>Layer-wise fusion 제거</td><td>68.9</td><td>55.8</td><td>1763</td><td>61.4</td><td>96.2%</td></tr><tr><td>Conflict protection 제거</td><td>68.9</td><td>55.9</td><td><strong>1781</strong></td><td>62.3</td><td>96.8%</td></tr><tr><td>Spatial novelty 제거</td><td>68.9</td><td>55.9</td><td>1774</td><td>61.2</td><td>96.3%</td></tr><tr><td><strong>Full E2S</strong></td><td><strong>69.9</strong></td><td><strong>56.0</strong></td><td>1779</td><td><strong>63.5</strong></td><td><strong>97.7%</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">일반 attention Top-K를 full E2S로 바꾸면 네 task의 정규화 retention이 92.9→97.7%, +4.8%p다. Head reliability는 +1.9%p, layer-wise fusion은 +1.5%p, conflict protection은 +0.9%p, spatial novelty는 +1.4%p의 차이를 보인다.</p>
+
+
+
+<p class="wp-block-paragraph">Full model이 모든 개별 metric에서 최고는 아니다. Conflict protection을 뺀 variant의 MME 1781은 full 1779보다 2점 높다. 저자 해석처럼 conflict protection의 장점은 한 benchmark의 절대 최고보다 여러 task에서의 균형에 가깝다.</p>
+
+
+
+<p class="wp-block-paragraph">이 ablation의 Avg는 SQA·TextVQA·MME·MMBench 네 task만 평균한 97.7%다. Main Table의 여섯 task aggregate 96.8%와 계산 대상이 다르므로 서로 바꾸어 인용하면 안 된다. 논문은 반복 seed의 평균·표준편차나 confidence interval도 보고하지 않는다.</p>
+
+
+
+<h2 class="wp-block-heading">12. 지연·throughput·memory의 실제 trade-off</h2>
+
+
+
+<p class="wp-block-paragraph">효율성 표는 논문 표기상 <strong>NVIDIA GeForce RTX 4080 Super GPU, 32GB memory</strong>에서 MMBench를 사용해 측정했다. GPU 수, batch size, warm-up, decoding length와 generation parameter는 별도로 제시되지 않는다. 아래 latency는 수백 초 단위의 평가 실행 총량으로 보고돼 있어 단일 request latency로 읽으면 안 된다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>LLM generation latency</th><th>Total latency</th><th>Peak GPU memory</th><th>Throughput</th><th>MMBench</th></tr></thead><tbody><tr><td>Dense LLaVA</td><td>676.11s</td><td>820.15s</td><td>15,566MB</td><td>5.28 item/s</td><td>64.6</td></tr><tr><td>E2S, avg 128</td><td>312.48s (-53.8%)</td><td>422.28s (-48.5%)</td><td>18,847MB (+21.1%)</td><td>10.37 item/s (1.96×)</td><td>63.5</td></tr><tr><td>E2S, avg 64</td><td>286.11s (-57.7%)</td><td>397.37s (-51.5%)</td><td>18,807MB (+20.8%)</td><td>11.02 item/s (2.09×)</td><td>57.3</td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading">속도는 좋아지지만 memory-efficient는 아니다</h3>
+
+
+
+<p class="wp-block-paragraph">128-budget은 MMBench score를 64.6→63.5로 비교적 적게 낮추면서 total latency를 48.5% 줄인다. 64-budget은 throughput을 11.02 item/s까지 높이지만 score가 57.3으로 더 떨어진다. 이 표에서 128은 quality-speed 균형, 64는 최대 throughput 쪽에 가깝다.</p>
+
+
+
+<p class="wp-block-paragraph">반면 peak memory는 dense 15,566MB에서 약 18.8GB로 늘어난다. 논문은 evidence modeling과 cross-layer fusion을 위해 보존한 intermediate state가 원인이라고 설명한다. E2S-Pruner의 peak memory는 SparseVLM보다는 조금 낮지만 FastV와 V2Drop보다 높다. Visual-token 수를 줄였다는 이유만으로 저메모리 edge 배포에 적합하다고 결론낼 수 없다.</p>
+
+
+
+<p class="wp-block-paragraph">또 2.09×는 같은 MMBench 환경에서 dense LLaVA 대비 throughput 비율이다. Vision encoder, prompt 길이, 생성 답변 길이와 kernel 구현이 다른 서비스에서 그대로 재현된다는 보장은 없다. 코드가 비어 있는 현재는 저자 측정 protocol을 독립 확인할 수도 없다.</p>
+
+
+
+<h2 class="wp-block-heading">13. 이 논문의 장점</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>추가 학습이 없다.</strong> Base VLM을 다시 fine-tuning하거나 pruning network를 따로 학습하지 않는다.</li>
+
+<li><strong>Head와 layer의 차이를 명시적으로 다룬다.</strong> Attention 평균 하나로 줄이기 전에 clarity, consistency, uncertainty와 conflict를 계산한다.</li>
+
+<li><strong>갈등을 삭제 근거로만 보지 않는다.</strong> Layer 사이의 높은 conflict를 잠재적으로 중요한 증거로 보고 보존 priority에 반영한다.</li>
+
+<li><strong>공간 쏠림을 완화한다.</strong> 학습 가능한 detector 없이 patch grid의 cell 대표 token에 soft bonus를 준다.</li>
+
+<li><strong>실제 wall-clock throughput 향상을 보고했다.</strong> FLOPs 추정에 그치지 않고 MMBench에서 total latency와 item/s를 함께 제시한다.</li>
+
+<li><strong>두 model family에서 aggregate 우위를 보였다.</strong> LLaVA-1.5-7B와 Qwen2-VL-7B 모두 저자 비교표의 정규화 평균이 가장 높다.</li>
+
+<li><strong>Ablation의 비교 축이 분명하다.</strong> Head reliability, layer fusion, conflict protection, spatial novelty를 같은 128-budget에서 각각 제거했다.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">14. 한계와 결과 해석의 경계</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>64는 final token 수가 아니다.</strong> LLaVA의 average budget이며 실제 schedule은 576→20→8→0이다.</li>
+
+<li><strong>OCR·작은 문자에 약하다.</strong> 64-budget TextVQA 49.5는 LLaVA-PruMerge 54.0보다 4.5점 낮다.</li>
+
+<li><strong>Spatial novelty는 hard coverage가 아니다.</strong> 각 cell 대표에 bonus만 주므로 text·작은 물체 보존을 보장하지 않는다.</li>
+
+<li><strong>Peak memory가 늘어난다.</strong> 128·64 budget 모두 dense보다 약 21% 높은 약 18.8GB를 쓴다.</li>
+
+<li><strong>효율성 조건이 충분히 공개되지 않았다.</strong> Batch, warm-up, output length와 정확한 latency 측정 절차가 없다.</li>
+
+<li><strong>Aggregate retention은 개별 능력을 숨길 수 있다.</strong> Qwen 77.8% reduction에서 SQA는 강하지만 POPE·MME·AI2D는 V2Drop보다 낮다.</li>
+
+<li><strong>모든 VLM으로 일반화된 것은 아니다.</strong> 7B급 LLaVA와 Qwen 한 모델씩이며 Qwen 효율성 수치는 없다.</li>
+
+<li><strong>Closed API에는 바로 붙일 수 없다.</strong> Head별 내부 attention과 중간 layer에서 token을 제거할 수 있어야 한다.</li>
+
+<li><strong>통계적 불확실성이 보고되지 않았다.</strong> 반복 실행 분산과 confidence interval 없이 저자 단일 표로 비교한다.</li>
+
+<li><strong>독립 재현 전이다.</strong> 논문이 code available이라고 적었지만 공식 저장소가 비어 있어 결과를 실행해 볼 수 없다.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">15. 실무에서는 어떻게 검증해야 하나</h2>
+
+
+
+<p class="wp-block-paragraph">적용 후보는 open-source VLM을 직접 운영하면서 GPU 처리량이 병목인 서비스다. 일반 image QA, 상품 image 분류 보조, multimodal agent의 screen understanding처럼 질문별로 필요한 영역이 달라질 때 prompt-conditioned pruning이 유용할 수 있다.</p>
+
+
+
+<ul class="wp-block-list">
+<li><strong>1단계:</strong> Dense, avg 192, avg 128, avg 64를 같은 GPU와 decoding setting에서 비교한다.</li>
+
+<li><strong>2단계:</strong> 전체 평균 외에 OCR, counting, small object, chart, hallucination을 별도 slice로 나눈다.</li>
+
+<li><strong>3단계:</strong> p50·p95 request latency, time-to-first-token, output token/s, peak memory를 함께 측정한다.</li>
+
+<li><strong>4단계:</strong> 같은 image에 질문을 바꿨을 때 남는 patch와 답변 안정성을 확인한다.</li>
+
+<li><strong>5단계:</strong> Memory가 제약이면 E2S와 FastV·V2Drop을 accuracy뿐 아니라 동시 처리 가능한 batch로 비교한다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">문서·라벨·부품 각인처럼 작은 글자가 핵심이면 64-budget을 기본값으로 삼기 어렵다. 128 또는 192부터 시작하고, text region이 감지되면 pruning을 완화하는 routing이 필요하다. 반대로 POPE나 일반 object reasoning이 주된 workload라면 aggressive setting도 후보가 될 수 있지만 실제 false-positive cost를 별도로 봐야 한다.</p>
+
+
+
+<p class="wp-block-paragraph">M1 Pro 같은 Apple Silicon에서는 현재 성능을 예측할 근거가 없다. 논문은 CUDA GPU 환경만 보고했고 official code가 없다. Attention kernel에서 head별 Q·K를 노출하고 중간 sequence length를 동적으로 바꾸는 구현이 Metal backend에서 효율적으로 동작하는지도 확인해야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">16. 코드·라이선스·재현 가능성</h2>
+
+
+
+<p class="wp-block-paragraph">논문 초록은 code가 <a href="https://github.com/taoyu-qian/E2S-Pruner">공식 GitHub</a>에 있다고 적는다. 그러나 2026년 8월 26일 확인 기준 repository 화면은 <strong>“This repository is empty”</strong>이며, Git remote에도 branch나 commit reference가 없다. README, source, config, requirements, test script가 모두 없는 상태다.</p>
+
+
+
+<p class="wp-block-paragraph">별도 학습 weight가 필요 없는 방법이므로 E2S 전용 checkpoint 미공개는 문제가 아니다. 재현을 막는 것은 layer hook, attention 추출, token position 관리, Qwen 적용, latency 측정 script 같은 실제 구현이 없다는 점이다. 특히 optimized attention kernel과 KV cache에서 token을 어떻게 제거했는지 확인할 수 없다.</p>
+
+
+
+<p class="wp-block-paragraph">빈 repository에는 software LICENSE도 없다. 따라서 향후 올라올 구현의 사용·수정·상업 이용 조건은 아직 미정이다. 논문은 arXiv perpetual non-exclusive license로 배포됐으며, LLaVA·Qwen·vision encoder와 각 benchmark data에는 별도 license가 적용된다.</p>
+
+
+
+<p class="wp-block-paragraph"><a href="/ai-cv-sota-briefing-2026-08-26/">E2S-Pruner·FixAnything·GeoWAM 브리핑으로 돌아가기</a></p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity" />
+
+
+
+<h3 class="wp-block-heading">원문</h3>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://arxiv.org/abs/2608.23253">arXiv 초록·제출 이력·메타데이터</a></li>
+
+<li><a href="https://arxiv.org/html/2608.23253v1">arXiv HTML 전문</a></li>
+
+<li><a href="https://arxiv.org/pdf/2608.23253">논문 PDF</a></li>
+
+<li><a href="https://github.com/taoyu-qian/E2S-Pruner">논문이 연결한 공식 GitHub — 현재 빈 저장소</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><em>공식 arXiv v1과 논문이 직접 연결한 GitHub를 2026년 8월 26일 확인했습니다. 모든 성능·latency·memory 수치는 저자 평가이며 독립 재현 결과가 아닙니다. “최고”는 논문에 수록된 model·benchmark·average-token budget 비교표 안에서만 의미합니다.</em></p>
+
+]]></content:encoded>
+
+
+
+			</item>
+		<item>
 		<title>Stream3Dv2 논문 분석: 2D Mask를 스트리밍 3D Instance로 묶는 법</title>
 		<link>https://odd-note.invalid/stream3dv2-streaming-zero-shot-3d-paper-analysis/</link>
 
 		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
-		<pubDate>Tue, 25 Aug 2026 03:55:43 +0000</pubDate>
+		<pubDate>Wed, 26 Aug 2026 03:56:34 +0000</pubDate>
 				<category><![CDATA[AI 논문 분석]]></category>
 		<category><![CDATA[Open-Vocabulary 3D]]></category>
 		<category><![CDATA[SAM2]]></category>
@@ -589,7 +2316,7 @@
 		<link>https://odd-note.invalid/a2dinov3-rgb-ir-object-detection-paper-analysis/</link>
 
 		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
-		<pubDate>Tue, 25 Aug 2026 03:55:43 +0000</pubDate>
+		<pubDate>Wed, 26 Aug 2026 03:56:34 +0000</pubDate>
 				<category><![CDATA[AI 논문 분석]]></category>
 		<category><![CDATA[A2DINOv3]]></category>
 		<category><![CDATA[DINOv3]]></category>
@@ -1002,7 +2729,7 @@ X_target(next) = H_target + Δ(source → target)</code></pre>
 		<link>https://odd-note.invalid/orarl-video-ora-9b-paper-analysis/</link>
 
 		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
-		<pubDate>Tue, 25 Aug 2026 03:55:43 +0000</pubDate>
+		<pubDate>Wed, 26 Aug 2026 03:56:34 +0000</pubDate>
 				<category><![CDATA[AI 논문 분석]]></category>
 		<category><![CDATA[GOT-10k]]></category>
 		<category><![CDATA[OraRL]]></category>
@@ -1494,276 +3221,11 @@ X_target(next) = H_target + Δ(source → target)</code></pre>
 
 			</item>
 		<item>
-		<title>AI CV SOTA 브리핑 — Video-ORA-9B · A2DINOv3 · Stream3Dv2 (2026.08.25)</title>
-		<link>https://odd-note.invalid/ai-cv-sota-briefing-2026-08-25/</link>
-
-		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
-		<pubDate>Tue, 25 Aug 2026 03:55:43 +0000</pubDate>
-				<category><![CDATA[AI 논문 분석]]></category>
-		<category><![CDATA[A2DINOv3]]></category>
-		<category><![CDATA[Computer Vision]]></category>
-		<category><![CDATA[Open-Vocabulary 3D]]></category>
-		<category><![CDATA[OraRL]]></category>
-		<category><![CDATA[RGB-IR]]></category>
-		<category><![CDATA[Stream3Dv2]]></category>
-		<category><![CDATA[Video-ORA-9B]]></category>
-		<guid isPermaLink="false">https://odd-note.invalid/ai-cv-sota-briefing-2026-08-25/</guid>
-
-					<description><![CDATA[정답 annotation을 rollout으로 쓰는 Video-ORA-9B, RGB·IR 통신을 제한한 A2DINOv3, training-free 스트리밍 3D 인식 Stream3Dv2의 방법·데이터·비교 결과와 공개 상태를 검증했습니다.]]></description>
-										<content:encoded><![CDATA[
-<p class="article-lead wp-block-paragraph"><strong>2026년 8월 25일 화요일.</strong> arXiv cs.CV의 최신 정식 배치는 8월 24일 월요일 공개분 103편이다. 이미지 분류·객체 탐지·세그멘테이션·VLM·비디오·3D를 다시 확인하고, 최근 브리핑에 실은 연구를 제외한 뒤 <strong>Video-ORA-9B·A2DINOv3·Stream3Dv2</strong>를 골랐다.</p>
-
-
-
-<p class="wp-block-paragraph">세 논문이 성능을 높인 지점은 서로 다르다. OraRL은 정답 annotation을 reward 기준이자 positive rollout으로 다시 쓰고, A2DINOv3는 RGB와 IR이 주고받는 정보의 용량을 제한한다. Stream3Dv2는 전용 3D 모델을 학습하지 않고 2D foundation model의 mask를 geometry와 semantics로 묶는다.</p>
-
-
-
-<p class="wp-block-paragraph">여기서 <strong>SOTA</strong>는 모든 환경의 절대 1등을 뜻하지 않는다. 각 논문이 선택한 데이터셋·평가 조건·비교표 안의 저자 보고값이다. 서로 다른 frame 수와 prompt 설정, 저자 제작 aggregate score, 아직 공개되지 않은 코드처럼 해석을 바꾸는 조건을 함께 읽어야 한다.</p>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>연구</th><th>분야</th><th>눈에 띄는 수치</th><th>2026.08.25 공개 상태</th></tr></thead><tbody><tr><td><strong>Video-ORA-9B / OraRL</strong></td><td>Video MLLM · RL</td><td>Tracking AO 73.0 → 78.2</td><td>9B 가중치 공개, 전체 학습 소스 미확인</td></tr><tr><td><strong>A2DINOv3</strong></td><td>RGB-IR Detection</td><td>GAIIC test mAP 37.53 → 43.05</td><td>코드·가중치 미공개</td></tr><tr><td><strong>Stream3Dv2</strong></td><td>Streaming 3D</td><td>ScanNet200 AP 22.4 → 27.1</td><td>연결 저장소에는 v1 코드만 공개</td></tr></tbody></table></figure>
-
-
-
-<h2 class="wp-block-heading">논문별 상세 분석</h2>
-
-
-
-<p class="wp-block-paragraph">이 글은 세 연구를 빠르게 비교하는 브리핑이다. 모델의 전체 입출력과 학습 과정, 데이터 구성, benchmark별 해석은 아래 독립 분석글에서 논문 한 편씩 다룬다.</p>
-
-
-
-<ul class="wp-block-list">
-<li><a href="/orarl-video-ora-9b-paper-analysis/"><strong>OraRL 논문 분석</strong></a> — annotation을 oracle rollout으로 넣는 이유와 7개 task family의 평가 범위</li>
-
-<li><a href="/a2dinov3-rgb-ir-object-detection-paper-analysis/"><strong>A2DINOv3 논문 분석</strong></a> — RGB·IR 사이의 저차원 통신과 네 데이터셋 비교</li>
-
-<li><a href="/stream3dv2-streaming-zero-shot-3d-paper-analysis/"><strong>Stream3Dv2 논문 분석</strong></a> — 2D mask를 streaming 3D instance로 누적하는 전체 pipeline</li>
-</ul>
-
-
-
-<h2 class="wp-block-heading">1. Video-ORA-9B / OraRL — 정답 annotation을 RL rollout으로</h2>
-
-
-
-<p class="wp-block-paragraph"><strong>정식명:</strong> Annotations as Rollouts: Efficient and Scalable Reinforcement Learning for Video MLLMs · <strong>arXiv v1 제출:</strong> 2026년 8월 20일 · <strong>정식 배치:</strong> 8월 24일</p>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>Video-ORA-9B의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>이미지 또는 비디오와 자연어 지시. 기본 비디오 평가는 2 fps, 최대 128 frame을 사용한다.</td></tr><tr><td><strong>Process</strong></td><td>policy rollout 8개에 annotation을 직렬화한 oracle rollout 1개를 추가한다. policy reward만으로 baseline을 만들고 sign-balanced pruning 뒤 선택된 4개 rollout을 업데이트한다.</td></tr><tr><td><strong>Output</strong></td><td>CoT가 아닌 task-native direct answer. 선택지, 시간 구간, bounding box, box trajectory, segmentation prompt 등을 과제 형식에 맞춰 낸다.</td></tr></tbody></table></figure>
-
-
-
-<h3 class="wp-block-heading">좋은 rollout이 오히려 벌점을 받는 문제</h3>
-
-
-
-<p class="wp-block-paragraph">기존 group-based RL은 모델이 직접 생성한 여러 응답을 정답 annotation과 비교해 reward를 계산한다. 문제는 정교한 시간 구간, box, mask, trajectory를 on-policy sampling만으로 정확히 맞힌 positive rollout이 드물다는 데 있다. OraRL은 annotation 자체를 모델의 응답 형식으로 바꿔 rollout group에 넣는다. 매 group마다 확실한 positive anchor가 생기는 셈이다.</p>
-
-
-
-<p class="wp-block-paragraph">그대로 섞으면 다른 문제가 생긴다. reward가 높은 oracle이 group 평균을 끌어올려, 기존 policy 평균보다 잘한 응답도 negative advantage를 받을 수 있다. 논문은 이를 <strong>advantage inversion</strong>이라 부른다. OraRL은 policy sample만으로 baseline을 계산하고, oracle과 policy의 격차는 좋은 rollout을 키우는 directional gain과 별도의 detached oracle advantage에 반영한다.</p>
-
-
-
-<p class="wp-block-paragraph">업데이트 비용은 sign-balanced pruning으로 줄인다. 기본 설정에서는 policy rollout 8개와 oracle 1개 가운데 oracle, 강한 positive 1개, 강한 negative 2개만 남긴다. 한쪽 부호만 선택해 모델을 같은 방향으로 밀지 않도록 positive·negative를 함께 보존하고, 선택 뒤 평균과 RMS를 다시 보정한다.</p>
-
-
-
-<h3 class="wp-block-heading">7개 task family를 어떤 데이터로 학습했나</h3>
-
-
-
-<p class="wp-block-paragraph">SFT와 RL에는 각각 284,779개와 100,032개의 prompt를 썼다. Temporal grounding은 TimeLens-100K, tracking은 GOT-10k·TrackingNet·ElysiumTrack, segmentation은 ReVOS·Ref-YouTube-VOS·Ref-SAV·MeViS·DAVIS-17·COCO referring expressions를 포함한 OneThinker pack에서 가져왔다. Spatial grounding은 RefCOCO 계열, spatio-temporal grounding은 LLaVA-ST-STVG, Video QA는 LLaVA-Video-178K·LongVILA·STAR·CLEVRER·Video-Holmes를 사용한다. Spatial intelligence에는 ScanNet·ScanNet++·ARKitScenes 기반 VSI-590K와 SenseNova-SI-800K 일부가 들어간다.</p>
-
-
-
-<p class="wp-block-paragraph">연구진은 공개 training split만 사용하고 평가 영상과 겹치는 학습 예시는 제거했다고 설명한다. RL mixture는 structured task 비중이 63%이며, SFT checkpoint가 이미 0.80 이상을 받은 쉬운 샘플은 task별 subset의 15%로 제한해 중간 난도 예시에 무게를 뒀다.</p>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>평가 family</th><th>주요 비교군</th><th>비교값</th><th>Video-ORA-9B</th></tr></thead><tbody><tr><td>Temporal grounding mIoU macro</td><td>TimeLens2-8B</td><td>62.5</td><td><strong>66.0</strong></td></tr><tr><td>GOT-10k tracking AO</td><td>OneThinker-8B</td><td>73.0</td><td><strong>78.2</strong></td></tr><tr><td>Segmentation family score</td><td>OneThinker-8B</td><td>64.3</td><td><strong>70.4</strong></td></tr><tr><td>Spatial-intelligence 3종 macro</td><td>GPT-5</td><td>51.0</td><td><strong>56.1</strong></td></tr></tbody></table></figure>
-
-
-
-<p class="wp-block-paragraph">Temporal 수치는 Charades·ActivityNet·QVHighlights TimeLens split의 mIoU 평균이고, segmentation은 RefCOCO 계열 cIoU와 MeViS·ReasonVOS J&amp;F를 단순 평균한 저자 정의 family score다. 서로 다른 metric을 묶은 수치이므로 단일 benchmark 점수처럼 읽으면 안 된다. Spatial-intelligence 평균도 VSI-Bench 73.1의 영향이 크다. MMSI와 MindCube만 보면 일부 폐쇄형 모델보다 낮아 “모든 spatial task에서 GPT-5를 이겼다”는 해석은 성립하지 않는다.</p>
-
-
-
-<h3 class="wp-block-heading">36.8배는 전체 latency가 아니라 decoding 구간이다</h3>
-
-
-
-<p class="wp-block-paragraph">4B controlled experiment에서 OraRL은 62.4초/step으로 SFT 27.84초의 약 2.24배, CoT GRPO 135.6초의 약 4.87배다. Sign-balanced pruning 자체는 92.5→62.4초로 update를 1.48배 빠르게 만들고 peak per-GPU memory를 62.4→50.9GB로 줄였지만, 평균 점수는 63.1→62.7로 0.4점 낮아졌다.</p>
-
-
-
-<p class="wp-block-paragraph">단일 H20에서 10분 영상 10개를 2 fps로 처리한 측정에서는 post-TTFT decoding이 4.78초→130ms로 약 36.8배 짧아졌다. 전체 median latency는 29.03→24.30초, 약 16.3% 감소다. <strong>전체 모델이 36.8배 빨라진 결과가 아니다.</strong></p>
-
-
-
-<p class="wp-block-paragraph"><strong>공개 상태:</strong> Apache-2.0의 Video-ORA-9B BF16 가중치는 Hugging Face에서 받을 수 있고 vLLM·Transformers 설정도 제공된다. 4B는 아직 coming soon이다. GitHub README에는 사용 예정 CLI와 recipe 이름이 있지만 실제 file tree에는 README·LICENSE·NOTICE·assets만 있어 전체 학습·평가 소스는 공개되지 않은 상태다. 9B inference는 시험할 수 있지만 full OraRL training을 재현할 단계는 아니다.</p>
-
-
-
-<p class="wp-block-paragraph"><strong>실무 판단:</strong> 긴 검사 영상에서 “결함이 처음 나타난 구간”, “같은 물체의 trajectory”, “이 영역의 mask”를 하나의 MLLM API로 다루려는 연구에 가장 먼저 시험해볼 만하다. 다만 model card는 safety-critical decision, identity inference, surveillance deployment를 사용 범위에서 제외한다. 생산 품질 판정에는 모델 응답과 실제 결정을 분리하는 검증 계층이 필요하다.</p>
-
-
-
-<h2 class="wp-block-heading">2. A2DINOv3 — RGB와 IR은 많이 말할수록 좋은가</h2>
-
-
-
-<p class="wp-block-paragraph"><strong>정식명:</strong> A2DINOv3: Rethinking Multi-Modal Object Detection via Socialized Collaboration · <strong>arXiv v1 제출:</strong> 2026년 8월 21일</p>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>A2DINOv3의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>같은 장면을 담은 spatially paired RGB와 IR 이미지. 1-channel IR은 backbone 입력에 맞춰 3-channel로 복제한다.</td></tr><tr><td><strong>Process</strong></td><td>파라미터를 공유하는 두 DINOv3 stream → index 5·8·11의 bidirectional SCP → mean fusion → hybrid encoder와 6-layer DEIM decoder.</td></tr><tr><td><strong>Output</strong></td><td>객체별 bounding box와 category distribution. confidence 0.25 미만의 예측은 제거한다.</td></tr></tbody></table></figure>
-
-
-
-<h3 class="wp-block-heading">명시적 선택기가 아니라 제한된 통신 경로</h3>
-
-
-
-<p class="wp-block-paragraph">일반적인 RGB-IR detector는 중간 feature를 cross-attention이나 고용량 fusion module로 강하게 섞는다. 한 modality가 흐리거나 어두우면 쓸모없는 신호도 함께 전달돼 더 믿을 만한 modality의 표현을 훼손할 수 있다. A2DINOv3는 같은 DINOv3 ViT-S+/16 파라미터를 두 stream이 공유하되 activation은 분리한다. Backbone을 두 벌 저장하지는 않지만 RGB와 IR을 각각 forward해야 한다.</p>
-
-
-
-<p class="wp-block-paragraph">SCP는 RGB→IR, IR→RGB 양방향 residual을 만든다. Down-projection으로 feature를 <em>r ≪ d</em>인 저차원 공간에 압축하고 GELU와 up-projection을 거쳐 상대 stream에 더한다. Token gate나 별도의 reliability estimator가 정보를 골라내는 구조는 아니다. <strong>교환 자유도를 좁혀 detection loss가 유용한 방향에 제한된 용량을 쓰도록 유도한다</strong>는 설명이 더 정확하다.</p>
-
-
-
-<p class="wp-block-paragraph">Up-projection을 0으로 초기화하므로 첫 optimization step의 SCP residual은 정확히 0이다. 두 stream이 DINOv3 prior를 유지한 채 출발하고, gradient가 up-projection을 갱신하면서 communication이 서서히 열린다. 이후 두 stream의 multi-level feature를 파라미터 없는 산술 평균으로 모아 DETR 계열 decoder에 보낸다.</p>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>데이터셋</th><th>기존 multimodal 최고</th><th>A2DINOv3</th><th>변화</th></tr></thead><tbody><tr><td>GAIIC2024 test mAP</td><td>AFF-Net 37.53</td><td><strong>43.05</strong></td><td>+5.52%p</td></tr><tr><td>M3FD mAP</td><td>AFF-Net 59.22</td><td><strong>61.78</strong></td><td>+2.56%p</td></tr><tr><td>FLIR mAP</td><td>M²D-LIF 46.10</td><td><strong>46.80</strong></td><td>+0.70%p</td></tr><tr><td>LLVIP mAP</td><td>M²D-LIF 70.80</td><td><strong>71.56</strong></td><td>+0.76%p</td></tr></tbody></table></figure>
-
-
-
-<p class="wp-block-paragraph">GAIIC2024 test의 mAP50·mAP75도 AFF-Net 56.05·43.38에서 61.08·50.56으로 올랐다. 같은 test에서 가장 강한 IR-only RF-DETR Large의 mAP 37.12보다 5.93%p 높다. 반면 FLIR와 LLVIP의 차이는 1%p 미만이다. “네 데이터셋에서 일관되게 최고”라는 저자 비교표의 결론은 맞지만, 모든 domain에서 큰 폭으로 앞선 것은 아니다.</p>
-
-
-
-<p class="wp-block-paragraph">Ablation은 중심 아이디어를 비교적 잘 분리한다. Backbone을 고정했을 때 cross-attention 38.10에서 SCP 40.27로 2.17%p 올랐고, SCP full fine-tuning에서 random initialization 42.43을 zero initialization이 43.05로 0.62%p 높였다. 실험은 8×RTX 4090에서 수행됐다.</p>
-
-
-
-<p class="wp-block-paragraph"><strong>공개 상태:</strong> 논문에 연결된 공식 repository나 checkpoint는 8월 25일 현재 확인되지 않는다. SCP 병목 차원 <em>r</em>, 정확한 DINOv3 checkpoint, M3FD 학습 설정, 일부 loss weight도 빠져 있어 설명만 보고 논문과 같은 결과를 재현하기는 어렵다. 논문은 arXiv perpetual non-exclusive license이며 구현물 라이선스는 미정이다. DINOv3 backbone의 별도 이용 조건도 확인해야 한다.</p>
-
-
-
-<p class="wp-block-paragraph"><strong>실무 판단:</strong> RGB와 thermal/NIR 카메라가 이미 설치된 야간 검사·시설 모니터링·자율주행에 적합한 문제 설정이다. 그러나 missing modality, 심한 sensor failure, 정합 오차 크기별 stress test는 없다. Paired input의 registration과 parallax가 큰 현장에서는 별도 정합 실험이 필요하다.</p>
-
-
-
-<h2 class="wp-block-heading">3. Stream3Dv2 — 2D mask를 스트리밍 3D instance로</h2>
-
-
-
-<p class="wp-block-paragraph"><strong>정식명:</strong> Stream3Dv2: Geometric-Semantic Fusion Enhanced Streaming Zero-Shot 3D Scene Understanding · <strong>arXiv v1 제출:</strong> 2026년 8월 21일</p>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>Stream3Dv2의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>순차 RGB-D frame, camera pose·intrinsic, 이전까지 누적된 point cloud와 historical instance mask, scene class text prompt.</td></tr><tr><td><strong>Process</strong></td><td>SAM2 grid mask와 SAM3 semantic mask를 3D로 투영 → 최근 frame의 geometric-semantic merge·partition → manifold graph 경계 보정 → AABB 기반 historical update.</td></tr><tr><td><strong>Output</strong></td><td>현재 시점까지 갱신된 class-agnostic·semantic 3D instance mask, CLIP ViT-H label, AABB 기반 3D detection.</td></tr></tbody></table></figure>
-
-
-
-<h3 class="wp-block-heading">Training-free는 model-free가 아니다</h3>
-
-
-
-<p class="wp-block-paragraph">Stream3Dv2는 dataset-specific 3D model을 새로 학습하지 않는다. 대신 SAM2 grid prompt로 넓은 영역을 덮는 class-agnostic mask를 만들고, SAM3에는 common scene class words를 넣어 semantic mask를 얻는다. 두 종류의 mask를 depth와 camera pose로 3D에 투영한 뒤 최근 20개 frame의 local window에서 multi-view consistency를 검사한다. 20은 세 데이터셋 실험의 기본값이지 알고리즘의 고정 한계는 아니다.</p>
-
-
-
-<p class="wp-block-paragraph">Grid mask가 한 물체를 둘로 나누거나 여러 물체를 하나로 묶으면 set covering과 set partitioning으로 merge·split한다. 이후 voxel super-point로 만든 manifold graph에서 경계를 다듬는다. 초기 single-view denoising에는 Euclidean threshold도 사용하므로 “Euclidean 거리를 완전히 버렸다”는 설명은 부정확하다. Manifold metric은 후반 boundary refinement에서 곡면을 가로지르는 잘못된 최근접 연결을 줄이는 역할을 맡는다.</p>
-
-
-
-<p class="wp-block-paragraph">Historical update에서는 현재 mask의 AABB와 겹치는 과거 instance만 활성화한다. 모든 historical point를 매번 대조하는 대신 후보를 static·dynamic·new instance로 나눠 갱신해, 스트림이 길어질 때의 비교 비용을 줄인다.</p>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>평가 데이터</th><th>Split</th><th>Scene</th><th>Frame</th></tr></thead><tbody><tr><td>ScanNet200</td><td>validation</td><td>312</td><td>54,090</td></tr><tr><td>ScanNet++</td><td>validation</td><td>50</td><td>33,884</td></tr><tr><td>MatterPort3D</td><td>test subset</td><td>8</td><td>11,052</td></tr></tbody></table></figure>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>ScanNet200 streaming·zero-shot</th><th>AP</th><th>AP50</th><th>AP25</th><th>FPS</th></tr></thead><tbody><tr><td>OnlineAnySeg</td><td>18.6</td><td>36.1</td><td>53.5</td><td><strong>15</strong></td></tr><tr><td>Stream3D</td><td>22.4</td><td>37.6</td><td>55.1</td><td>13</td></tr><tr><td><strong>Stream3Dv2</strong></td><td><strong>27.1</strong></td><td><strong>42.0</strong></td><td><strong>55.3</strong></td><td>11</td></tr></tbody></table></figure>
-
-
-
-<p class="wp-block-paragraph">Stream3D보다 class-agnostic AP는 4.7%p, AP50은 4.4%p 올랐지만 속도는 13→11 FPS로 낮아졌다. OnlineAnySeg보다 4 FPS 느린 대신 AP가 8.5%p 높다. 다만 11 FPS는 ScanNet200 평가표의 수치다. 논문은 단일 GPU 기준인지, SAM2·SAM3 등 2D foundation model의 전체 추론 비용을 모두 포함했는지 명확히 분리하지 않는다. “어떤 길이의 스트림에서도 11 FPS”로 일반화하면 안 된다.</p>
-
-
-
-<p class="wp-block-paragraph">ScanNet200 semantic AP는 20.6%로, full sequence를 미리 보는 offline zero-shot MV3DIS의 15.5%보다 5.1%p 높다. Open-vocabulary 3D detection AP50/AP25도 Stream3D 10.6/18.9에서 14.2/24.8로 올랐다. 반대로 class-agnostic AP 전체 비교에서는 offline MV3DIS 35.5와 supervised Mask3D 39.7이 더 높다. Stream3Dv2의 장점은 <strong>streaming·zero-shot 조건에서 정확도와 처리량을 함께 확보했다</strong>는 데 있다.</p>
-
-
-
-<p class="wp-block-paragraph"><strong>공개 상태:</strong> 논문은 기존 SubmissionsIn/Stream3D 저장소에 v2 코드를 업데이트하겠다고 적었다. 8월 25일 연결된 MIT 저장소에는 CVPR 2026 Stream3D v1 zip만 있고 v2 구현은 확인되지 않는다. V2 전용 학습 weight는 없지만 SAM2·SAM3·CLIP ViT-H checkpoint와 각 upstream 라이선스가 필요하다. 아직 없는 v2 코드의 라이선스는 실제 공개 뒤 다시 확인해야 한다.</p>
-
-
-
-<p class="wp-block-paragraph"><strong>실무 판단:</strong> RGB-D 기반 실내 로봇, 창고 스캔, digital twin, 설비 순찰에서 고정 class용 3D 모델을 다시 학습하지 않고 instance를 누적하는 용도에 맞는다. 현재 검증은 정적인 실내 장면 중심이며 정확한 pose·intrinsic과 일관된 좌표계가 필요하다. 대규모 야외 환경, 동적 occlusion, 긴 스트림의 memory 증가는 남은 과제다.</p>
-
-
-
-<h2 class="wp-block-heading">오늘의 우선순위</h2>
-
-
-
-<ul class="wp-block-list">
-<li><strong>지금 모델을 내려받아 평가한다면 Video-ORA-9B:</strong> 세 편 가운데 실행 가능한 가중치가 실제 공개됐다. 다만 inference 가능과 full training 재현 가능은 구분해야 한다.</li>
-
-<li><strong>RGB+IR 산업 CV라면 A2DINOv3:</strong> 강한 fusion보다 제한된 communication이 낫다는 ablation이 분명하다. 코드 공개와 sensor-failure 검증은 기다려야 한다.</li>
-
-<li><strong>RGB-D 로봇·3D 인식이라면 Stream3Dv2:</strong> Training-free streaming이라는 제약 안에서 성능이 좋다. Pose 품질과 긴 sequence 비용을 실제 장비에서 다시 재야 한다.</li>
-</ul>
-
-
-
-<p class="wp-block-paragraph">세 연구 모두 backbone 크기보다 <strong>학습과 정보 처리의 경로</strong>를 바꿨다. Annotation을 rollout으로 쓰고, modality 사이의 통신 용량을 줄이며, 2D mask를 geometry와 semantics로 조정했다. 큰 모델을 한 번 더 키우는 것보다 어떤 신호를 어디에 넣고 어떤 비교를 허용할지 설계한 결과다.</p>
-
-
-
-<hr class="wp-block-separator has-alpha-channel-opacity" />
-
-
-
-<h3 class="wp-block-heading">원문과 공개 상태 확인</h3>
-
-
-
-<ul class="wp-block-list">
-<li><a href="https://arxiv.org/list/cs.CV/recent?skip=0&amp;show=2000">arXiv cs.CV recent — 2026년 8월 24일 배치 103편</a></li>
-
-<li><a href="https://arxiv.org/abs/2608.20492">OraRL 논문</a> · <a href="https://orarl.github.io/">프로젝트 페이지</a> · <a href="https://github.com/HVision-NKU/OraRL">공식 GitHub</a> · <a href="https://huggingface.co/OraRL/Video-ORA-9B">Video-ORA-9B 가중치</a> · <a href="https://huggingface.co/datasets/OraRL/OraRL-Data">평가 데이터</a></li>
-
-<li><a href="https://arxiv.org/abs/2608.21099">A2DINOv3 논문</a></li>
-
-<li><a href="https://arxiv.org/abs/2608.21136">Stream3Dv2 논문</a> · <a href="https://github.com/SubmissionsIn/Stream3D">연결된 공식 저장소 — 현재 v1 코드</a></li>
-</ul>
-
-
-
-<p class="wp-block-paragraph"><em>논문 버전과 저장소 상태는 2026년 8월 25일 확인했습니다. 성능 수치는 각 논문의 평가 조건을 요약한 저자 보고값이며 독립 재현 결과가 아닙니다. 코드·가중치·라이선스 상태는 이후 변경될 수 있습니다.</em></p>
-
-]]></content:encoded>
-
-
-
-			</item>
-		<item>
 		<title>DreamHand 논문 분석: 비디오 확산 모델로 가려진 손의 3D 움직임을 복원하는 법</title>
 		<link>https://odd-note.invalid/dreamhand-video-diffusion-3d-hand-paper-analysis/</link>
 
 		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
-		<pubDate>Tue, 25 Aug 2026 03:55:42 +0000</pubDate>
+		<pubDate>Wed, 26 Aug 2026 03:56:34 +0000</pubDate>
 				<category><![CDATA[AI 논문 분석]]></category>
 		<category><![CDATA[3D Hand Reconstruction]]></category>
 		<category><![CDATA[DreamHand]]></category>
@@ -2223,7 +3685,7 @@ X_target(next) = H_target + Δ(source → target)</code></pre>
 		<link>https://odd-note.invalid/step-pose-video-anomaly-detection-paper-analysis/</link>
 
 		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
-		<pubDate>Tue, 25 Aug 2026 03:55:42 +0000</pubDate>
+		<pubDate>Wed, 26 Aug 2026 03:56:34 +0000</pubDate>
 				<category><![CDATA[AI 논문 분석]]></category>
 		<category><![CDATA[ECCV 2026]]></category>
 		<category><![CDATA[Energy-Based Model]]></category>
@@ -2689,7 +4151,7 @@ X_target(next) = H_target + Δ(source → target)</code></pre>
 		<link>https://odd-note.invalid/armorocr-adversarial-ocr-paper-analysis/</link>
 
 		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
-		<pubDate>Tue, 25 Aug 2026 03:55:42 +0000</pubDate>
+		<pubDate>Wed, 26 Aug 2026 03:56:34 +0000</pubDate>
 				<category><![CDATA[AI 논문 분석]]></category>
 		<category><![CDATA[AdvSpot]]></category>
 		<category><![CDATA[ArmorOCR]]></category>
@@ -3068,665 +4530,6 @@ X_target(next) = H_target + Δ(source → target)</code></pre>
 
 
 <p class="wp-block-paragraph"><em>논문 arXiv v1과 공개 저장소를 2026년 8월 23일 확인했습니다. 수치는 저자 평가 조건을 옮긴 것이며 독립 재현 결과가 아닙니다. 이 글에서 “향상”은 같은 표의 비교 조건 안에서만 의미합니다.</em></p>
-
-]]></content:encoded>
-
-
-
-			</item>
-		<item>
-		<title>AI CV SOTA 브리핑 — ArmorOCR·STEP·DreamHand (2026.08.23)</title>
-		<link>https://odd-note.invalid/ai-cv-sota-briefing-2026-08-23/</link>
-
-		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
-		<pubDate>Sun, 23 Aug 2026 15:26:29 +0000</pubDate>
-				<category><![CDATA[AI 논문 분석]]></category>
-		<category><![CDATA[3D Hand Reconstruction]]></category>
-		<category><![CDATA[ArmorOCR]]></category>
-		<category><![CDATA[Computer Vision]]></category>
-		<category><![CDATA[DreamHand]]></category>
-		<category><![CDATA[STEP]]></category>
-		<category><![CDATA[Video Anomaly Detection]]></category>
-		<category><![CDATA[VLM]]></category>
-		<guid isPermaLink="false">https://odd-note.invalid/ai-cv-sota-briefing-2026-08-23/</guid>
-
-					<description><![CDATA[사람은 읽지만 VLM은 놓치는 OCR, 1ms 아래의 포즈 이상탐지, 비디오 확산 모델을 3D 손 인코더로 바꾼 연구까지. 최신 CV 논문 세 편의 성과와 공개 상태, 실무 한계를 함께 읽습니다.]]></description>
-										<content:encoded><![CDATA[
-<p class="article-lead wp-block-paragraph"><strong>2026년 8월 23일 일요일.</strong> arXiv cs.CV의 가장 최근 정식 배치는 8월 21일 금요일 공개분 86편이다. 최근 목록을 이미지 분류·탐지·세그멘테이션·VLM·비디오·3D 관점으로 다시 훑고, 이번 주에는 <strong>ArmorOCR·STEP·DreamHand</strong> 세 편을 골랐다.</p>
-
-
-
-<p class="wp-block-paragraph">세 논문은 서로 다른 질문을 던진다. 사람이 읽을 수 있는 글자를 VLM은 왜 놓치는가? 긴 포즈 시퀀스에 노이즈를 넣으면서도 사람의 몸 구조를 어떻게 지킬 것인가? 비디오 생성 모델을 영상을 만들지 않는 3D 인코더로 쓸 수 있는가?</p>
-
-
-
-<p class="wp-block-paragraph">여기서 <strong>SOTA</strong>는 모든 컴퓨터 비전 문제의 절대 1등이라는 뜻이 아니다. 각 논문이 선택한 데이터셋·평가 규칙·비교군 안에서 보고한 최고 성능이다. 새 벤치마크의 데이터 미공개, 완전한 평가 패키지 부재, in-domain 학습처럼 해석을 바꾸는 조건까지 함께 읽어야 한다.</p>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>연구</th><th>분야</th><th>눈에 띄는 수치</th><th>2026.08.23 공개 상태</th></tr></thead><tbody><tr><td><strong>ArmorOCR</strong></td><td>VLM · OCR</td><td>AdvSpot Acc. 31.2 → 55.7%</td><td>추론 코드 공개, 가중치·데이터 미공개</td></tr><tr><td><strong>STEP</strong></td><td>Video Anomaly Detection</td><td>UBnormal AUROC 90.1%</td><td>공식 저장소 비어 있음</td></tr><tr><td><strong>DreamHand</strong></td><td>3D · Egocentric Video</td><td>HOT3D MPJPE-p 21.514 → 12.888mm</td><td>저장소·MIT 라이선스 공개, 코드·가중치 미공개</td></tr></tbody></table></figure>
-
-
-
-<h2 class="wp-block-heading">1. ArmorOCR — 사람이 읽는데 VLM은 못 읽는 글자</h2>
-
-
-
-<p class="wp-block-paragraph"><strong>공개일:</strong> 2026년 8월 20일 · <strong>분야:</strong> Vision-Language Model, OCR, Grounding, RL post-training</p>
-
-
-
-<p class="wp-block-paragraph">회전되거나 거울처럼 뒤집힌 글자, 너무 작은 글자, 점·선·기호로 만든 인코딩, AI 생성 이미지에 섞인 글자. 사람은 주변 맥락을 이용해 읽지만 일반적인 VLM은 영역을 찾지 못하거나 다른 문자열을 만들어낸다. ArmorOCR은 이런 <strong>adversarial OCR</strong>을 단순 문자열 인식이 아니라 위치와 답을 함께 맞히는 grounded perception 문제로 정의한다.</p>
-
-
-
-<p class="wp-block-paragraph">연구진이 함께 제안한 AdvSpot은 390개 이미지, 5개 상위 범주와 13개 세부 유형으로 구성된다. 각 샘플에는 bounding box, transcription, 유형 라벨, 영역 기반 VQA가 붙는다. 기존 AdvOCR 100개보다 크고 SmuggleBench 1,700개보다 작지만, 영역 단위 grounding을 함께 평가한다는 점이 다르다.</p>
-
-
-
-<h3 class="wp-block-heading">보조 화면은 학습할 때만 보여준다</h3>
-
-
-
-<p class="wp-block-paragraph">ArmorOCR의 backbone은 Qwen3-VL-8B-Instruct다. 1단계 Observation-Transferred Self-Distillation에서는 student가 원본 이미지만 보고, 같은 계열 teacher는 resize·stretch·rotate·flip·compression 중 인식에 가장 유리한 privileged view를 본다. student가 직접 생성한 trajectory 위에서 teacher의 token distribution을 전달해, 변형 화면에서 드러난 지각 능력을 모델 안으로 옮긴다.</p>
-
-
-
-<p class="wp-block-paragraph">2단계에서는 GRPO로 네 가지 능력을 따로 보상한다. text-to-bbox localization, bbox-to-text recognition, full spotting, grounded VQA다. 핵심은 추론 시 <strong>원본 이미지로 모델을 한 번만 호출하고 별도 crop·회전 도구를 사용하지 않는다</strong>는 점이다. tool-assisted OCR보다 배포 경로를 단순하게 만들려는 설계다.</p>
-
-
-
-<h3 class="wp-block-heading">24.5%p 상승, 하지만 390장짜리 저자 벤치마크다</h3>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>평가</th><th>기반 Qwen3-VL-8B</th><th>ArmorOCR</th><th>변화</th></tr></thead><tbody><tr><td>AdvSpot VQA Accuracy</td><td>31.2%</td><td><strong>55.7%</strong></td><td>+24.5%p</td></tr><tr><td>AdvSpot 평균 IoU</td><td>49.1%</td><td><strong>63.3%</strong></td><td>+14.2%p</td></tr><tr><td>AdvOCR Synthetic</td><td>12.0%</td><td><strong>68.0%</strong></td><td>기반 대비 +56.0%p</td></tr><tr><td>SmuggleBench 평균</td><td>13.3%</td><td><strong>17.1%</strong></td><td>+3.8%p</td></tr></tbody></table></figure>
-
-
-
-<p class="wp-block-paragraph">AdvOCR에서 tool-assisted VACoT의 평균 55.0%를 ArmorOCR이 56.0%로 소폭 넘었고, 특히 Synthetic split에서는 VACoT 48.0% 대비 68.0%를 기록했다. SmuggleBench에서는 235B 모델을 쓰는 Smuggle-CoT 16.4%보다 17.1%로 조금 높았다. 대신 일반 OCR 평가는 OCRBench 73.2→72.5, CCOCR 91.2→89.4, OCRBench-v2 63.9→63.2로 모두 소폭 하락했다. 저자 표현처럼 대체로 보존된 수준이지, 일반 OCR까지 개선된 것은 아니다.</p>
-
-
-
-<p class="wp-block-paragraph">그러나 AdvSpot은 논문 저자들이 새로 구축한 390-image 벤치마크다. 기본 accuracy·IoU evaluator는 <code>advspot_infer.py</code>에 공개됐지만 이미지·annotation과 완전한 평가 패키지는 아직 없다. 55.7%를 범용 OCR 정확도나 독립 재현된 SOTA로 읽으면 안 된다. 또한 평균 성능은 올랐지만 tiny text처럼 ArmorOCR이 다른 모델보다 낮은 세부 유형도 있다.</p>
-
-
-
-<p class="wp-block-paragraph"><strong>공개 상태:</strong> 공식 GitHub에는 <code>infer.py</code>, 기본 metric을 계산하는 <code>advspot_infer.py</code>와 네 개 예제가 있다. training code는 없고 ArmorOCR 가중치는 “uploaded soon”, AdvSpot 이미지·annotation과 완전한 평가 패키지는 “coming soon”이다. 논문은 CC BY 4.0이지만 저장소에는 별도 LICENSE가 확인되지 않는다. Qwen3-VL 기반 가중치가 공개되면 그 모델의 이용 조건도 함께 확인해야 한다.</p>
-
-
-
-<p class="wp-block-paragraph"><strong>실무 판단:</strong> 상품 라벨, 포장지, 산업 부품의 작은 각인처럼 일반 VLM이 반복해서 실패하는 샘플에 fallback으로 붙일 만한 방향이다. 다만 현재는 inference wrapper만 있고 실행할 가중치와 공개 평가셋이 없으므로 즉시 성능 비교를 시작할 단계는 아니다.</p>
-
-
-
-<h2 class="wp-block-heading">2. STEP — 포즈 기반 이상탐지 scoring을 1ms 아래로</h2>
-
-
-
-<p class="wp-block-paragraph"><strong>정식명:</strong> Score-Based Temporal Energy for Human Pose Video Anomaly Detection · <strong>공개일:</strong> 2026년 8월 20일 · <strong>상태:</strong> 저자 공개 자료 기준 ECCV 2026 accepted</p>
-
-
-
-<p class="wp-block-paragraph">포즈 기반 Video Anomaly Detection은 사람의 외형 대신 skeleton trajectory를 사용한다. privacy 측면에서 유리하지만, 기존 score·energy 모델이 raw joint 좌표에 Gaussian noise를 넣으면 팔과 다리 길이가 무너진 비현실적인 자세가 생긴다. 시간 창이 길어질수록 차원이 커져 이 structural collapse가 더 심해진다.</p>
-
-
-
-<p class="wp-block-paragraph">STEP은 긴 pose sequence를 먼저 PCA로 압축하고 whitening한 PC-space에서 noise를 주입한다. 저자 실험과 시각화에서 이 공간의 perturbation은 raw 좌표를 흔들 때보다 학습 데이터의 주요 움직임 축을 따르는 그럴듯한 pose variation을 만들었다. 여기에 pose estimator의 confidence를 sequence-level weight로 넣어 occlusion과 motion blur가 만든 낮은 품질의 관절 추정이 anomaly score를 과도하게 높이지 않도록 한다.</p>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>데이터셋</th><th>비교 방법</th><th>비교 AUROC</th><th>STEP</th></tr></thead><tbody><tr><td>UBnormal Full</td><td>MULDE</td><td>80.6%</td><td><strong>90.1 ± 0.4%</strong></td></tr><tr><td>UBnormal Human-Related</td><td>SeeKer</td><td>78.9%</td><td><strong>90.9 ± 0.4%</strong></td></tr><tr><td>ShanghaiTech Full</td><td>STG-NF</td><td>85.9%</td><td><strong>86.2 ± 0.1%</strong></td></tr><tr><td>MSAD-HR, UB-style Online Smooth</td><td>SeeKer</td><td>61.1%</td><td><strong>74.1%</strong></td></tr></tbody></table></figure>
-
-
-
-<p class="wp-block-paragraph">UBnormal 개선 폭은 크지만 ShanghaiTech는 85.9→86.2%로 작다. 논문이 함께 보고한 full MSAD 성능은 Online Smooth 기준 59.6%뿐이다. MSAD-HR 표의 기존 방법은 HR split 방식이 명시되지 않아 74.1과 완전히 동일한 조건의 직접 비교로 단정하기 어렵다. 그래도 사람과 무관한 화재, 방치 물건, 설비 파손처럼 skeleton에 나타나지 않는 이상은 pose-only 모델이 구조적으로 놓칠 수 있다는 한계는 분명하다.</p>
-
-
-
-<h3 class="wp-block-heading">1,026 FPS에 포즈 추출 비용은 들어 있지 않다</h3>
-
-
-
-<p class="wp-block-paragraph">GTX 1080에서 50명을 동시에 scoring할 때 latency 0.97ms, 약 1,026 FPS, peak memory 32.6MB다. 100명은 1.62ms, 618 FPS, 44.9MB다. 인상적인 수치지만 논문 표의 측정 구간은 <strong>poses가 이미 extract·track된 뒤 raw coordinates에서 최종 frame score까지</strong>다. AlphaPose 같은 upstream pose detection과 tracking 비용은 제외됐다.</p>
-
-
-
-<p class="wp-block-paragraph"><strong>공개 상태:</strong> arXiv와 프로젝트 페이지에는 Code 링크가 있지만 8월 23일 공식 GitHub 저장소는 “This repository is empty” 상태다. 논문은 CC BY 4.0이고 소프트웨어 파일과 라이선스는 아직 없다.</p>
-
-
-
-<p class="wp-block-paragraph"><strong>실무 판단:</strong> anomaly model에 RGB appearance를 남기지 않고 사람 행동만 감지하면 되는 작업자 안전·시설 모니터링에는 흥미롭다. 다만 upstream pose estimator는 여전히 원본 영상을 처리하므로 이것만으로 privacy가 보장되는 것은 아니다. PCA whitening과 작은 energy model이라는 중심 아이디어는 비교적 단순해 재구현 후보가 될 수 있지만, end-to-end 속도는 detector·tracker와 화면 속 사람 수를 포함해 다시 측정해야 한다.</p>
-
-
-
-<h2 class="wp-block-heading">3. DreamHand — Video Diffusion Model을 생성하지 않는 인코더로</h2>
-
-
-
-<p class="wp-block-paragraph"><strong>공개일:</strong> 2026년 8월 20일 · <strong>분야:</strong> 3D Vision, Egocentric Video, Hand Pose, Embodied AI</p>
-
-
-
-<p class="wp-block-paragraph">오늘 세 편 가운데 아이디어가 가장 독창적이다. DreamHand는 Wan2.2-Fun-5B-Control 계열 Video Diffusion Model로 영상을 생성하지 않는다. noise level 0의 clean latent를 한 번 통과시키고, 30개 DiT block 가운데 zero-based block 15의 feature를 3D geometry representation으로 읽는다. 즉 16개 block을 실행한 single forward pass다.</p>
-
-
-
-<p class="wp-block-paragraph">LoRA는 30개 block 전체의 linear layer에 주입되고, Bidirectional Spatiotemporal Decoder는 clip 앞뒤 맥락을 함께 이용해 가려지거나 화면 밖으로 사라진 양손 trajectory를 복원한다. Ray-Based Camera Solver는 test-time camera intrinsics 없이 동작하는 <em>K-free</em> 구성도 제공한다. 다만 K-free 모델은 학습 때 정답 camera calibration으로 ray를 감독하며, 표준 K-given 모델과 별도로 학습된다.</p>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>데이터셋 · 지표</th><th>ViDiHand</th><th>DreamHand</th><th>변화</th></tr></thead><tbody><tr><td>ARCTIC MPJPE-p</td><td>21.668mm</td><td><strong>15.256mm</strong></td><td>-29.6%</td></tr><tr><td>ARCTIC MPJPE+OOS</td><td>31.045mm</td><td><strong>16.783mm</strong></td><td>-45.9%</td></tr><tr><td>HOT3D MPJPE-p</td><td>21.514mm</td><td><strong>12.888mm</strong></td><td>-40.1%</td></tr><tr><td>HOT3D MPJPE+OOS</td><td>44.440mm</td><td><strong>17.273mm</strong></td><td>-61.1%</td></tr></tbody></table></figure>
-
-
-
-<p class="wp-block-paragraph">저자 평가 프로토콜에서는 5개 데이터셋 표의 48개 주요 지표 셀 가운데 45개에서 기존 최고치를 넘었다고 보고한다. 부록의 같은 ViDiHand 행과 비교하면 H2O MPJPE-p는 17.320→9.223mm, OakInk2는 38.996→8.988mm다. 그러나 H2O와 OakInk2는 DreamHand에 in-domain, 비교 baseline에는 out-of-domain이므로 저자도 공정한 동등 비교보다 upper bound에 가깝다고 경고한다.</p>
-
-
-
-<h3 class="wp-block-heading">화면 밖 손을 ‘찾았다’는 말의 정확한 범위</h3>
-
-
-
-<p class="wp-block-paragraph">MPJPE+OOS와 MPJPE-OOS는 손목을 정렬한 뒤 재는 지표다. 화면 밖에서도 손가락 articulation과 global orientation이 얼마나 일관적인지는 보여주지만, 실제 3D 공간의 어느 위치에 손이 있는지는 보증하지 않는다. 논문도 absolute out-of-sight placement를 평가하는 표는 없다고 명시한다. “사라진 손의 자세를 시간적으로 이어간다”와 “사라진 손의 정확한 위치를 안다”는 다른 주장이다.</p>
-
-
-
-<p class="wp-block-paragraph">또한 DreamHand는 전체 clip에 한 번에 attention하는 <strong>offline 모델</strong>이다. 논문에 보고된 63.1 FPS throughput만 보고 실시간 tracker라고 부를 수 없다. 미래 프레임을 모르는 closed-loop teleoperation이나 robot controller가 아니라, 녹화된 영상에서 manipulation data를 추출하는 도구에 가깝다.</p>
-
-
-
-<p class="wp-block-paragraph"><strong>공개 상태:</strong> 공식 GitHub에는 README, assets, MIT LICENSE만 있다. inference code, training code, data preparation script, K-given·K-free checkpoint는 TODO이며 README도 이 구현물들이 아직 공개되지 않았다고 명시한다. 향후 DreamHand 코드는 MIT 예정이지만 Wan backbone, VideoX-Fun, MANO와 학습 데이터셋은 각각 별도 라이선스를 따른다. 논문 자체는 arXiv non-exclusive distribution license다.</p>
-
-
-
-<p class="wp-block-paragraph"><strong>실무 판단:</strong> 로봇 imitation learning이나 사람 영상에서 manipulation trajectory를 추출하는 용도에 중요한 신호다. 특히 생성 모델의 prior를 pixel renderer 대신 deterministic perception backbone으로 읽는 패턴은 손을 넘어 object pose와 interaction trajectory로 확장할 만하다. 지금은 재현보다 아키텍처를 참고하고 코드·checkpoint 공개를 기다릴 단계다.</p>
-
-
-
-<h2 class="wp-block-heading">오늘의 선택</h2>
-
-
-
-<ul class="wp-block-list">
-<li><strong>지금 직접 구현해 볼 아이디어 — STEP:</strong> pose sequence → PCA whitening → lightweight energy model이라는 중심 구조가 가장 작다. 다만 논문 결과 재현과 end-to-end FPS 검증은 공식 코드 공개 전까지 별개 과제다.</li>
-
-
-<li><strong>VLM 실무 추적 1순위 — ArmorOCR:</strong> 일반 OCR 점수 몇 점보다 “사람은 읽는데 VLM은 못 보는 텍스트”라는 failure mode를 직접 겨냥했다. 가중치와 AdvSpot이 올라오면 hard sample fallback으로 비교할 가치가 크다.</li>
-
-
-<li><strong>연구적으로 가장 눈에 띄는 방향 — DreamHand:</strong> Video Diffusion Model을 renderer가 아닌 geometry encoder로 재활용했다. 앞으로 video foundation model을 perception backbone으로 쓰는 연구에서 반복해서 볼 가능성이 높은 패턴이다.</li>
-</ul>
-
-
-
-<p class="wp-block-paragraph">세 논문을 함께 보면 한 가지 공통점이 보인다. 성능 향상은 더 큰 모델을 그대로 호출한 데서 나오지 않았다. ArmorOCR은 <strong>학습 시 관찰 방식</strong>을, STEP은 <strong>노이즈를 넣는 표현 공간</strong>을, DreamHand는 <strong>생성 모델 feature의 사용 목적</strong>을 바꿨다. 좋은 연구 아이디어는 종종 모델 자체보다 모델이 무엇을 보고 어디에서 학습하며 어떤 역할을 맡는지를 다시 정의하는 데서 나온다.</p>
-
-
-
-<hr class="wp-block-separator has-alpha-channel-opacity" />
-
-
-
-<h3 class="wp-block-heading">원문과 공개 상태 확인</h3>
-
-
-
-<ul class="wp-block-list">
-<li><a href="https://arxiv.org/list/cs.CV/recent?skip=0&amp;show=2000">arXiv cs.CV recent — 2026년 8월 21일 배치</a></li>
-
-
-<li><a href="https://arxiv.org/abs/2608.20122">ArmorOCR 논문</a> · <a href="https://github.com/ant-research/ArmorOCR">공식 GitHub</a></li>
-
-
-<li><a href="https://arxiv.org/abs/2608.19987">STEP 논문</a> · <a href="https://jakubmicorek.github.io/STEP-demo/">프로젝트 페이지</a> · <a href="https://github.com/jakubmicorek/STEP">공식 GitHub</a></li>
-
-
-<li><a href="https://arxiv.org/abs/2608.20308">DreamHand 논문</a> · <a href="https://ggxxii.github.io/dreamhand/">프로젝트 페이지</a> · <a href="https://github.com/ggxxii/dreamhand">공식 GitHub</a></li>
-</ul>
-
-
-
-<p class="wp-block-paragraph"><em>논문 버전과 저장소 상태는 2026년 8월 23일 확인했습니다. 성능 수치는 각 논문의 평가 조건을 그대로 요약했으며, 독립 재현 결과가 아닙니다. 코드·가중치·라이선스 상태는 이후 변경될 수 있습니다.</em></p>
-
-]]></content:encoded>
-
-
-
-			</item>
-		<item>
-		<title>AI MVP, 모델부터 만들면 늦는다: 앱 리뷰 → 대기자 명단 → 가짜 AI의 검증 순서</title>
-		<link>https://odd-note.invalid/ai-mvp-before-model/</link>
-
-		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
-		<pubDate>Tue, 18 Aug 2026 23:11:21 +0000</pubDate>
-				<category><![CDATA[사업 지식]]></category>
-		<category><![CDATA[1인 창업]]></category>
-		<category><![CDATA[AI MVP]]></category>
-		<category><![CDATA[고객 개발]]></category>
-		<category><![CDATA[제품 검증]]></category>
-		<category><![CDATA[프로토타입]]></category>
-		<guid isPermaLink="false">https://odd-note.invalid/ai-mvp-before-model/</guid>
-
-					<description><![CDATA[모델 정확도를 높이기 전에 고객 문제와 핵심 행동부터 확인해야 합니다. 앱 리뷰에서 문제를 찾고, 대기자 명단으로 행동을 확인하고, mock AI로 핵심 경험을 검증하는 실전 프레임워크입니다.]]></description>
-										<content:encoded><![CDATA[
-<p class="article-lead wp-block-paragraph">AI 서비스를 떠올리면 가장 먼저 모델 비교표를 열기 쉽다. OCR 정확도는 얼마인지, 어떤 LLM이 더 싼지, 파인튜닝이 필요한지부터 따진다. 그러나 초기 제품에서 더 비싼 실패는 <strong>모델을 못 만든 것</strong>이 아니라 <strong>아무도 반복해서 쓰지 않을 모델을 잘 만든 것</strong>이다.</p>
-
-
-
-<p class="wp-block-paragraph">사진 한 장을 올리면 지출 내역을 정리해 주는 가계부를 예로 들어보자. 기술적으로는 영수증 인식, 항목 분류, 중복 제거, 개인화 추천까지 만들 수 있다. 그렇지만 사용자가 정말 원하는 것은 “정확한 OCR”일까, “입력하지 않아도 되는 가계부”일까, 아니면 “이번 달에 어디서 새고 있는지 바로 알려주는 답”일까?</p>
-
-
-
-<p class="wp-block-paragraph">이 질문에 답하기 전에는 모델 정확도 95%도 무의미할 수 있다. 개인 프로젝트 노트에서 반복해서 드러난 교훈은 단순했다. <strong>문제 → 행동 → 기술</strong> 순서로 검증하면 개발비를 쓰기 전에 틀릴 기회를 얻는다.</p>
-
-
-
-<h2 class="wp-block-heading">AI MVP에는 서로 다른 세 가지 위험이 있다</h2>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>위험</th><th>확인할 질문</th><th>초기 검증 수단</th></tr></thead><tbody><tr><td><strong>문제 위험</strong></td><td>사람들이 충분히 자주, 충분히 아프게 겪는 문제인가?</td><td>앱 리뷰, 커뮤니티 글, 사용자 인터뷰</td></tr><tr><td><strong>행동 위험</strong></td><td>좋다고 말하는 것을 넘어 실제로 시간을 쓰거나 정보를 남기는가?</td><td>랜딩 페이지, 대기자 명단, 예약·결제 의향</td></tr><tr><td><strong>기술 위험</strong></td><td>핵심 결과를 허용 가능한 비용과 품질로 만들 수 있는가?</td><td>수동 처리, Wizard of Oz, 얇은 프로토타입</td></tr></tbody></table></figure>
-
-
-
-<p class="wp-block-paragraph">세 위험을 한 번에 해결하려고 하면 완성도 높은 앱을 먼저 만들게 된다. 반대로 가장 불확실한 가설부터 작은 실험으로 떼어내면 “만들 수는 있지만 필요 없는 제품”을 피할 수 있다. Strategyzer도 아이디어를 기능 목록으로 다루기보다 가장 결정적인 가설을 먼저 적고 증거로 시험하라고 권한다.</p>
-
-
-
-<h2 class="wp-block-heading">1단계: 경쟁 앱 리뷰에서 ‘기능’이 아니라 ‘진전’을 읽는다</h2>
-
-
-
-<p class="wp-block-paragraph">앱스토어 별점 평균만 보면 시장의 온도를 알 수는 있어도 고객의 일을 이해하기 어렵다. 리뷰를 읽을 때는 “이 기능이 없다”보다 사용자가 어떤 상황에서 무엇을 끝내려 했는지 찾아야 한다.</p>
-
-
-
-<ul class="wp-block-list">
-<li><strong>상황:</strong> 언제 문제가 시작됐는가? 월말 정산, 출장, 공동생활, 카드 명세서 확인 같은 맥락을 적는다.</li>
-
-
-<li><strong>원하는 진전:</strong> 기록 자체가 목적인가, 과소비를 찾거나 비용을 나누는 것이 목적인가?</li>
-
-
-<li><strong>마찰:</strong> 입력 단계가 많은가, 분류가 틀리는가, 동기화가 느린가, 신뢰하기 어려운가?</li>
-
-
-<li><strong>우회 행동:</strong> 메모장, 스프레드시트, 카카오톡, 영수증 사진처럼 이미 쓰는 대안은 무엇인가?</li>
-
-
-<li><strong>전환 조건:</strong> 사용자가 기존 습관을 버릴 만큼 중요한 한 가지 변화는 무엇인가?</li>
-</ul>
-
-
-
-<p class="wp-block-paragraph">“자동 분류가 필요하다”는 리뷰 한 줄은 기능 요청일 뿐이다. “월말에 영수증을 몰아서 입력하다가 포기한다”는 문장은 상황, 빈도, 기존 행동까지 포함한다. 후자가 MVP 가설을 만드는 데 훨씬 유용하다.</p>
-
-
-
-<p class="wp-block-paragraph">리뷰는 공개된 문제 후보를 찾는 데 좋지만 대표 표본은 아니다. 화가 난 사용자와 열성 사용자가 과대표집되고, 리뷰를 쓰지 않은 이탈자는 보이지 않는다. 따라서 리뷰에서 반복 패턴을 찾은 뒤 실제 목표 사용자와 짧은 인터뷰로 맥락을 확인해야 한다.</p>
-
-
-
-<h2 class="wp-block-heading">2단계: 랜딩 페이지는 설명서가 아니라 행동 실험이다</h2>
-
-
-
-<p class="wp-block-paragraph">인터뷰에서 “좋네요, 나오면 쓸게요”라는 답은 친절한 반응일 수 있다. 더 강한 증거는 사용자가 다음 행동을 하는지다. 랜딩 페이지는 아직 없는 제품을 거창하게 포장하는 곳이 아니라 가치 제안을 읽은 사람이 작은 비용을 감수하는지 확인하는 도구다.</p>
-
-
-
-<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow">
-<p class="wp-block-paragraph">“영수증을 읽어주는 AI 가계부”보다 “사진만 남기면 월말 정리가 끝나는 가계부”가 사용자의 진전을 더 선명하게 보여준다.</p>
-</blockquote>
-
-
-
-<p class="wp-block-paragraph">초기 페이지에는 세 가지만 있으면 된다. 누구의 어떤 순간을 해결하는지, 사용 전후가 어떻게 달라지는지, 그리고 대기자 등록·테스트 신청·상담 예약 같은 하나의 행동이다. 기능을 열 개 나열하면 어떤 약속에 반응했는지 알 수 없다.</p>
-
-
-
-<p class="wp-block-paragraph">전환율 하나만 보지 말고 유입 경로와 약속을 함께 기록한다. 지인 링크에서 20명이 등록한 것과, 문제를 검색해 들어온 낯선 방문자가 등록한 것은 증거의 성격이 다르다. 표본이 작을 때 소수점 전환율보다 “어떤 문장에 어떤 사람이 왜 반응했는가”를 읽는 편이 낫다.</p>
-
-
-
-<h2 class="wp-block-heading">3단계: ‘가짜 AI’로 모델이 아니라 경험을 검증한다</h2>
-
-
-
-<p class="wp-block-paragraph">여기서 말하는 “가짜 AI”는 사용자를 속이는 것이 아니다. 인터페이스 뒤의 일부 처리를 사람이 수행하는 <strong>Wizard of Oz 프로토타입</strong>이다. Google Design의 AI 프로토타이핑 사례처럼 아직 만들기 비싼 지능을 시뮬레이션해, 사용자가 결과를 어떻게 이해하고 수정하고 신뢰하는지 먼저 관찰한다.</p>
-
-
-
-<p class="wp-block-paragraph">예를 들어 테스트 참여자가 영수증 사진을 보내면 운영자가 금액과 카테고리를 정리해 몇 분 뒤 앱 화면처럼 돌려준다. 이때 측정할 것은 “사람이 잘 분류했는가”가 아니다.</p>
-
-
-
-<ul class="wp-block-list">
-<li>사용자가 사진을 실제로 반복해서 보내는가?</li>
-
-
-<li>결과에서 가장 먼저 확인하는 필드는 무엇인가?</li>
-
-
-<li>어떤 오류는 바로 고치고 어떤 오류는 무시하는가?</li>
-
-
-<li>결과를 받은 뒤 예산 수정이나 지출 확인 같은 다음 행동을 하는가?</li>
-
-
-<li>응답을 기다릴 수 있는 시간과 지불할 수 있는 가격은 어느 정도인가?</li>
-</ul>
-
-
-
-<p class="wp-block-paragraph">테스트 참여자에게 수동 보조가 포함된 초기 실험임을 알려야 한다. 영수증에는 상호, 위치, 결제 정보처럼 민감한 데이터가 들어갈 수 있으므로 수집 목적, 보관 기간, 삭제 방법, 사람이 열람하는 범위를 명시하고 최소한만 받아야 한다. 검증 속도가 동의와 개인정보 보호보다 앞설 수는 없다.</p>
-
-
-
-<h2 class="wp-block-heading">사용자의 수정은 가장 값진 학습 데이터가 된다</h2>
-
-
-
-<p class="wp-block-paragraph">AI 결과가 틀렸을 때 사용자가 어떻게 고치는지는 모델 정확도보다 제품 설계에 더 많은 것을 알려준다. 상호명 철자는 그대로 두지만 금액 오류는 반드시 고친다면, 두 필드의 허용 오차와 UI 우선순위가 다르다는 뜻이다.</p>
-
-
-
-<p class="wp-block-paragraph">초기부터 원본 입력, 제안 결과, 사용자의 최종 수정, 수정 이유를 분리해 기록하면 나중에 자동화 우선순위를 정할 수 있다. 단, “서비스 개선”이라는 포괄적 문구만으로 개인 데이터를 무기한 학습에 사용하는 것은 위험하다. 학습 사용 동의를 별도로 받고, 식별 정보를 제거하고, 삭제 요청이 원본과 파생 데이터에 어떻게 반영되는지 설계해야 한다.</p>
-
-
-
-<h2 class="wp-block-heading">모델 개발로 넘어가기 전 세 개의 문</h2>
-
-
-
-<p class="wp-block-paragraph">“반응이 좋았다”는 감상 대신 다음 세 조건을 통과했을 때 자동화 투자를 시작한다.</p>
-
-
-
-<ol class="wp-block-list">
-<li><strong>행동의 문:</strong> 목표 사용자가 핵심 입력을 한 번이 아니라 반복하고, 결과를 받은 뒤 의도한 다음 행동을 한다.</li>
-
-
-<li><strong>데이터의 문:</strong> 어떤 입력과 오류가 자주 발생하는지 알며, 합법적이고 지속 가능한 방식으로 개선 데이터를 얻을 수 있다.</li>
-
-
-<li><strong>경제성의 문:</strong> 사용자가 얻는 가치와 지불 의향이 추론비, 저장비, 지원비, 수동 검수비보다 충분히 크다.</li>
-</ol>
-
-
-
-<p class="wp-block-paragraph">이 세 문을 통과해도 곧바로 자체 모델을 학습할 필요는 없다. 규칙 기반 처리, 기존 API, 작은 모델과 사람 검수의 조합이 먼저일 수 있다. 자동화할 작업은 사용자가 가장 자주 수정하고 운영자가 가장 오래 처리하는 구간부터 선택한다. 모델은 제품의 출발점이 아니라 반복해서 확인된 병목을 제거하는 수단이다.</p>
-
-
-
-<h2 class="wp-block-heading">2주 안에 실행하는 최소 검증 순서</h2>
-
-
-
-<ol class="wp-block-list">
-<li><strong>1~2일:</strong> 경쟁 앱의 최근 긍정·부정 리뷰를 함께 읽고 상황, 진전, 마찰, 우회 행동으로 분류한다.</li>
-
-
-<li><strong>3~4일:</strong> 가장 위험한 가설 한 개와 실패 기준을 적는다. “사람들이 원한다”가 아니라 관찰할 행동으로 쓴다.</li>
-
-
-<li><strong>5~7일:</strong> 가치 제안 하나와 CTA 하나가 있는 랜딩 페이지를 만들고 목표 사용자가 모인 채널에서 반응을 본다.</li>
-
-
-<li><strong>8~11일:</strong> 동의한 소수 참여자에게 수동 보조 프로토타입을 제공하고 입력, 대기, 확인, 수정 과정을 관찰한다.</li>
-
-
-<li><strong>12~14일:</strong> 행동·데이터·경제성의 문을 검토해 중단, 가치 제안 변경, 제한적 자동화 중 하나를 결정한다.</li>
-</ol>
-
-
-
-<p class="wp-block-paragraph">기간보다 중요한 것은 실험 전에 실패 기준을 정하는 일이다. 결과를 본 뒤 기준을 바꾸면 어떤 반응도 성공처럼 해석하게 된다. 대기자 수, 반복 사용, 허용 대기 시간, 수정 빈도처럼 제품에 맞는 기준을 사전에 적어야 한다.</p>
-
-
-
-<h2 class="wp-block-heading">결론: 먼저 사람이 원하는 진전을 증명하라</h2>
-
-
-
-<p class="wp-block-paragraph">AI MVP의 목적은 작은 AI를 만드는 것이 아니다. <strong>사용자가 원하는 진전을 가장 싼 방법으로 증명하는 것</strong>이다. 앱 리뷰로 문제 후보를 찾고, 인터뷰로 맥락을 확인하고, 대기자 명단으로 행동을 보고, 투명한 수동 프로토타입으로 경험을 검증한다. 그다음에야 어디를 자동화할지 알 수 있다.</p>
-
-
-
-<p class="wp-block-paragraph">모델을 먼저 만들면 정확도는 올라가도 왜 쓰는지는 끝까지 모를 수 있다. 반대로 수요와 행동을 먼저 확인하면 기술 선택이 단순해진다. 무엇을 학습시킬지, 어떤 오류를 허용할지, 어디에 사람 검수가 필요한지가 실제 사용에서 드러나기 때문이다.</p>
-
-
-
-<hr class="wp-block-separator has-alpha-channel-opacity" />
-
-
-
-<h3 class="wp-block-heading">참고 자료와 확인 범위</h3>
-
-
-
-<ul class="wp-block-list">
-<li><a href="https://www.strategyzer.com/library/how-to-test-your-idea-start-with-the-most-critical-hypotheses">Strategyzer — Start with the Most Critical Hypotheses</a></li>
-
-
-<li><a href="https://design.google/library/simulating-intelligence">Google Design — Simulating Intelligence</a></li>
-</ul>
-
-
-
-<p class="wp-block-paragraph"><em>이 글은 개인 프로젝트 노트에서 반복된 제품 검증 질문을 익명화해 일반적인 프레임워크로 정리했습니다. 특정 서비스의 시장 성공이나 실제 전환율을 주장하지 않으며, 제시한 2주 일정과 통과 기준은 제품의 위험도와 고객군에 맞게 조정해야 합니다.</em></p>
-
-]]></content:encoded>
-
-
-
-			</item>
-		<item>
-		<title>사진 한 장으로 사물 사이 거리를 재는 AI: SpatialVLM은 어디까지 믿을 수 있나</title>
-		<link>https://odd-note.invalid/spatialvlm-paper-review/</link>
-
-		<dc:creator><![CDATA[Odd Note Editor]]></dc:creator>
-		<pubDate>Tue, 18 Aug 2026 23:11:21 +0000</pubDate>
-				<category><![CDATA[AI 논문 분석]]></category>
-		<category><![CDATA[3D 공간 추론]]></category>
-		<category><![CDATA[CVPR 2024]]></category>
-		<category><![CDATA[SpatialVLM]]></category>
-		<category><![CDATA[VLM]]></category>
-		<category><![CDATA[로보틱스]]></category>
-		<guid isPermaLink="false">https://odd-note.invalid/spatialvlm-paper-review/</guid>
-
-					<description><![CDATA[SpatialVLM은 1천만 장의 이미지에서 20억 개 공간 질문을 합성해 VLM에 거리와 크기를 가르쳤습니다. 논문의 방법, 결과와 숫자 뒤에 숨은 한계를 함께 읽습니다.]]></description>
-										<content:encoded><![CDATA[
-<p class="article-lead wp-block-paragraph">거실 사진 한 장을 AI에게 보여주고 이렇게 묻는다고 해보자. <strong>“폭이 1미터인 청소 로봇이 소파와 테이블 사이를 지나갈 수 있을까?”</strong></p>
-
-
-
-<p class="wp-block-paragraph">사진 속에 소파와 테이블이 있다는 사실을 알아보는 것과 두 물체 사이의 간격을 미터 단위로 추정하는 것은 전혀 다른 문제다. 기존 비전 언어 모델(VLM)은 사물의 이름과 장면은 잘 설명하지만, “얼마나 떨어져 있는가”, “어느 물체가 더 큰가” 같은 3차원 공간 문제에서는 답을 피하거나 근거 없는 숫자를 내놓기 쉽다.</p>
-
-
-
-<p class="wp-block-paragraph">Google DeepMind와 MIT·Stanford 연구진이 CVPR 2024에서 발표한 <a href="https://arxiv.org/abs/2401.12168">SpatialVLM 논문</a>은 이 문제를 모델 구조보다 <strong>학습 데이터의 문제</strong>로 바라본다. 인터넷 이미지에 공간 정보를 대규모로 덧붙여 학습하면 기존 VLM도 거리와 크기에 관한 질문에 더 잘 답할 수 있다는 가설이다.</p>
-
-
-
-<p class="wp-block-paragraph"><strong>먼저 결론부터 말하면</strong>, SpatialVLM은 AI가 사진 속 공간을 이해하도록 만드는 흥미로운 방법을 보여줬다. 그러나 아직 사진을 실제 줄자처럼 바꿔주는 기술은 아니다. 이 둘을 구분하는 것이 논문을 제대로 읽는 핵심이다.</p>
-
-
-
-<h2 class="wp-block-heading">SpatialVLM이 던진 질문</h2>
-
-
-
-<p class="wp-block-paragraph">대부분의 VLM은 이미지와 캡션으로 학습된다. 일반적인 캡션에는 “강아지가 의자 왼쪽에 있다” 정도의 표현은 있어도 “강아지와 의자 사이의 수평 거리는 70센티미터다” 같은 정량적 공간 정보는 거의 없다.</p>
-
-
-
-<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow">
-<p class="wp-block-paragraph">VLM이 공간을 이해하지 못하는 이유는 아키텍처가 부족해서가 아니라 공간을 가르치는 데이터가 부족해서일 수 있다.</p>
-</blockquote>
-
-
-
-<p class="wp-block-paragraph">이를 검증하려면 수많은 이미지에 물체의 위치, 크기, 깊이, 거리 정보를 붙여야 한다. 사람이 직접 측정하고 라벨링하기에는 비용이 너무 크다. SpatialVLM은 이미 존재하는 여러 비전 모델을 조립해 이 과정을 자동화했다.</p>
-
-
-
-<h2 class="wp-block-heading">2D 사진을 3D 학습 문제로 바꾸는 방법</h2>
-
-
-
-<ol class="wp-block-list">
-<li><strong>장면 사진 선별:</strong> 상품 하나만 찍힌 이미지나 화면 캡처처럼 공간 관계를 학습하기 어려운 이미지를 걸러낸다.</li>
-
-
-<li><strong>물체 분리와 설명:</strong> 장면 안의 물체를 탐지·분할하고 “케이크”보다 구체적인 “집 모양 케이크” 같은 설명을 붙인다.</li>
-
-
-<li><strong>깊이 추정:</strong> 단안 깊이 추정 모델로 각 픽셀이 카메라에서 얼마나 떨어져 있는지 예측한다.</li>
-
-
-<li><strong>3D 공간으로 변환:</strong> 2D 픽셀과 깊이 값을 미터 단위 3D 포인트 클라우드로 끌어올린다. 바닥이나 테이블처럼 수평인 면을 이용해 좌표계도 정리한다.</li>
-
-
-<li><strong>질문과 답 생성:</strong> 물체 사이의 좌우·상하·앞뒤 관계, 거리와 크기를 계산해 자연어 질문과 답으로 변환한다.</li>
-</ol>
-
-
-
-<p class="wp-block-paragraph">연구진은 38종의 공간 질문을 설계했다. 이 파이프라인으로 <strong>1천만 장의 실제 이미지에서 20억 개의 공간 질의응답 쌍</strong>을 만들었다. 절반은 “A가 B보다 앞에 있는가?” 같은 정성적 질문이고, 나머지 절반은 거리와 크기를 묻는 정량적 질문이다.</p>
-
-
-
-<p class="wp-block-paragraph">모델은 PaLM-E 계열 학습 절차와 PaLM 2-S 백본을 사용했으며 전체 학습 토큰 중 5%를 공간 추론 문제에 배정했다. 완전히 새로운 모델을 발명했다기보다 기존 VLM에 새로운 종류의 학습 신호를 주입한 셈이다.</p>
-
-
-
-<h2 class="wp-block-heading">성적표: 방향 판단은 좋아졌지만 거리는 아직 거칠다</h2>
-
-
-
-<p class="wp-block-paragraph">연구진은 WebLI 이미지 일부를 이용해 별도의 평가 세트를 만들었다. 사람이 작성한 <strong>정성적 질문 331개와 정량적 질문 215개, 총 546개</strong>로 구성된 자체 벤치마크다.</p>
-
-
-
-<figure class="wp-block-table"><table><thead><tr><th>평가 항목</th><th>SpatialVLM</th><th>무엇을 뜻하나</th></tr></thead><tbody><tr><td>정성적 공간 질문 정확도</td><td><strong>75.2%</strong></td><td>좌우·앞뒤·가까움 같은 관계 판단</td></tr><tr><td>숫자 형태의 답변 출력률</td><td><strong>99.0%</strong></td><td>거리 질문을 회피하지 않고 숫자로 답한 비율</td></tr><tr><td>기준값의 절반~두 배 범위</td><td><strong>37.2%</strong></td><td>예측이 사람 추정치의 0.5배~2배 안에 든 비율</td></tr><tr><td>기준값의 ±10% 범위</td><td><strong>8.4%</strong></td><td>더 엄격한 정량 오차 기준</td></tr></tbody></table></figure>
-
-
-
-<p class="wp-block-paragraph">정성적 질문에서는 75.2%를 기록해 논문에 포함된 GPT-4V 68.0%, LLaVA-1.5 71.3%보다 높았다. 다만 GPT-4V 평가는 2023년 11월 버전에 대한 결과다. 이 수치를 2026년의 최신 멀티모달 모델과 직접 비교해서는 안 된다.</p>
-
-
-
-<h2 class="wp-block-heading">“숫자를 99% 출력했다”는 말의 함정</h2>
-
-
-
-<p class="wp-block-paragraph">가장 오해하기 쉬운 수치는 99%다. 이것은 거리 측정 정확도가 99%라는 뜻이 아니다. 모델이 “기준이 없어 답할 수 없습니다”라고 회피하지 않고 숫자가 포함된 형식으로 답한 비율이다.</p>
-
-
-
-<p class="wp-block-paragraph">실제 거리와의 일치도를 보면 그림이 달라진다. 예측값이 사람 기준값의 절반에서 두 배 사이에 들어온 경우는 37.2%였다. 실제 거리가 1미터라면 0.5~2미터까지를 맞는 범위로 인정한 비교적 느슨한 기준이다. 더 엄격하게 사람 추정치의 ±10% 범위를 적용했을 때는 8.4%였다.</p>
-
-
-
-<p class="wp-block-paragraph">따라서 SpatialVLM은 “어느 쪽이 더 가깝고 대략 어느 정도 차이가 나는지” 묻는 도구에는 가까워졌지만, 가구 치수를 재거나 안전거리를 판정하는 계측 장비와는 거리가 멀다.</p>
-
-
-
-<h2 class="wp-block-heading">왜 1~10미터 구간에서 상대적으로 잘했을까?</h2>
-
-
-
-<p class="wp-block-paragraph">논문에서 특히 중요한 대목은 모델이 <strong>카메라로부터 약 1~10미터 떨어진 중간 거리 장면에서 상대적으로 좋은 결과</strong>를 보였다는 점이다. 연구진은 이 범위가 데이터 생성에 사용한 단안 깊이 추정 모델이 미터 단위 깊이를 비교적 안정적으로 예측하는 구간과 겹친다고 설명한다.</p>
-
-
-
-<p class="wp-block-paragraph">이는 SpatialVLM의 장점이면서 동시에 한계다. 학습 라벨을 만든 깊이 추정기가 특정 거리, 카메라, 장면에서 편향되면 그 데이터로 학습한 VLM도 같은 편향을 물려받는다. 논문도 SpatialVLM이 데이터 합성 파이프라인에 포함된 전문가 모델의 편향과 한계를 상속한다고 명시한다.</p>
-
-
-
-<p class="wp-block-paragraph">단일 사진에서 절대 거리를 알아내는 문제 자체에도 모호함이 있다. 같은 크기로 보이는 물체라도 작은 물체가 가까이 있거나 큰 물체가 멀리 있을 수 있다. 카메라 내부 정보, 기준 물체, 깊이 센서가 없다면 모델은 장면에 대한 학습된 상식을 이용해 추정할 수밖에 없다.</p>
-
-
-
-<h2 class="wp-block-heading">로봇에게는 어디까지 쓸 수 있을까?</h2>
-
-
-
-<p class="wp-block-paragraph">연구진은 로봇 그리퍼가 캔에 접근하는 연속 이미지에서 두 물체 사이의 예측 거리가 점차 감소하는 모습을 보여줬다. 이를 이용하면 “사과를 집어라” 같은 자연어 명령을 로봇 학습용 보상 신호로 바꿀 수 있다. 성공과 실패만 알려주는 이진 보상보다 “목표물에 얼마나 가까워졌는가”라는 연속적인 신호가 학습에 더 유용할 수 있다는 아이디어다.</p>
-
-
-
-<p class="wp-block-paragraph">하지만 논문 저자들 역시 이 실험이 심층적인 로봇 벤치마크는 아니라고 선을 긋는다. 다단계 추론 사례도 SpatialVLM 단독 능력이 아니라 별도의 대형 언어 모델이 질문을 작은 공간 문제로 나누고 답을 조합하는 방식이다. 로봇의 충돌 회피나 안전거리 판단에 바로 투입할 수준을 증명한 것은 아니다.</p>
-
-
-
-<h2 class="wp-block-heading">이 논문에서 진짜 흥미로운 것은 모델보다 데이터다</h2>
-
-
-
-<p class="wp-block-paragraph">SpatialVLM의 가장 큰 메시지는 “더 큰 모델을 만들면 모든 능력이 자연스럽게 생긴다”가 아니다. 오히려 모델이 경험하지 못한 개념은 명시적으로 가르쳐야 한다는 주장에 가깝다.</p>
-
-
-
-<p class="wp-block-paragraph">여러 전문 모델을 연결해 사람이 만들기 어려운 학습 데이터를 자동으로 생성하고, 그 데이터로 특정 능력을 주입했다. 이 관점은 AI 제품을 만드는 개발자와 사업자에게도 중요하다. 경쟁력은 항상 새로운 파운데이션 모델에서만 나오지 않는다. 특정 업무에 필요한 질문을 정의하고 기존 데이터에서 적절한 학습 신호를 추출하는 파이프라인이 더 강한 차별점이 될 수 있다.</p>
-
-
-
-<h2 class="wp-block-heading">개발자와 제품 팀이 가져갈 세 가지</h2>
-
-
-
-<ul class="wp-block-list">
-<li><strong>숫자를 말하는 능력과 정확히 측정하는 능력을 구분한다.</strong> 숫자 출력률 99%를 측정 정확도처럼 홍보하면 안 된다.</li>
-
-
-<li><strong>합성 데이터는 원본 모델의 오류도 함께 증폭한다.</strong> 깊이·분할·캡션 모델 각각의 편향을 최종 제품의 불확실성에 포함해야 한다.</li>
-
-
-<li><strong>안전이 중요한 제품에서는 센서와 결합한다.</strong> SpatialVLM식 추론은 후보 행동이나 대략적인 보상에 쓰고 실제 거리 판정은 깊이 카메라·라이다·캘리브레이션 정보로 검증하는 편이 안전하다.</li>
-</ul>
-
-
-
-<h2 class="wp-block-heading">결론: 공간을 이해하기 시작했지만 아직 줄자는 아니다</h2>
-
-
-
-<p class="wp-block-paragraph">SpatialVLM은 평면 이미지와 언어만 다루던 VLM에 미터 단위 공간 개념을 가르칠 수 있다는 가능성을 보여줬다. 1천만 장의 이미지에서 생성한 20억 개의 질문은 공간 추론 능력이 모델 크기뿐 아니라 데이터 설계에 달려 있음을 보여주는 인상적인 사례다.</p>
-
-
-
-<p class="wp-block-paragraph">동시에 결과는 냉정하게 읽어야 한다. 정성적 판단은 개선됐지만 정량적 답변 중 사람 기준값의 절반에서 두 배 범위에 들어온 것은 37.2%였다. 사용자에게 숫자를 보여주는 제품이라면 “얼마나 자주 숫자를 답하는가”보다 <strong>“그 숫자가 틀렸을 때 어떤 일이 생기는가”</strong>를 먼저 물어야 한다.</p>
-
-
-
-<p class="wp-block-paragraph">SpatialVLM은 줄자를 대체하지 않는다. 대신 AI가 현실 세계와 상호작용하려면 언어 능력만큼 공간에 대한 학습 경험이 중요하다는 사실을 선명하게 보여준다.</p>
-
-
-
-<hr class="wp-block-separator has-alpha-channel-opacity" />
-
-
-
-<h3 class="wp-block-heading">원문 자료와 확인 범위</h3>
-
-
-
-<ul class="wp-block-list">
-<li><a href="https://arxiv.org/abs/2401.12168">SpatialVLM — arXiv</a></li>
-
-
-<li><a href="https://openaccess.thecvf.com/content/CVPR2024/html/Chen_SpatialVLM_Endowing_Vision-Language_Models_with_Spatial_Reasoning_Capabilities_CVPR_2024_paper.html">SpatialVLM — CVPR 2024 Open Access</a></li>
-
-
-<li><a href="https://spatial-vlm.github.io/">SpatialVLM 공식 프로젝트 페이지</a></li>
-</ul>
-
-
-
-<p class="wp-block-paragraph"><em>성능 수치는 CVPR 2024 논문의 모델과 평가 조건을 기준으로 해석했습니다. 개인 연구 노트는 주제 탐색에만 사용했고, 글의 사실과 수치는 원 논문으로 다시 확인했습니다.</em></p>
 
 ]]></content:encoded>
 

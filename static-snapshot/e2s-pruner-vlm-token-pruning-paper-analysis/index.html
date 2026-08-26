@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="ko-KR">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+			<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2216%22 fill=%22%230b0b0e%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2218%22 fill=%22%23d7ff3f%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%228%22 fill=%22%230b0b0e%22/%3E%3C/svg%3E">
+		<title>E2S-Pruner 논문 분석: 학습 없이 VLM Visual Token을 줄이는 Evidence Fusion &#8211; Odd Note</title>
+<meta name="description" content="이미지·prompt와 VLM attention을 받아 head·layer evidence를 결합하고 token을 줄이는 과정, 여섯 benchmark의 유지율과 latency·memory·OCR 한계를 분석합니다.">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Odd Note">
+<meta property="og:title" content="E2S-Pruner 논문 분석: 학습 없이 VLM Visual Token을 줄이는 Evidence Fusion &#8211; Odd Note">
+<meta property="og:description" content="이미지·prompt와 VLM attention을 받아 head·layer evidence를 결합하고 token을 줄이는 과정, 여섯 benchmark의 유지율과 latency·memory·OCR 한계를 분석합니다.">
+<meta property="og:url" content="https://odd-note.invalid/e2s-pruner-vlm-token-pruning-paper-analysis/">
+<meta property="og:image" content="https://odd-note.invalid/wp-content/themes/odd-note/assets/images/og-tech-business.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Odd Note — IT 최신 뉴스, AI 논문 분석, 사업 지식">
+<meta name="twitter:card" content="summary_large_image">
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<style id="wp-block-library-inline-css">
+:root{--wp-block-synced-color:#7a00df;--wp-block-synced-color--rgb:122,0,223;--wp-bound-block-color:var(--wp-block-synced-color);--wp-editor-canvas-background:#ddd;--wp-admin-theme-color:#007cba;--wp-admin-theme-color--rgb:0,124,186;--wp-admin-theme-color-darker-10:#006ba1;--wp-admin-theme-color-darker-10--rgb:0,107,160.5;--wp-admin-theme-color-darker-20:#005a87;--wp-admin-theme-color-darker-20--rgb:0,90,135;--wp-admin-border-width-focus:2px}@media (min-resolution:192dpi){:root{--wp-admin-border-width-focus:1.5px}}.wp-element-button{cursor:pointer}:root .has-very-light-gray-background-color{background-color:#eee}:root .has-very-dark-gray-background-color{background-color:#313131}:root .has-very-light-gray-color{color:#eee}:root .has-very-dark-gray-color{color:#313131}:root .has-vivid-green-cyan-to-vivid-cyan-blue-gradient-background{background:linear-gradient(135deg,#00d084,#0693e3)}:root .has-purple-crush-gradient-background{background:linear-gradient(135deg,#34e2e4,#4721fb 50%,#ab1dfe)}:root .has-hazy-dawn-gradient-background{background:linear-gradient(135deg,#faaca8,#dad0ec)}:root .has-subdued-olive-gradient-background{background:linear-gradient(135deg,#fafae1,#67a671)}:root .has-atomic-cream-gradient-background{background:linear-gradient(135deg,#fdd79a,#004a59)}:root .has-nightshade-gradient-background{background:linear-gradient(135deg,#330968,#31cdcf)}:root .has-midnight-gradient-background{background:linear-gradient(135deg,#020381,#2874fc)}:root{--wp--preset--font-size--normal:16px;--wp--preset--font-size--huge:42px}.has-regular-font-size{font-size:1em}.has-larger-font-size{font-size:2.625em}.has-normal-font-size{font-size:var(--wp--preset--font-size--normal)}.has-huge-font-size{font-size:var(--wp--preset--font-size--huge)}:root .has-text-align-center{text-align:center}:root .has-text-align-left{text-align:left}:root .has-text-align-right{text-align:right}.has-fit-text{white-space:nowrap!important}#end-resizable-editor-section{display:none}.aligncenter{clear:both}.items-justified-left{justify-content:flex-start}.items-justified-center{justify-content:center}.items-justified-right{justify-content:flex-end}.items-justified-space-between{justify-content:space-between}.screen-reader-text{word-wrap:normal!important;border:0;clip-path:inset(50%);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.screen-reader-text:focus{background-color:#ddd;clip-path:none;color:#444;display:block;font-size:1em;height:auto;left:5px;line-height:normal;padding:15px 23px 14px;text-decoration:none;top:5px;width:auto;z-index:100000}html :where(.has-border-color){border-style:solid}html :where([style*=border-color]){border-style:solid}html :where([style*=border-top-color]){border-top-style:solid}html :where([style*=border-right-color]){border-right-style:solid}html :where([style*=border-bottom-color]){border-bottom-style:solid}html :where([style*=border-left-color]){border-left-style:solid}html :where([style*=border-width]){border-style:solid}html :where([style*=border-top-width]){border-top-style:solid}html :where([style*=border-right-width]){border-right-style:solid}html :where([style*=border-bottom-width]){border-bottom-style:solid}html :where([style*=border-left-width]){border-left-style:solid}html :where(img[class*=wp-image-]){height:auto;max-width:100%}:where(figure){margin:0 0 1em}html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:var(--wp-admin--admin-bar--height,0px)}@media screen and (max-width:600px){html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:0px}}
+
+/*# sourceURL=/wp-includes/css/dist/block-library/common.min.css */
+</style>
+<style id="wp-block-heading-inline-css">
+h1:where(.wp-block-heading).has-background,h2:where(.wp-block-heading).has-background,h3:where(.wp-block-heading).has-background,h4:where(.wp-block-heading).has-background,h5:where(.wp-block-heading).has-background,h6:where(.wp-block-heading).has-background{padding:1.25em 2.375em}h1.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h1.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h2.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h2.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h3.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h3.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h4.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h4.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h5.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h5.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h6.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h6.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]){rotate:180deg}
+/*# sourceURL=/wp-includes/blocks/heading/style.min.css */
+</style>
+<style id="wp-block-list-inline-css">
+ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:1.25em 2.375em}
+/*# sourceURL=/wp-includes/blocks/list/style.min.css */
+</style>
+<style id="wp-block-paragraph-inline-css">
+.is-small-text{font-size:.875em}.is-regular-text{font-size:1em}.is-large-text{font-size:2.25em}.is-larger-text{font-size:3em}.has-drop-cap:not(:focus):first-letter{float:left;font-size:8.4em;font-style:normal;font-weight:100;line-height:.68;margin:.05em .1em 0 0;text-transform:uppercase}body.rtl .has-drop-cap:not(:focus):first-letter{float:none;margin-left:.1em}p.has-drop-cap.has-background{overflow:hidden}:root :where(p.has-background){padding:1.25em 2.375em}:where(p.has-text-color:not(.has-link-color)) a{color:inherit}p.has-text-align-left[style*="writing-mode:vertical-lr"],p.has-text-align-right[style*="writing-mode:vertical-rl"]{rotate:180deg}
+/*# sourceURL=/wp-includes/blocks/paragraph/style.min.css */
+</style>
+<style id="wp-block-code-inline-css">
+.wp-block-code{box-sizing:border-box}.wp-block-code code{direction:ltr;display:block;font-family:inherit;overflow-wrap:break-word;text-align:initial;white-space:pre-wrap}
+/*# sourceURL=/wp-includes/blocks/code/style.min.css */
+</style>
+<style id="wp-block-separator-inline-css">
+@charset "UTF-8";.wp-block-separator{border:none;border-top:2px solid}:root :where(.wp-block-separator.is-style-dots){height:auto;line-height:1;text-align:center}:root :where(.wp-block-separator.is-style-dots):before{color:currentColor;content:"···";font-family:serif;font-size:1.5em;letter-spacing:2em;padding-left:2em}.wp-block-separator.is-style-dots{background:none!important;border:none!important}
+/*# sourceURL=/wp-includes/blocks/separator/style.min.css */
+</style>
+<style id="wp-block-table-inline-css">
+.wp-block-table{overflow-x:auto}.wp-block-table table{border-collapse:collapse;width:100%}.wp-block-table thead{border-bottom:3px solid}.wp-block-table tfoot{border-top:3px solid}.wp-block-table td,.wp-block-table th{border:1px solid;padding:.5em}.wp-block-table .has-fixed-layout{table-layout:fixed;width:100%}.wp-block-table .has-fixed-layout td,.wp-block-table .has-fixed-layout th{word-break:break-word}.wp-block-table.aligncenter,.wp-block-table.alignleft,.wp-block-table.alignright{display:table;width:auto}.wp-block-table.aligncenter td,.wp-block-table.aligncenter th,.wp-block-table.alignleft td,.wp-block-table.alignleft th,.wp-block-table.alignright td,.wp-block-table.alignright th{word-break:break-word}.wp-block-table .has-subtle-light-gray-background-color{background-color:#f3f4f5}.wp-block-table .has-subtle-pale-green-background-color{background-color:#e9fbe5}.wp-block-table .has-subtle-pale-blue-background-color{background-color:#e7f5fe}.wp-block-table .has-subtle-pale-pink-background-color{background-color:#fcf0ef}.wp-block-table.is-style-stripes{background-color:initial;border-collapse:inherit;border-spacing:0}.wp-block-table.is-style-stripes tbody tr:nth-child(odd){background-color:#f0f0f0}.wp-block-table.is-style-stripes.has-subtle-light-gray-background-color tbody tr:nth-child(odd){background-color:#f3f4f5}.wp-block-table.is-style-stripes.has-subtle-pale-green-background-color tbody tr:nth-child(odd){background-color:#e9fbe5}.wp-block-table.is-style-stripes.has-subtle-pale-blue-background-color tbody tr:nth-child(odd){background-color:#e7f5fe}.wp-block-table.is-style-stripes.has-subtle-pale-pink-background-color tbody tr:nth-child(odd){background-color:#fcf0ef}.wp-block-table.is-style-stripes td,.wp-block-table.is-style-stripes th{border-color:#0000}.wp-block-table.is-style-stripes{border-bottom:1px solid #f0f0f0}.wp-block-table .has-border-color td,.wp-block-table .has-border-color th,.wp-block-table .has-border-color tr,.wp-block-table .has-border-color>*{border-color:inherit}.wp-block-table table[style*=border-top-color] tr:first-child,.wp-block-table table[style*=border-top-color] tr:first-child td,.wp-block-table table[style*=border-top-color] tr:first-child th,.wp-block-table table[style*=border-top-color]>*,.wp-block-table table[style*=border-top-color]>* td,.wp-block-table table[style*=border-top-color]>* th{border-top-color:inherit}.wp-block-table table[style*=border-top-color] tr:not(:first-child){border-top-color:initial}.wp-block-table table[style*=border-right-color] td:last-child,.wp-block-table table[style*=border-right-color] th,.wp-block-table table[style*=border-right-color] tr,.wp-block-table table[style*=border-right-color]>*{border-right-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:last-child,.wp-block-table table[style*=border-bottom-color] tr:last-child td,.wp-block-table table[style*=border-bottom-color] tr:last-child th,.wp-block-table table[style*=border-bottom-color]>*,.wp-block-table table[style*=border-bottom-color]>* td,.wp-block-table table[style*=border-bottom-color]>* th{border-bottom-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:not(:last-child){border-bottom-color:initial}.wp-block-table table[style*=border-left-color] td:first-child,.wp-block-table table[style*=border-left-color] th,.wp-block-table table[style*=border-left-color] tr,.wp-block-table table[style*=border-left-color]>*{border-left-color:inherit}.wp-block-table table[style*=border-style] td,.wp-block-table table[style*=border-style] th,.wp-block-table table[style*=border-style] tr,.wp-block-table table[style*=border-style]>*{border-style:inherit}.wp-block-table table[style*=border-width] td,.wp-block-table table[style*=border-width] th,.wp-block-table table[style*=border-width] tr,.wp-block-table table[style*=border-width]>*{border-style:inherit;border-width:inherit}
+/*# sourceURL=/wp-includes/blocks/table/style.min.css */
+</style>
+
+
+<style id="global-styles-inline-css">
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--color--ink: #0d0d12;--wp--preset--color--paper: #f3efe5;--wp--preset--color--acid: #d8ff45;--wp--preset--color--coral: #ff694f;--wp--preset--color--sky: #8bd9ff;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgb(6,147,227) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgb(252,185,0) 0%,rgb(255,105,0) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgb(255,105,0) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.625), 20px);--wp--preset--font-size--large: clamp(22.041px, 1.378rem + ((1vw - 3.2px) * 1.454), 36px);--wp--preset--font-size--x-large: clamp(25.014px, 1.563rem + ((1vw - 3.2px) * 1.769), 42px);--wp--preset--font-family--sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;--wp--preset--font-family--serif: "Iowan Old Style", "Noto Serif KR", Georgia, serif;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);}:root { --wp--style--global--content-size: 760px;--wp--style--global--wide-size: 1280px; }:where(body) { margin: 0; }.wp-site-blocks > .alignleft { float: left; margin-right: 2em; }.wp-site-blocks > .alignright { float: right; margin-left: 2em; }.wp-site-blocks > .aligncenter { justify-content: center; margin-left: auto; margin-right: auto; }:where(.wp-site-blocks) > * { margin-block-start: 1.5rem; margin-block-end: 0; }:where(.wp-site-blocks) > :first-child { margin-block-start: 0; }:where(.wp-site-blocks) > :last-child { margin-block-end: 0; }:root { --wp--style--block-gap: 1.5rem; }:root :where(.is-layout-flow) > :first-child{margin-block-start: 0;}:root :where(.is-layout-flow) > :last-child{margin-block-end: 0;}:root :where(.is-layout-flow) > *{margin-block-start: 1.5rem;margin-block-end: 0;}:root :where(.is-layout-constrained) > :first-child{margin-block-start: 0;}:root :where(.is-layout-constrained) > :last-child{margin-block-end: 0;}:root :where(.is-layout-constrained) > *{margin-block-start: 1.5rem;margin-block-end: 0;}:root :where(.is-layout-flex){gap: 1.5rem;}:root :where(.is-layout-grid){gap: 1.5rem;}.is-layout-flow > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-flow > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-flow > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-constrained > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-constrained > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > :where(:not(.alignleft):not(.alignright):not(.alignfull)){max-width: var(--wp--style--global--content-size);margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignwide{max-width: var(--wp--style--global--wide-size);}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}body{background-color: #0d0d12;color: #f3efe5;font-family: var(--wp--preset--font-family--sans);line-height: 1.65;padding-top: 0px;padding-right: 0px;padding-bottom: 0px;padding-left: 0px;}a:where(:not(.wp-element-button)){color: #d8ff45;}h1, h2, h3, h4, h5, h6{font-weight: 700;line-height: 1.05;}:root :where(.wp-element-button, .wp-block-button__link){background-color: #32373c;border-width: 0;color: #fff;font-family: inherit;font-size: inherit;font-style: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;padding-top: calc(0.667em + 2px);padding-right: calc(1.333em + 2px);padding-bottom: calc(0.667em + 2px);padding-left: calc(1.333em + 2px);text-decoration: none;text-transform: inherit;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-ink-color{color: var(--wp--preset--color--ink) !important;}.has-paper-color{color: var(--wp--preset--color--paper) !important;}.has-acid-color{color: var(--wp--preset--color--acid) !important;}.has-coral-color{color: var(--wp--preset--color--coral) !important;}.has-sky-color{color: var(--wp--preset--color--sky) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-ink-background-color{background-color: var(--wp--preset--color--ink) !important;}.has-paper-background-color{background-color: var(--wp--preset--color--paper) !important;}.has-acid-background-color{background-color: var(--wp--preset--color--acid) !important;}.has-coral-background-color{background-color: var(--wp--preset--color--coral) !important;}.has-sky-background-color{background-color: var(--wp--preset--color--sky) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-ink-border-color{border-color: var(--wp--preset--color--ink) !important;}.has-paper-border-color{border-color: var(--wp--preset--color--paper) !important;}.has-acid-border-color{border-color: var(--wp--preset--color--acid) !important;}.has-coral-border-color{border-color: var(--wp--preset--color--coral) !important;}.has-sky-border-color{border-color: var(--wp--preset--color--sky) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}.has-sans-font-family{font-family: var(--wp--preset--font-family--sans) !important;}.has-serif-font-family{font-family: var(--wp--preset--font-family--serif) !important;}
+/*# sourceURL=global-styles-inline-css */
+</style>
+
+<link rel='stylesheet' id='odd-note-fonts-css' href='/wp-content/themes/odd-note/assets/fonts/pretendard/pretendardvariable-dynamic-subset.css?ver=1787500912' media='all' />
+<link rel='stylesheet' id='odd-note-site-css' href='/wp-content/themes/odd-note/assets/css/site.css?ver=1787716999' media='all' />
+<meta name="theme-color" content="#0d0d12">
+<!-- ODD_NOTE_ROBOTS:indexable -->
+<link rel="canonical" href="https://odd-note.invalid/e2s-pruner-vlm-token-pruning-paper-analysis/">
+<link rel="alternate" type="application/rss+xml" title="Odd Note RSS" href="/feed.xml">
+</head>
+<body class="wp-singular post-template-default single single-post postid-52 single-format-standard wp-embed-responsive wp-theme-odd-note odd-note" data-mood="acid">
+
+<a class="skip-link" href="#main-content">본문으로 바로가기</a>
+
+<div class="reading-progress" aria-hidden="true">
+	<span data-reading-progress></span>
+</div>
+
+<div class="pointer-halo" data-pointer-halo aria-hidden="true" hidden>
+	<span data-pointer-label></span>
+</div>
+
+<div class="page-atmosphere" aria-hidden="true"></div>
+
+<header class="site-header" data-site-header>
+	<div class="site-header__inner">
+		<a class="site-brand magnetic" href="/" data-cursor="HOME">
+			<span class="site-brand__mark" aria-hidden="true">◉</span>
+			<span class="site-brand__name">Odd Note</span>
+		</a>
+
+		<button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-primary-navigation" data-menu-toggle hidden>
+			<span class="menu-toggle__label" lang="en">Menu</span>
+		</button>
+
+		<nav id="site-primary-navigation" class="primary-nav" aria-label="주요 메뉴">
+			<ul id="primary-menu" class="site-menu"><li id="menu-item-27" class="menu-item menu-item-type-post_type menu-item-object-page current_page_parent menu-item-27"><a href="/stories/">전체 글</a></li>
+<li id="menu-item-28" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-28"><a href="/category/it-news/">IT 최신 뉴스</a></li>
+<li id="menu-item-29" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-29"><a href="/category/ai-paper-analysis/">AI 논문 분석</a></li>
+<li id="menu-item-30" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-30"><a href="/category/business-knowledge/">사업 지식</a></li>
+<li id="menu-item-31" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-31"><a href="/about/">소개</a></li>
+</ul>		</nav>
+
+		<div class="experience-controls" role="group" aria-label="화면 효과 설정" aria-hidden="true" data-experience-controls inert>
+			<button class="control-button" type="button" data-mood-toggle data-cursor="COLOR" aria-label="색상 분위기 바꾸기">
+				<span class="control-button__dot" aria-hidden="true"></span>
+				<span data-mood-label lang="en">ACID</span>
+			</button>
+			<button class="control-button" type="button" data-motion-toggle data-cursor="MOTION" aria-label="화면 효과" aria-describedby="odd-note-motion-status" aria-pressed="true">
+				<span class="control-button__pulse" aria-hidden="true"></span>
+				<span data-motion-label lang="en">FX ON</span>
+			</button>
+			<span id="odd-note-motion-status" class="screen-reader-text" data-motion-status></span>
+		</div>
+	</div>
+</header>
+
+<main id="main-content" class="single-page" tabindex="-1">
+					<article class="single-article post-52 post type-post status-publish format-standard hentry category-ai-paper-analysis tag-ai-- tag-dempster-shafer tag-e2s-pruner tag-inference-optimization tag-llava tag-qwen2-vl tag-visual-token-pruning tag-vlm">
+			<header class="article-hero section-shell">
+				<div class="post-meta reveal">
+					<span>AI 논문 분석</span>
+					<time datetime="2026-08-26T12:56:34+09:00">2026.08.26</time>
+					<span>17 min read</span>
+				</div>
+				<h1 class="article-title reveal">E2S-Pruner 논문 분석: 학습 없이 VLM Visual Token을 줄이는 Evidence Fusion</h1>
+									<p class="article-deck reveal">이미지·prompt와 VLM attention을 받아 head·layer evidence를 결합하고 token을 줄이는 과정, 여섯 benchmark의 유지율과 latency·memory·OCR 한계를 분석합니다.</p>
+							</header>
+
+			<div class="article-visual section-shell reveal">
+									<div class="generative-cover generative-cover--article" style="--cover-seed: 7;">
+						<span class="generative-cover__word">AI 논문 분석</span>
+						<span class="generative-cover__issue">NOTE 052</span>
+					</div>
+							</div>
+
+			<div class="article-layout section-shell">
+				<aside class="article-aside reveal">
+					<p>Written by</p>
+					<strong>Odd Note Editor</strong>
+					<a href="/about/" data-cursor="MORE">편집 원칙 보기 ↗</a>
+				</aside>
+
+				<div class="article-content reveal">
+
+<p class="article-lead wp-block-paragraph"><strong>같은 이미지를 본 attention head들이 서로 다른 곳을 중요하다고 말할 때, 점수를 평균내는 것이 정말 안전할까?</strong> E2S-Pruner는 이 불일치를 잡음으로 지우지 않고 증거의 불확실성과 충돌로 모델링한다. 추가 학습 없이 LLM 내부의 visual token을 단계적으로 줄이되, 서로 다른 head와 layer가 지지한 정보를 Dempster–Shafer evidence theory로 결합하는 방식이다.</p>
+
+
+
+<p class="wp-block-paragraph">논문은 LLaVA-1.5-7B의 평균 visual-token budget을 128과 64로 줄였을 때 MMBench 평가 환경에서 throughput이 각각 1.96배와 2.09배가 됐다고 보고한다. 하지만 aggressive pruning은 작은 글자에 약하고, peak GPU memory는 dense model보다 약 21% 늘었다. 더 중요한 해석상의 주의점도 있다. 논문의 “64 tokens”는 마지막까지 64개를 유지한다는 뜻이 아니라 <strong>32개 LLM layer 전체에서 평균한 budget</strong>이다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>정식 제목:</strong> E2S-Pruner: Progressive Two-Stage Evidence Fusion for Visual Token Pruning in Vision-Language Models · <strong>arXiv:</strong> 2608.23253v1 · <strong>제출:</strong> 2026년 8월 24일 13:44:41 UTC · <strong>확인 기준:</strong> 2026년 8월 26일</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>E2S-Pruner의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>이미지에서 만든 visual token, 사용자 질문의 text token, 지정 LLM layer의 head별 text-to-visual attention, pruning layer와 token budget.</td></tr><tr><td><strong>Process</strong></td><td>Head별 attention 정규화 → clarity·consistency 기반 reliability → important/unimportant/uncertain mass → layer 간 Dempster–Shafer 결합 → conflict protection → spatial novelty bonus → Top-K pruning.</td></tr><tr><td><strong>Output</strong></td><td>각 pruning layer 뒤에 남길 visual-token subset. VLM은 줄어든 sequence로 기존과 같은 형태의 자연어 답변을 생성한다.</td></tr><tr><td><strong>학습 조건</strong></td><td>Auxiliary model, 새 trainable parameter, fine-tuning이 없는 inference-time 방식. 단, pretrained base VLM과 내부 attention 접근은 필요하다.</td></tr><tr><td><strong>핵심 trade-off</strong></td><td>64 average-token budget에서 MMBench throughput 2.09×, total latency -51.5%, peak memory +20.8%, MMBench score 64.6→57.3.</td></tr></tbody></table></figure>
+
+
+
+<h2 class="wp-block-heading">1. 어떤 문제를 풀려는 논문인가</h2>
+
+
+
+<p class="wp-block-paragraph">VLM은 vision encoder가 이미지를 여러 patch token으로 바꾼 뒤 text token과 함께 LLM에 넣는다. LLaVA-1.5-7B의 논문 설정에서는 이미지 한 장이 24×24, 즉 <strong>576개 visual token</strong>이 된다. 이 token이 LLM의 모든 layer를 지나면 self-attention과 feed-forward 계산, activation과 KV 관련 memory 부담이 커진다.</p>
+
+
+
+<p class="wp-block-paragraph">일반적인 attention pruning은 text가 많이 바라보는 visual token을 중요하다고 보고 score를 평균한 뒤 Top-K만 남긴다. 문제는 head와 layer마다 역할이 다르다는 데 있다. Shallow layer는 texture와 edge, middle layer는 object structure, deep layer는 global semantics에 더 반응할 수 있다. 어떤 token이 한 layer에서는 약하지만 다른 layer에서는 강한 증거를 얻었을 때 단순 평균은 그 이유와 충돌을 구분하지 못한다.</p>
+
+
+
+<p class="wp-block-paragraph">E2S-Pruner의 질문은 “점수가 얼마나 큰가”에서 “그 점수를 낸 증거가 얼마나 명확하고 서로 일치하는가”로 바뀐다. 여러 head가 비슷한 방향을 지지하면 reliability를 높이고, head끼리 엇갈리면 일부 mass를 uncertainty에 남긴다. Layer끼리 의견이 충돌한 token은 바로 버리지 않고 retention priority를 올려 보호한다.</p>
+
+
+
+<h3 class="wp-block-heading">Training-free의 정확한 뜻</h3>
+
+
+
+<p class="wp-block-paragraph">이 논문에서 training-free는 E2S-Pruner를 위해 별도 model을 학습하거나 base VLM을 fine-tuning하지 않는다는 뜻이다. 추가 weight나 전용 checkpoint도 필요하지 않다. 이미 학습된 LLaVA-1.5-7B 또는 Qwen2-VL-7B의 inference graph 안에서 attention을 읽고 token index를 선택한다.</p>
+
+
+
+<ul class="wp-block-list">
+<li>Base VLM 자체는 대규모 데이터로 사전학습된 모델이다.</li>
+
+<li>Pruning layer, 단계별 keep count, spatial grid와 λ는 사람이 설정한다.</li>
+
+<li>Evidence fusion 계산과 intermediate tensor는 추가된다.</li>
+
+<li>모델 내부 Q·K 또는 head별 attention에 접근해야 하므로 closed VLM API에 설정 하나로 붙이는 방식은 아니다.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">2. Input — 무엇을 받아 token을 고르는가</h2>
+
+
+
+<h3 class="wp-block-heading">이미지와 사용자 질문</h3>
+
+
+
+<p class="wp-block-paragraph">사용자 수준의 입력은 일반 VLM과 같다. 이미지와 “표지판에 무엇이라고 쓰였나?”, “사진 속 동물은 몇 마리인가?” 같은 text prompt를 넣는다. Vision encoder는 이미지를 visual token 집합으로 만들고 tokenizer는 질문을 text token 집합으로 만든다.</p>
+
+
+
+<p class="wp-block-paragraph">E2S-Pruner는 image saliency만 보는 방법이 아니다. 각 LLM head에서 모든 text token의 query와 visual token의 key 사이 scaled dot product를 평균해 <strong>text-to-visual attention evidence</strong>를 만든다. 같은 이미지라도 질문이 달라지면 text query가 달라지므로 남는 visual token도 달라질 수 있다.</p>
+
+
+
+<h3 class="wp-block-heading">모델 내부에서 필요한 정보</h3>
+
+
+
+<ul class="wp-block-list">
+<li>현재 layer의 visual-token activation과 원래 2D patch 위치</li>
+
+<li>각 attention head의 text query와 visual key</li>
+
+<li>이전 pruning layer까지 누적한 token별 D-S mass</li>
+
+<li>Pruning layer 목록과 각 단계의 keep budget</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">LLaVA 실험은 32-layer LLM에서 layer 3, 17, 22를 통과한 뒤 세 번 pruning한다. 따라서 layer 4, 18, 23의 입력 visual-token 수가 단계적으로 줄어든다. 이 위치는 학습으로 찾는 것이 아니라 논문 설정으로 고정한다.</p>
+
+
+
+<h2 class="wp-block-heading">3. Output — 무엇이 나오고 무엇은 나오지 않나</h2>
+
+
+
+<p class="wp-block-paragraph">E2S-Pruner 자체의 직접 출력은 각 pruning 시점에 계속 전달할 <strong>visual-token index와 token subset</strong>이다. 선택되지 않은 token은 이후 LLM layer에서 제거된다. 남은 token과 text representation으로 base VLM이 원래와 같은 자연어 답변을 만든다.</p>
+
+
+
+<ul class="wp-block-list">
+<li>최종 사용자 출력 형식은 base VLM의 text answer와 같다.</li>
+
+<li>D-S uncertainty는 token selection용 내부 값이며, 답변의 calibrated confidence로 출력되지 않는다.</li>
+
+<li>삭제한 patch를 OCR detector로 복구하거나 고해상도로 다시 읽는 fallback은 없다.</li>
+
+<li>Token merging처럼 제거 token의 feature를 보존 token에 합치는 것이 아니라 Top-K 밖 token을 prune한다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">따라서 성능 손실은 “답변 생성 능력이 새로 학습되지 않아서”가 아니라, 뒤쪽 layer가 더 이상 볼 수 없는 visual evidence가 생겨서 발생한다. 작은 글자나 얇은 선처럼 한두 patch에 정보가 몰린 task에서 특히 위험하다.</p>
+
+
+
+<h2 class="wp-block-heading">4. ‘192·128·64 tokens’는 실제로 무엇을 뜻하나</h2>
+
+
+
+<p class="wp-block-paragraph">논문은 방법마다 pruning 위치와 최종 token 수가 다르기 때문에 <strong>AvgTokens</strong>를 비교 기준으로 쓴다. 각 LLM layer에 들어간 visual-token 수를 모두 더한 뒤 전체 32개 layer로 나눈 값이다. 즉 average budget 64는 모든 layer에서 64개를 유지한다는 설정이 아니다.</p>
+
+
+
+<pre class="wp-block-code"><code>AvgTokens = (각 LLM layer가 처리한 visual-token 수의 합) / LLM layer 수</code></pre>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>표기된 average budget</th><th>초기 token</th><th>Layer 3 뒤</th><th>Layer 17 뒤</th><th>Layer 22 뒤</th><th>논문상 reduction</th></tr></thead><tbody><tr><td><strong>192</strong></td><td>576</td><td>194</td><td>148</td><td>96</td><td>66.7%</td></tr><tr><td><strong>128</strong></td><td>576</td><td>122</td><td>48</td><td>42</td><td>77.8%</td></tr><tr><td><strong>64</strong></td><td>576</td><td>20</td><td>8</td><td>0</td><td>88.9%</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">64-budget에서는 layer 22 뒤에 visual token이 0개다. 이후 layer는 앞선 layer에서 image information이 섞인 text representation만 이어서 처리한다. “576개를 64개로 줄여 마지막까지 64개가 남는다”는 요약과 실제 계산 graph가 다른 이유다.</p>
+
+
+
+<p class="wp-block-paragraph">Baseline과의 공정성도 이 평균 budget 안에서 해석해야 한다. 논문은 서로 다른 pruning schedule을 같은 AvgTokens로 맞췄지만, 모든 방법이 같은 layer에서 같은 최종 token 수를 쓰는 것은 아니다.</p>
+
+
+
+<h2 class="wp-block-heading">5. Process — attention에서 Top-K token까지</h2>
+
+
+
+<h3 class="wp-block-heading">Step 1. Head별 text-to-visual attention 계산</h3>
+
+
+
+<p class="wp-block-paragraph">Pruning layer l의 head h에서 visual token n이 받은 score는 모든 text token의 query와 해당 visual key의 scaled dot product를 평균한 값이다. 그 뒤 같은 head 안의 visual-token 축으로 softmax해 상대 attention <code>r(l,h,n)</code>을 만든다.</p>
+
+
+
+<pre class="wp-block-code"><code>a(l,h,n) = mean_text(Q_text · K_visual(n) / sqrt(d))
+r(l,h,n) = softmax_over_visual_tokens(a(l,h,n))</code></pre>
+
+
+
+<h3 class="wp-block-heading">Step 2. Attention을 0.5 기준의 support로 변환</h3>
+
+
+
+<p class="wp-block-paragraph">현재 visual-token 수를 N이라고 하면 support는 <code>p = N·r / (1 + N·r)</code>로 바꾼다. 모든 token이 균등 attention <code>1/N</code>을 받으면 p=0.5다. 0.5보다 크면 보존 쪽, 작으면 제거 쪽의 증거로 읽고, 값은 0 이상 1 미만 범위에 놓인다.</p>
+
+
+
+<p class="wp-block-paragraph">이 변환은 서로 다른 pruning stage에서 token 수가 바뀌어도 “평균 attention”을 같은 0.5 기준으로 맞추려는 장치다. Raw attention magnitude를 layer 사이에서 바로 더하는 방식과 차이가 있다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 3. Head들의 명확성과 일치도로 reliability 계산</h3>
+
+
+
+<p class="wp-block-paragraph">한 token에 대해 여러 head의 support가 0.5에서 멀고 같은 방향을 가리키면 증거가 명확하고 일관적이다. 반대로 일부 head는 0.9, 일부는 0.1이라면 평균만으로는 보존 여부를 결정하기 어렵다. E2S-Pruner는 <strong>decision clarity</strong>와 head support의 평균 편차로 만든 <strong>consistency</strong>를 곱해 reliability ρ를 만든다.</p>
+
+
+
+<p class="wp-block-paragraph">여기서 첫 단계는 각 head를 Dempster rule로 하나씩 결합하는 구현이 아니다. Head별 support의 평균과 head 간 명확성·일치성으로 하나의 layer-wise mass function을 구성한다. Dempster–Shafer의 명시적인 recursive combination은 다음 layer-fusion 단계에서 수행된다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 4. Important·Unimportant·Uncertain mass 구성</h3>
+
+
+
+<p class="wp-block-paragraph">Token n의 head-average support를 <code>p̄</code>라고 하면 layer l의 mass는 다음과 같다.</p>
+
+
+
+<pre class="wp-block-code"><code>m(I) = ρ · p̄
+m(U) = ρ · (1 - p̄)
+m(Θ) = 1 - ρ</code></pre>
+
+
+
+<p class="wp-block-paragraph"><code>I</code>는 important, <code>U</code>는 unimportant다. <code>Θ={I,U}</code>는 “중요하거나 중요하지 않을 수 있으나 현재 증거로 구분할 수 없음”에 배정한 mass다. 즉 uncertain은 I·U와 나란히 놓인 세 번째 독립 class가 아니라 <strong>두 가설을 포괄하는 ignorance set</strong>이다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 5. Dempster–Shafer로 layer 증거를 재귀 결합</h3>
+
+
+
+<p class="wp-block-paragraph">첫 pruning layer의 mass를 시작점으로 두고, 다음 pruning layer가 올 때마다 이전 누적 mass와 현재 mass를 합친다. 두 source의 직접 충돌은 이전이 important인데 현재가 unimportant인 경우와 그 반대의 곱을 더해 계산한다.</p>
+
+
+
+<pre class="wp-block-code"><code>K = m_prev(I)·m_now(U) + m_prev(U)·m_now(I)
+
+Bel(I) = m_fused(I)
+Pl(I)  = m_fused(I) + m_fused(Θ) = 1 - m_fused(U)</code></pre>
+
+
+
+<p class="wp-block-paragraph">Dempster’s rule은 서로 모순되지 않는 조합의 mass를 더하고 <code>1-K</code>로 정규화한다. Belief는 중요하다고 직접 지지된 mass의 하한이고, plausibility는 uncertainty까지 포함해 “중요할 가능성을 아직 배제할 수 없는” 상한이다. E2S-Pruner는 보수적으로 Bel이 아니라 Pl을 pruning 기준에 쓴다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 6. Layer conflict가 큰 token을 보호</h3>
+
+
+
+<p class="wp-block-paragraph">최종 retention priority는 다음 식이다.</p>
+
+
+
+<pre class="wp-block-code"><code>q = 1 - (1 - Pl(I)) · (1 - K)</code></pre>
+
+
+
+<p class="wp-block-paragraph">중요 plausibility가 높거나, 이전·현재 layer의 판단 충돌 K가 크면 q가 올라간다. Layer끼리 의견이 다르다는 이유로 평균 score가 낮아진 token을 즉시 지우지 않고 다음 layer까지 보존하려는 conflict protection이다. 이 uncertainty는 답변 확률을 보정하는 것이 아니라 token 삭제 결정을 늦추는 데 쓰인다.</p>
+
+
+
+<h3 class="wp-block-heading">Step 7. Spatial novelty bonus 뒤 global Top-K</h3>
+
+
+
+<p class="wp-block-paragraph">Semantic relevance만으로 global Top-K를 하면 한 물체 주변에 token이 몰릴 수 있다. LLaVA의 24×24 patch grid를 4×4 spatial cell로 나누면 cell 하나에는 처음에 6×6 token이 들어간다. 각 occupied cell에서 q가 가장 높은 대표 token 하나에 indicator <code>b=1</code>을 주고, λ=0.1의 soft bonus를 더한다.</p>
+
+
+
+<pre class="wp-block-code"><code>q_spatial = (1 - λ)·q + λ·b,  λ = 0.1</code></pre>
+
+
+
+<p class="wp-block-paragraph">이것은 각 cell에서 반드시 하나를 남기는 hard quota가 아니다. 대표 token의 순위를 조금 올린 뒤 전체 후보에서 다시 Top-K를 고른다. 따라서 coverage를 유도하지만 모든 공간 영역 보존을 보장하지 않고, 글자가 있는 cell을 특별히 인식해 보호하지도 않는다.</p>
+
+
+
+<h2 class="wp-block-heading">6. Dempster–Shafer 결합이 단순 평균과 다른 이유</h2>
+
+
+
+<p class="wp-block-paragraph">가령 작은 표지판 token을 shallow layer는 0.02로 거의 무시하지만 middle·deep layer는 0.65와 0.62로 지지한다고 하자. 단순 평균은 0.43이 되어 쉽게 잘릴 수 있다. E2S-Pruner는 각 layer의 reliability와 uncertainty를 따로 남기고, shallow와 deep evidence가 충돌했다는 K까지 retention score에 반영한다.</p>
+
+
+
+<p class="wp-block-paragraph">이 설계의 장점은 “모든 layer가 동의한 token”뿐 아니라 “어떤 layer에서는 강한데 다른 layer에서는 판단이 보류된 token”을 살릴 여지가 있다는 것이다. 반면 높은 conflict가 항상 유용한 정보라는 보장은 없다. 잡음 때문에 layer 의견이 갈린 token도 추가로 보호될 수 있으므로, 실제 이득은 ablation과 task별 결과로 확인해야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">7. 어떤 데이터셋으로 평가했나</h2>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>Benchmark</th><th>평가 모델</th><th>주로 보는 능력</th></tr></thead><tbody><tr><td><strong>GQA</strong></td><td>LLaVA</td><td>실사 이미지의 object attribute, spatial relation, compositional reasoning</td></tr><tr><td><strong>ScienceQA</strong></td><td>LLaVA·Qwen</td><td>이미지·도표가 포함된 과학 객관식 reasoning</td></tr><tr><td><strong>TextVQA</strong></td><td>LLaVA</td><td>간판·메뉴·문서 등 scene text 읽기와 질의응답</td></tr><tr><td><strong>POPE</strong></td><td>LLaVA·Qwen</td><td>존재하지 않는 object를 답하는 hallucination</td></tr><tr><td><strong>MME</strong></td><td>LLaVA·Qwen</td><td>존재·수량·위치·OCR·상식·reasoning을 포함한 종합 능력</td></tr><tr><td><strong>MMBench</strong></td><td>LLaVA</td><td>Attribute, spatial relation, 논리, chart 등 객관식 multimodal 능력</td></tr><tr><td><strong>AI2D</strong></td><td>Qwen</td><td>과학 diagram과 instructional illustration 이해</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">LLaVA-1.5-7B의 main 비교는 GQA, SQA, TextVQA, POPE, MME, MMBench 여섯 개다. Qwen2-VL-7B cross-model 비교는 SQA, POPE, MME, AI2D 네 개다. 논문은 각 benchmark의 공식 prompt template과 evaluator를 사용했다고 밝힌다.</p>
+
+
+
+<h3 class="wp-block-heading">Aggregate retention은 accuracy가 아니다</h3>
+
+
+
+<p class="wp-block-paragraph">여섯 benchmark는 score 단위가 다르므로 각 pruned score를 dense baseline score로 나눈 뒤 여섯 비율을 동일 가중 평균한다. Dense LLaVA의 기준값은 GQA 61.9, SQA 69.5, TextVQA 58.2, POPE 85.9, MME 1862, MMBench 64.6이다.</p>
+
+
+
+<p class="wp-block-paragraph">따라서 “90.6% performance retention”은 문제 100개 중 90.6개를 맞혔다는 accuracy가 아니다. 서로 다른 여섯 metric의 <strong>dense 대비 비율 평균</strong>이다. 특정 task가 크게 떨어져도 다른 task가 버티면 aggregate가 높게 나올 수 있어 개별 score를 함께 봐야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">8. LLaVA-1.5-7B 비교 결과</h2>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>Average budget</th><th>E2S-Pruner</th><th>V2Drop</th><th>SparseVLM</th><th>E2S 차이</th></tr></thead><tbody><tr><td><strong>192</strong></td><td><strong>98.0%</strong></td><td>97.6%</td><td>95.9%</td><td>+0.4%p / +2.1%p</td></tr><tr><td><strong>128</strong></td><td><strong>96.8%</strong></td><td>94.0%</td><td>93.2%</td><td>+2.8%p / +3.6%p</td></tr><tr><td><strong>64</strong></td><td><strong>90.6%</strong></td><td>86.9%</td><td>86.5%</td><td>+3.7%p / +4.1%p</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">논문 비교표에서는 세 average budget 모두 E2S-Pruner의 aggregate retention이 가장 높다. Budget이 작아질수록 V2Drop·SparseVLM과의 차이가 커져, evidence fusion의 이득이 aggressive pruning에서 더 두드러진다. 128-budget에서는 여섯 benchmark 모두 표의 다른 pruning method보다 높은 개별 score를 기록했다.</p>
+
+
+
+<p class="wp-block-paragraph">하지만 192-budget에서는 POPE와 MME가 V2Drop보다 낮다. E2S-Pruner는 POPE 83.6 대 85.1, MME 1814 대 1826이고, aggregate만 98.0 대 97.6으로 높다. “모든 budget의 모든 task에서 최고”가 아니라 <strong>세 budget의 정규화 평균에서 최고</strong>라고 한정해야 한다.</p>
+
+
+
+<h3 class="wp-block-heading">가장 공격적인 64-budget의 실제 score</h3>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>GQA</th><th>SQA</th><th>TextVQA</th><th>POPE</th><th>MME</th><th>MMBench</th><th>Avg</th></tr></thead><tbody><tr><td>Dense LLaVA</td><td>61.9</td><td>69.5</td><td>58.2</td><td>85.9</td><td>1862</td><td>64.6</td><td>100.0%</td></tr><tr><td>LLaVA-PruMerge</td><td>51.9</td><td>68.1</td><td><strong>54.0</strong></td><td>65.3</td><td>1549</td><td>55.2</td><td>86.5%</td></tr><tr><td>SparseVLM</td><td>52.7</td><td>62.2</td><td>51.8</td><td>75.1</td><td>1505</td><td>56.2</td><td>86.5%</td></tr><tr><td>V2Drop</td><td>50.5</td><td>68.9</td><td>51.8</td><td>75.1</td><td>1470</td><td>55.2</td><td>86.9%</td></tr><tr><td><strong>E2S-Pruner</strong></td><td><strong>55.5</strong></td><td><strong>69.4</strong></td><td>49.5</td><td><strong>78.5</strong></td><td><strong>1656</strong></td><td><strong>57.3</strong></td><td><strong>90.6%</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">E2S-Pruner는 TextVQA를 제외한 다섯 task와 aggregate에서 이 표의 pruning baseline보다 높다. 특히 V2Drop 대비 GQA +5.0, POPE +3.4, MME +186, MMBench +2.1이다. 반면 TextVQA는 뒤집힌다. 이 한 열이 실무에서 중요한 한계를 보여준다.</p>
+
+
+
+<h2 class="wp-block-heading">9. OCR 한계 — 작은 글자는 왜 먼저 사라지나</h2>
+
+
+
+<p class="wp-block-paragraph">64 average-token budget에서 E2S-Pruner의 TextVQA는 49.5다. Dense LLaVA 58.2의 약 85.1%이며, LLaVA-PruMerge 54.0보다 <strong>4.5점 낮다</strong>. 전체 평균은 E2S-Pruner가 높아도 scene-text task만 보면 다른 선택이 더 낫다.</p>
+
+
+
+<p class="wp-block-paragraph">문자는 물체 전체보다 훨씬 작은 patch에 정보가 몰리고 획 하나가 빠져도 의미가 달라진다. 64-budget schedule은 첫 pruning부터 576개를 20개로 줄이고 마지막에는 visual token이 0개가 된다. Spatial novelty는 4×4 cell의 대표 token에 bonus를 줄 뿐 text region을 검출하거나 문자 patch를 묶어서 보존하지 않는다.</p>
+
+
+
+<p class="wp-block-paragraph">128-budget의 default schedule에서는 TextVQA가 56.0으로 dense 58.2에 비교적 가깝고, 같은 표의 pruning 방법 중 가장 높다. 논문의 schedule analysis에서도 deep layer에 42 token을 남긴 기본 schedule이 TextVQA 56.0으로, deep token을 32·22·12·2개로 더 줄인 대안의 55.9·55.6·55.6·55.8보다 높았다. OCR 서비스라면 64-budget headline보다 <strong>128 이상에서 text-heavy validation을 먼저 수행</strong>하는 편이 합리적이다.</p>
+
+
+
+<ul class="wp-block-list">
+<li>상품 라벨·영수증·문서 OCR은 TextVQA와 별도 내부 benchmark를 둔다.</li>
+
+<li>문자 크기, 저대비, 기울기, 여러 줄 text 조건으로 retention을 나눠 본다.</li>
+
+<li>OCR 질문에는 pruning budget을 높이거나 text detector 기반 보호 규칙을 별도로 검토한다.</li>
+
+<li>일반 VQA 평균이 유지돼도 serial number 한 글자 오류는 제품상 실패로 계산한다.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">10. Qwen2-VL-7B에서도 통했나</h2>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>Reduction</th><th>방법</th><th>SQA</th><th>POPE</th><th>MME</th><th>AI2D</th><th>Avg</th></tr></thead><tbody><tr><td>0%</td><td>Dense Qwen2-VL-7B</td><td>84.7</td><td>86.1</td><td>2317</td><td>80.5</td><td>100.0%</td></tr><tr><td>66.7%</td><td>V2Drop</td><td>81.6</td><td><strong>87.2</strong></td><td>2224</td><td>78.0</td><td>97.6%</td></tr><tr><td>66.7%</td><td><strong>E2S-Pruner</strong></td><td><strong>83.8</strong></td><td>86.8</td><td>2228</td><td><strong>80.2</strong></td><td><strong>98.9%</strong></td></tr><tr><td>77.8%</td><td>V2Drop</td><td>78.9</td><td><strong>85.1</strong></td><td><strong>2173</strong></td><td><strong>75.6</strong></td><td>94.9%</td></tr><tr><td>77.8%</td><td><strong>E2S-Pruner</strong></td><td><strong>82.9</strong></td><td>83.9</td><td>2156</td><td>74.9</td><td><strong>95.4%</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">66.7% reduction에서 E2S-Pruner의 98.9%는 V2Drop 97.6보다 +1.3%p, 77.8%에서는 95.4 대 94.9로 +0.5%p다. 별도 fine-tuning 없이 다른 model family에도 적용했다는 점은 의미가 있다.</p>
+
+
+
+<p class="wp-block-paragraph">다만 두 번째 조건에서 E2S-Pruner가 이긴 개별 task는 SQA뿐이다. POPE, MME, AI2D는 V2Drop이 더 높고, 큰 SQA 차이가 정규화 평균을 끌어올린다. Cross-model 검증도 Qwen2-VL-7B 한 모델과 네 benchmark에 한정되며, Qwen에서의 latency·memory 표는 없다. “모든 VLM에서 같은 2.09×”로 일반화할 수 없다.</p>
+
+
+
+<h2 class="wp-block-heading">11. Ablation — 어떤 구성요소가 필요했나</h2>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>128 average-budget variant</th><th>SQA</th><th>TextVQA</th><th>MME</th><th>MMBench</th><th>4-task retention</th></tr></thead><tbody><tr><td>Vanilla Attention Top-K</td><td>64.9</td><td>55.8</td><td>1692</td><td>59.2</td><td>92.9%</td></tr><tr><td>Head reliability 제거</td><td>68.0</td><td>55.8</td><td>1769</td><td>61.1</td><td>95.8%</td></tr><tr><td>Layer-wise fusion 제거</td><td>68.9</td><td>55.8</td><td>1763</td><td>61.4</td><td>96.2%</td></tr><tr><td>Conflict protection 제거</td><td>68.9</td><td>55.9</td><td><strong>1781</strong></td><td>62.3</td><td>96.8%</td></tr><tr><td>Spatial novelty 제거</td><td>68.9</td><td>55.9</td><td>1774</td><td>61.2</td><td>96.3%</td></tr><tr><td><strong>Full E2S</strong></td><td><strong>69.9</strong></td><td><strong>56.0</strong></td><td>1779</td><td><strong>63.5</strong></td><td><strong>97.7%</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">일반 attention Top-K를 full E2S로 바꾸면 네 task의 정규화 retention이 92.9→97.7%, +4.8%p다. Head reliability는 +1.9%p, layer-wise fusion은 +1.5%p, conflict protection은 +0.9%p, spatial novelty는 +1.4%p의 차이를 보인다.</p>
+
+
+
+<p class="wp-block-paragraph">Full model이 모든 개별 metric에서 최고는 아니다. Conflict protection을 뺀 variant의 MME 1781은 full 1779보다 2점 높다. 저자 해석처럼 conflict protection의 장점은 한 benchmark의 절대 최고보다 여러 task에서의 균형에 가깝다.</p>
+
+
+
+<p class="wp-block-paragraph">이 ablation의 Avg는 SQA·TextVQA·MME·MMBench 네 task만 평균한 97.7%다. Main Table의 여섯 task aggregate 96.8%와 계산 대상이 다르므로 서로 바꾸어 인용하면 안 된다. 논문은 반복 seed의 평균·표준편차나 confidence interval도 보고하지 않는다.</p>
+
+
+
+<h2 class="wp-block-heading">12. 지연·throughput·memory의 실제 trade-off</h2>
+
+
+
+<p class="wp-block-paragraph">효율성 표는 논문 표기상 <strong>NVIDIA GeForce RTX 4080 Super GPU, 32GB memory</strong>에서 MMBench를 사용해 측정했다. GPU 수, batch size, warm-up, decoding length와 generation parameter는 별도로 제시되지 않는다. 아래 latency는 수백 초 단위의 평가 실행 총량으로 보고돼 있어 단일 request latency로 읽으면 안 된다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>방법</th><th>LLM generation latency</th><th>Total latency</th><th>Peak GPU memory</th><th>Throughput</th><th>MMBench</th></tr></thead><tbody><tr><td>Dense LLaVA</td><td>676.11s</td><td>820.15s</td><td>15,566MB</td><td>5.28 item/s</td><td>64.6</td></tr><tr><td>E2S, avg 128</td><td>312.48s (-53.8%)</td><td>422.28s (-48.5%)</td><td>18,847MB (+21.1%)</td><td>10.37 item/s (1.96×)</td><td>63.5</td></tr><tr><td>E2S, avg 64</td><td>286.11s (-57.7%)</td><td>397.37s (-51.5%)</td><td>18,807MB (+20.8%)</td><td>11.02 item/s (2.09×)</td><td>57.3</td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading">속도는 좋아지지만 memory-efficient는 아니다</h3>
+
+
+
+<p class="wp-block-paragraph">128-budget은 MMBench score를 64.6→63.5로 비교적 적게 낮추면서 total latency를 48.5% 줄인다. 64-budget은 throughput을 11.02 item/s까지 높이지만 score가 57.3으로 더 떨어진다. 이 표에서 128은 quality-speed 균형, 64는 최대 throughput 쪽에 가깝다.</p>
+
+
+
+<p class="wp-block-paragraph">반면 peak memory는 dense 15,566MB에서 약 18.8GB로 늘어난다. 논문은 evidence modeling과 cross-layer fusion을 위해 보존한 intermediate state가 원인이라고 설명한다. E2S-Pruner의 peak memory는 SparseVLM보다는 조금 낮지만 FastV와 V2Drop보다 높다. Visual-token 수를 줄였다는 이유만으로 저메모리 edge 배포에 적합하다고 결론낼 수 없다.</p>
+
+
+
+<p class="wp-block-paragraph">또 2.09×는 같은 MMBench 환경에서 dense LLaVA 대비 throughput 비율이다. Vision encoder, prompt 길이, 생성 답변 길이와 kernel 구현이 다른 서비스에서 그대로 재현된다는 보장은 없다. 코드가 비어 있는 현재는 저자 측정 protocol을 독립 확인할 수도 없다.</p>
+
+
+
+<h2 class="wp-block-heading">13. 이 논문의 장점</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>추가 학습이 없다.</strong> Base VLM을 다시 fine-tuning하거나 pruning network를 따로 학습하지 않는다.</li>
+
+<li><strong>Head와 layer의 차이를 명시적으로 다룬다.</strong> Attention 평균 하나로 줄이기 전에 clarity, consistency, uncertainty와 conflict를 계산한다.</li>
+
+<li><strong>갈등을 삭제 근거로만 보지 않는다.</strong> Layer 사이의 높은 conflict를 잠재적으로 중요한 증거로 보고 보존 priority에 반영한다.</li>
+
+<li><strong>공간 쏠림을 완화한다.</strong> 학습 가능한 detector 없이 patch grid의 cell 대표 token에 soft bonus를 준다.</li>
+
+<li><strong>실제 wall-clock throughput 향상을 보고했다.</strong> FLOPs 추정에 그치지 않고 MMBench에서 total latency와 item/s를 함께 제시한다.</li>
+
+<li><strong>두 model family에서 aggregate 우위를 보였다.</strong> LLaVA-1.5-7B와 Qwen2-VL-7B 모두 저자 비교표의 정규화 평균이 가장 높다.</li>
+
+<li><strong>Ablation의 비교 축이 분명하다.</strong> Head reliability, layer fusion, conflict protection, spatial novelty를 같은 128-budget에서 각각 제거했다.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">14. 한계와 결과 해석의 경계</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>64는 final token 수가 아니다.</strong> LLaVA의 average budget이며 실제 schedule은 576→20→8→0이다.</li>
+
+<li><strong>OCR·작은 문자에 약하다.</strong> 64-budget TextVQA 49.5는 LLaVA-PruMerge 54.0보다 4.5점 낮다.</li>
+
+<li><strong>Spatial novelty는 hard coverage가 아니다.</strong> 각 cell 대표에 bonus만 주므로 text·작은 물체 보존을 보장하지 않는다.</li>
+
+<li><strong>Peak memory가 늘어난다.</strong> 128·64 budget 모두 dense보다 약 21% 높은 약 18.8GB를 쓴다.</li>
+
+<li><strong>효율성 조건이 충분히 공개되지 않았다.</strong> Batch, warm-up, output length와 정확한 latency 측정 절차가 없다.</li>
+
+<li><strong>Aggregate retention은 개별 능력을 숨길 수 있다.</strong> Qwen 77.8% reduction에서 SQA는 강하지만 POPE·MME·AI2D는 V2Drop보다 낮다.</li>
+
+<li><strong>모든 VLM으로 일반화된 것은 아니다.</strong> 7B급 LLaVA와 Qwen 한 모델씩이며 Qwen 효율성 수치는 없다.</li>
+
+<li><strong>Closed API에는 바로 붙일 수 없다.</strong> Head별 내부 attention과 중간 layer에서 token을 제거할 수 있어야 한다.</li>
+
+<li><strong>통계적 불확실성이 보고되지 않았다.</strong> 반복 실행 분산과 confidence interval 없이 저자 단일 표로 비교한다.</li>
+
+<li><strong>독립 재현 전이다.</strong> 논문이 code available이라고 적었지만 공식 저장소가 비어 있어 결과를 실행해 볼 수 없다.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">15. 실무에서는 어떻게 검증해야 하나</h2>
+
+
+
+<p class="wp-block-paragraph">적용 후보는 open-source VLM을 직접 운영하면서 GPU 처리량이 병목인 서비스다. 일반 image QA, 상품 image 분류 보조, multimodal agent의 screen understanding처럼 질문별로 필요한 영역이 달라질 때 prompt-conditioned pruning이 유용할 수 있다.</p>
+
+
+
+<ul class="wp-block-list">
+<li><strong>1단계:</strong> Dense, avg 192, avg 128, avg 64를 같은 GPU와 decoding setting에서 비교한다.</li>
+
+<li><strong>2단계:</strong> 전체 평균 외에 OCR, counting, small object, chart, hallucination을 별도 slice로 나눈다.</li>
+
+<li><strong>3단계:</strong> p50·p95 request latency, time-to-first-token, output token/s, peak memory를 함께 측정한다.</li>
+
+<li><strong>4단계:</strong> 같은 image에 질문을 바꿨을 때 남는 patch와 답변 안정성을 확인한다.</li>
+
+<li><strong>5단계:</strong> Memory가 제약이면 E2S와 FastV·V2Drop을 accuracy뿐 아니라 동시 처리 가능한 batch로 비교한다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">문서·라벨·부품 각인처럼 작은 글자가 핵심이면 64-budget을 기본값으로 삼기 어렵다. 128 또는 192부터 시작하고, text region이 감지되면 pruning을 완화하는 routing이 필요하다. 반대로 POPE나 일반 object reasoning이 주된 workload라면 aggressive setting도 후보가 될 수 있지만 실제 false-positive cost를 별도로 봐야 한다.</p>
+
+
+
+<p class="wp-block-paragraph">M1 Pro 같은 Apple Silicon에서는 현재 성능을 예측할 근거가 없다. 논문은 CUDA GPU 환경만 보고했고 official code가 없다. Attention kernel에서 head별 Q·K를 노출하고 중간 sequence length를 동적으로 바꾸는 구현이 Metal backend에서 효율적으로 동작하는지도 확인해야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">16. 코드·라이선스·재현 가능성</h2>
+
+
+
+<p class="wp-block-paragraph">논문 초록은 code가 <a href="https://github.com/taoyu-qian/E2S-Pruner">공식 GitHub</a>에 있다고 적는다. 그러나 2026년 8월 26일 확인 기준 repository 화면은 <strong>“This repository is empty”</strong>이며, Git remote에도 branch나 commit reference가 없다. README, source, config, requirements, test script가 모두 없는 상태다.</p>
+
+
+
+<p class="wp-block-paragraph">별도 학습 weight가 필요 없는 방법이므로 E2S 전용 checkpoint 미공개는 문제가 아니다. 재현을 막는 것은 layer hook, attention 추출, token position 관리, Qwen 적용, latency 측정 script 같은 실제 구현이 없다는 점이다. 특히 optimized attention kernel과 KV cache에서 token을 어떻게 제거했는지 확인할 수 없다.</p>
+
+
+
+<p class="wp-block-paragraph">빈 repository에는 software LICENSE도 없다. 따라서 향후 올라올 구현의 사용·수정·상업 이용 조건은 아직 미정이다. 논문은 arXiv perpetual non-exclusive license로 배포됐으며, LLaVA·Qwen·vision encoder와 각 benchmark data에는 별도 license가 적용된다.</p>
+
+
+
+<p class="wp-block-paragraph"><a href="/ai-cv-sota-briefing-2026-08-26/">E2S-Pruner·FixAnything·GeoWAM 브리핑으로 돌아가기</a></p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity" />
+
+
+
+<h3 class="wp-block-heading">원문</h3>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://arxiv.org/abs/2608.23253">arXiv 초록·제출 이력·메타데이터</a></li>
+
+<li><a href="https://arxiv.org/html/2608.23253v1">arXiv HTML 전문</a></li>
+
+<li><a href="https://arxiv.org/pdf/2608.23253">논문 PDF</a></li>
+
+<li><a href="https://github.com/taoyu-qian/E2S-Pruner">논문이 연결한 공식 GitHub — 현재 빈 저장소</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><em>공식 arXiv v1과 논문이 직접 연결한 GitHub를 2026년 8월 26일 확인했습니다. 모든 성능·latency·memory 수치는 저자 평가이며 독립 재현 결과가 아닙니다. “최고”는 논문에 수록된 model·benchmark·average-token budget 비교표 안에서만 의미합니다.</em></p>
+
+									</div>
+			</div>
+
+			<footer class="article-footer section-shell reveal">
+				<div class="article-tags"><a href="/tag/ai-%eb%85%bc%eb%ac%b8-%eb%b6%84%ec%84%9d/" rel="tag">AI 논문 분석</a> <a href="/tag/dempster-shafer/" rel="tag">Dempster-Shafer</a> <a href="/tag/e2s-pruner/" rel="tag">E2S-Pruner</a> <a href="/tag/inference-optimization/" rel="tag">Inference Optimization</a> <a href="/tag/llava/" rel="tag">LLaVA</a> <a href="/tag/qwen2-vl/" rel="tag">Qwen2-VL</a> <a href="/tag/visual-token-pruning/" rel="tag">Visual Token Pruning</a> <a href="/tag/vlm/" rel="tag">VLM</a></div>
+				<nav class="post-navigation" aria-label="다른 글">
+					<div><a href="/stream3dv2-streaming-zero-shot-3d-paper-analysis/" rel="prev"><span>이전 글</span>Stream3Dv2 논문 분석: 2D Mask를 스트리밍 3D Instance로 묶는 법</a></div>
+					<div><a href="/fixanything-3d-reconstruction-repair-paper-analysis/" rel="next"><span>다음 글</span>FixAnything 논문 분석: 하나의 Video Model로 3DGS·NeRF·Mesh 렌더를 보정하는 법</a></div>
+				</nav>
+			</footer>
+
+					</article>
+	</main>
+
+<footer class="site-footer">
+	<div class="site-footer__orb" aria-hidden="true"></div>
+	<div class="site-footer__inner">
+		<p class="section-kicker reveal" lang="en">SIGNAL TO ACTION</p>
+		<h2 class="site-footer__title reveal">다음 판단을<br><em>더 선명하게.</em></h2>
+
+		<div class="site-footer__actions reveal">
+			<a class="magnetic-button magnetic" href="/feed.xml" data-cursor="RSS">
+				<span>RSS로 새 글 받기</span>
+				<span aria-hidden="true">↗</span>
+			</a>
+			<a class="text-link" href="/stories/" data-cursor="BROWSE">전체 글에서 찾아보기 <span aria-hidden="true">↗</span></a>
+		</div>
+
+		<div class="site-footer__base">
+			<p>© 2026 Odd Note</p>
+							<nav class="footer-nav" aria-label="푸터 메뉴">
+					<ul id="menu-odd-note-footer" class="footer-menu"><li id="menu-item-18" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18"><a href="/about/">소개</a></li>
+<li id="menu-item-19" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19"><a href="/contact/">문의</a></li>
+<li id="menu-item-20" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-privacy-policy menu-item-20"><a rel="privacy-policy" href="/privacy/">개인정보처리방침</a></li>
+<li id="menu-item-21" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-21"><a href="/disclosure/">광고·제휴 고지</a></li>
+</ul>				</nav>
+						<p lang="en">Technology, evidence, and business — carefully edited.</p>
+		</div>
+	</div>
+</footer>
+
+<script data-wp-strategy="defer" defer id="odd-note-interactions-js" src="/wp-content/themes/odd-note/assets/js/site.js?ver=1787501504"></script>
+</body>
+</html>

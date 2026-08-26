@@ -32,6 +32,11 @@
       "indexable": true
     },
     {
+      "path": "/ai-cv-sota-briefing-2026-08-26/",
+      "file": "ai-cv-sota-briefing-2026-08-26/index.html",
+      "indexable": true
+    },
+    {
       "path": "/ai-mvp-before-model/",
       "file": "ai-mvp-before-model/index.html",
       "indexable": true
@@ -44,6 +49,11 @@
     {
       "path": "/category/ai-paper-analysis/",
       "file": "category/ai-paper-analysis/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/category/ai-paper-analysis/page/2/",
+      "file": "category/ai-paper-analysis/page/2/index.html",
       "indexable": true
     },
     {
@@ -84,6 +94,21 @@
     {
       "path": "/dreamhand-video-diffusion-3d-hand-paper-analysis/",
       "file": "dreamhand-video-diffusion-3d-hand-paper-analysis/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/e2s-pruner-vlm-token-pruning-paper-analysis/",
+      "file": "e2s-pruner-vlm-token-pruning-paper-analysis/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/fixanything-3d-reconstruction-repair-paper-analysis/",
+      "file": "fixanything-3d-reconstruction-repair-paper-analysis/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/geowam-geometry-world-action-model-paper-analysis/",
+      "file": "geowam-geometry-world-action-model-paper-analysis/index.html",
       "indexable": true
     },
     {
@@ -134,6 +159,11 @@
     {
       "path": "/stories/page/2/",
       "file": "stories/page/2/index.html",
+      "indexable": true
+    },
+    {
+      "path": "/stories/page/3/",
+      "file": "stories/page/3/index.html",
       "indexable": true
     },
     {
@@ -232,6 +262,16 @@
       "indexable": false
     },
     {
+      "path": "/tag/3d-reconstruction/",
+      "file": "tag/3d-reconstruction/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/3dgs/",
+      "file": "tag/3dgs/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/a2dinov3/",
       "file": "tag/a2dinov3/index.html",
       "indexable": false
@@ -252,6 +292,11 @@
       "indexable": false
     },
     {
+      "path": "/tag/ai-%eb%85%bc%eb%ac%b8-%eb%b6%84%ec%84%9d/page/2/",
+      "file": "tag/ai-논문-분석/page/2/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/ai-%eb%94%94%ec%9e%90%ec%9d%b8/",
       "file": "tag/ai-디자인/index.html",
       "indexable": false
@@ -267,6 +312,11 @@
       "indexable": false
     },
     {
+      "path": "/tag/autonomous-driving/",
+      "file": "tag/autonomous-driving/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/computer-vision/",
       "file": "tag/computer-vision/index.html",
       "indexable": false
@@ -274,6 +324,11 @@
     {
       "path": "/tag/cvpr-2024/",
       "file": "tag/cvpr-2024/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/dempster-shafer/",
+      "file": "tag/dempster-shafer/index.html",
       "indexable": false
     },
     {
@@ -289,6 +344,11 @@
     {
       "path": "/tag/dreamhand/",
       "file": "tag/dreamhand/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/e2s-pruner/",
+      "file": "tag/e2s-pruner/index.html",
       "indexable": false
     },
     {
@@ -312,8 +372,28 @@
       "indexable": false
     },
     {
+      "path": "/tag/fixanything/",
+      "file": "tag/fixanything/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/flow-dpo/",
+      "file": "tag/flow-dpo/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/future-geometry/",
+      "file": "tag/future-geometry/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/gaiic2024/",
       "file": "tag/gaiic2024/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/geowam/",
+      "file": "tag/geowam/index.html",
       "indexable": false
     },
     {
@@ -329,6 +409,16 @@
     {
       "path": "/tag/human-pose/",
       "file": "tag/human-pose/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/inference-optimization/",
+      "file": "tag/inference-optimization/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/llava/",
+      "file": "tag/llava/index.html",
       "indexable": false
     },
     {
@@ -352,6 +442,16 @@
       "indexable": false
     },
     {
+      "path": "/tag/navsim-v2/",
+      "file": "tag/navsim-v2/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/nerf/",
+      "file": "tag/nerf/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/ocr/",
       "file": "tag/ocr/index.html",
       "indexable": false
@@ -369,6 +469,21 @@
     {
       "path": "/tag/pca/",
       "file": "tag/pca/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/physical-ai/",
+      "file": "tag/physical-ai/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/point-map/",
+      "file": "tag/point-map/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/qwen2-vl/",
+      "file": "tag/qwen2-vl/index.html",
       "indexable": false
     },
     {
@@ -457,6 +572,11 @@
       "indexable": false
     },
     {
+      "path": "/tag/video-diffusion/",
+      "file": "tag/video-diffusion/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/video-grounding/",
       "file": "tag/video-grounding/index.html",
       "indexable": false
@@ -472,8 +592,18 @@
       "indexable": false
     },
     {
+      "path": "/tag/visual-token-pruning/",
+      "file": "tag/visual-token-pruning/index.html",
+      "indexable": false
+    },
+    {
       "path": "/tag/vlm/",
       "file": "tag/vlm/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/wan2-1/",
+      "file": "tag/wan2-1/index.html",
       "indexable": false
     },
     {
@@ -494,6 +624,11 @@
     {
       "path": "/tag/wordpress/",
       "file": "tag/wordpress/index.html",
+      "indexable": false
+    },
+    {
+      "path": "/tag/world-action-model/",
+      "file": "tag/world-action-model/index.html",
       "indexable": false
     },
     {

@@ -1,0 +1,195 @@
+<!-- wp:paragraph {"className":"article-lead"} -->
+<p class="article-lead"><strong>2026년 8월 26일 수요일 오전.</strong> 당시 arXiv cs.CV의 최신 정식 배치였던 8월 25일 공개분은 234편이었다. 최근 24~48시간의 이미지 분류·탐지·세그멘테이션·VLM·비디오·3D 연구를 훑고, 그중 <strong>E2S-Pruner·FixAnything·GeoWAM</strong>을 골랐다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>세 논문이 겨냥한 병목은 서로 다르다. E2S-Pruner는 VLM이 처리할 visual token을 덜어낸다. FixAnything은 앞서 만든 3D representation의 rendering artifact를 video prior로 보정한다. GeoWAM은 미래 RGB 대신 metric 3D geometry를 예측해 ego trajectory를 만든다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>아래 수치는 논문과 공식 프로젝트가 보고한 결과다. 독립 재현으로 확인된 값은 아직 아니다. 성능 유지율은 여러 benchmark를 dense baseline으로 정규화한 저자 정의 평균일 수 있다. 속도는 특정 hardware·batch·해상도 조건에서 잰 값이다. 숫자 하나만 떼어 범용 SOTA로 읽기는 어렵다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>연구</th><th>분야</th><th>눈에 띄는 수치</th><th>2026.08.26 공개 상태</th></tr></thead><tbody><tr><td><strong>E2S-Pruner</strong></td><td>VLM · Token Pruning</td><td>평균 64 token에서 throughput 2.09×</td><td>연결된 GitHub 저장소는 비어 있음</td></tr><tr><td><strong>FixAnything</strong></td><td>3D Reconstruction · Video Diffusion</td><td>6-view 3DGS PSNR 17.65 dB</td><td>추론 코드·LoRA 공개</td></tr><tr><td><strong>GeoWAM</strong></td><td>Geometry World Model · Driving</td><td>NAVSIM v2 navtest EPDMS 90.2</td><td>논문·프로젝트 공개, 코드·checkpoint 미공개</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">논문별 상세 분석</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>이 글은 세 연구의 차이를 빠르게 비교하는 허브다. Input·Process·Output, 학습 데이터, benchmark별 비교 조건과 재현 한계는 아래 독립 분석글에서 한 편씩 다룬다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><a href="/e2s-pruner-vlm-token-pruning-paper-analysis/"><strong>E2S-Pruner 논문 분석</strong></a> — attention head와 layer의 충돌을 evidence fusion으로 다루는 전체 pruning 과정</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="/fixanything-3d-reconstruction-repair-paper-analysis/"><strong>FixAnything 논문 분석</strong></a> — 3DGS·NeRF·mesh·sparse point를 한 video model로 보정하는 학습과 평가</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="/geowam-geometry-world-action-model-paper-analysis/"><strong>GeoWAM 논문 분석</strong></a> — 과거 multiview RGB에서 미래 point map과 ego trajectory를 만드는 두 단계 학습</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">1. E2S-Pruner — 불확실성을 남겨둔 채 visual token을 고른다</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p><strong>정식명:</strong> E2S-Pruner: Progressive Two-Stage Evidence Fusion for Visual Token Pruning in Vision-Language Models · <strong>arXiv v1 제출:</strong> 2026년 8월 24일 UTC</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>E2S-Pruner의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>이미지와 text prompt, 그리고 VLM 내부의 text-to-visual attention. LLaVA-1.5-7B와 Qwen2-VL-7B에서 평가했다.</td></tr><tr><td><strong>Process</strong></td><td>Head별 중요·비중요·불확실 evidence 생성 → clarity와 head 간 consistency로 reliability 추정 → layer 안의 head evidence 결합 → layer 간 conflict를 Dempster–Shafer 이론으로 순차 결합 → spatial novelty를 반영해 token 선택.</td></tr><tr><td><strong>Output</strong></td><td>다음 LLM layer로 전달할 visual token subset. 별도 auxiliary model, 학습 parameter, fine-tuning은 필요하지 않는다.</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Attention 평균이 숨기는 두 가지 정보</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>일반적인 attention 기반 pruning은 여러 head나 layer의 score를 평균한다. 이 방식은 한 layer가 확신하고 다른 layer가 모르는 token과, 여러 layer가 정반대로 판단한 token을 비슷하게 취급할 수 있다. E2S-Pruner는 score 하나로 바로 줄이지 않고 important·unimportant·uncertain의 세 상태를 유지한다. Head와 layer가 얼마나 분명하고 서로 얼마나 충돌하는지를 token 선택에 남기는 셈이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>마지막에는 spatial novelty constraint를 더한다. 24×24 patch grid를 4×4 spatial cell로 나누고, 각 occupied cell에서 score가 가장 높은 대표 token에 λ=0.1의 soft bonus를 준 뒤 전체 후보에서 다시 Top-K를 고른다. 서로 다른 image region을 덮도록 유도하지만 cell마다 token 하나를 반드시 남기는 hard quota는 아니다. 작은 글자나 세밀한 texture처럼 국소 patch 자체가 답인 과제에서는 극단적인 압축이 여전히 손실을 만든다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>LLaVA-1.5-7B 평균 token budget</th><th>Dense 대비 aggregate retention</th><th>64-token 비교에서 확인할 점</th></tr></thead><tbody><tr><td>192</td><td><strong>98.0%</strong></td><td>V2Drop보다 +0.4%p</td></tr><tr><td>128</td><td><strong>96.8%</strong></td><td>End-to-end latency -48.5%, throughput 1.96×</td></tr><tr><td>64</td><td><strong>90.6%</strong></td><td>V2Drop보다 +3.7%p, SparseVLM보다 +4.1%p</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>32개 LLM layer에서 평균 64 token을 처리한 효율 측정에서 end-to-end latency는 dense 대비 51.5% 줄고 throughput은 2.09배가 됐다. 실제 LLaVA schedule은 576→20→8→0이며 마지막까지 64개를 유지하지 않는다. 같은 설정의 MMBench 성능은 dense의 88.7%다. Aggregate retention 90.6%와 MMBench retention 88.7%는 같은 숫자가 아니다. 전자는 GQA·ScienceQA·TextVQA·POPE·MME·MMBench 여섯 지표를 dense score로 정규화한 평균이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>가장 분명한 약점은 TextVQA다. 평균 64-token budget에서 E2S-Pruner는 49.5로 LLaVA-PruMerge 54.0보다 낮다. 또 논문이 보고한 peak GPU memory는 dense baseline보다 20.8% 늘었다. Token을 줄이면 언제나 memory까지 줄어든다고 가정할 수 없는 이유다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>공개 상태:</strong> 논문은 공식 GitHub를 code link로 제시하지만 8월 26일 확인 당시 저장소는 비어 있다. 별도 학습 weight가 필요한 방법은 아니어도 pruning 구현과 정확한 evaluation configuration이 없어 즉시 재현하기는 어렵다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">2. FixAnything — 3D representation을 영상으로 펼쳐 고친다</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p><strong>정식명:</strong> FixAnything: 3D-Consistent Rendering Refinement via Video Generative Priors · <strong>arXiv v1 제출:</strong> 2026년 8월 24일 UTC · <strong>발표:</strong> ECCV 2026</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>FixAnything의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>3DGS·NeRF·mesh·sparse point cloud를 camera path로 render한 degraded video, clean frame 위치를 나타내는 binary mask.</td></tr><tr><td><strong>Process</strong></td><td>Wan2.1-I2V-14B의 noisy latent에 degraded VAE latent와 mask를 channel-concatenate → rank-64 LoRA SFT → COLMAP pose AUC로 rollout을 정렬한 Flow-DPO.</td></tr><tr><td><strong>Output</strong></td><td>Camera trajectory와 anchor content를 유지하도록 보정한 61-frame video. 3DGS나 mesh 자체를 직접 수정하는 출력은 아니다.</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Representation과 무관한 이유</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>3DGS의 floater, NeRF의 foggy geometry, mesh의 texture distortion, point cloud의 hole은 생김새가 다르다. 그래도 camera motion과 대략적인 scene layout은 rendering video에 남는다. FixAnything은 representation 내부 parameter를 고치는 대신 이 공통 신호를 video-to-video translation의 control로 쓴다. 같은 model weight에 입력 rendering만 바꿔 네 표현을 처리할 수 있는 이유다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Binary mask는 model이 보존해야 할 clean training view를 알려준다. SFT만 거치면 frame별로 그럴듯하지만 시점마다 움직이는 구조를 만들 수 있어, 연구진은 여러 rollout에서 COLMAP이 복원한 camera pose의 AUC@5°를 reward로 삼았다. AUC 차이가 0.2 이상인 pair를 Flow-DPO로 학습해 3D consistency를 LoRA에 반영한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>DL3DV</th><th>3DGS-Enhancer</th><th>FixAnything, 3DGS input</th><th>차이</th></tr></thead><tbody><tr><td>6-view PSNR</td><td>16.94 dB</td><td><strong>17.65 dB</strong></td><td>+0.71 dB</td></tr><tr><td>6-view LPIPS</td><td>0.356</td><td><strong>0.289</strong></td><td>-0.067</td></tr><tr><td>9-view PSNR</td><td>18.50 dB</td><td><strong>19.76 dB</strong></td><td>+1.26 dB</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>Flow-DPO ablation에서는 SFT-only의 camera-pose AUC@5°가 61.12에서 68.32로 올랐고, PSNR은 17.51→17.65 dB, LPIPS는 0.296→0.289가 됐다. 화질 지표보다 pose recovery의 변화가 크다. 20 paired video로도 PSNR 16.70을 얻었다는 data-efficiency 결과가 있지만, 이는 model 전체를 20개 영상으로 학습했다는 뜻이 아니다. Wan2.1의 대규모 사전학습 prior 위에 conditioning LoRA를 맞춘 결과다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>공개 상태:</strong> Apache-2.0 추론 코드와 FixAnything LoRA가 공개됐다. Base model인 Wan2.1-I2V-14B-480P 파일은 약 60GB다. 공식 예제는 832×480, 61 frame을 사용하며 5 denoising step에서 단일 H100으로 약 31초를 보고한다. 실행 가능하다는 말과 가벼운 production component라는 말은 다르다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">3. GeoWAM — 미래의 픽셀보다 미래의 좌표를 예측한다</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p><strong>정식명:</strong> GeoWAM: Visual Geometry World Action Models for Autonomous Driving · <strong>arXiv v1 제출:</strong> 2026년 8월 24일 UTC · <strong>현재 버전:</strong> v2, 8월 25일</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>GeoWAM의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>시간순 historical multiview RGB와 camera·ego context.</td></tr><tr><td><strong>Process</strong></td><td>Geometry encoder로 history memory 구성 → learned query가 미래 geometry token 예측 → Point DPT가 dense point map·confidence 생성 → stop-gradient geometry를 조건으로 future ego token과 trajectory 회귀.</td></tr><tr><td><strong>Output</strong></td><td>여러 미래 시점의 dense metric point map과 confidence, 단일 future ego trajectory.</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">두 단계 학습과 pseudo geometry target</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>첫 단계는 과거 multiview image로 미래 geometry를 맞히는 pretraining이다. 미래 frame 자체는 forecasting branch의 입력으로 주지 않고, 같은 geometry encoder가 만든 detached future feature와 dense point map을 target으로 쓴다. Feature cosine alignment, Euclidean·confidence-aware point regression, multi-scale surface-normal consistency가 supervision을 이룬다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>두 번째 단계에서는 미래 geometry token이 future ego/pose decoder를 조건화한다. Trajectory loss가 geometry forecaster를 임의로 바꾸지 않도록 stop-gradient를 둔다. 마지막 trajectory head는 anchor 후보나 mode classification 없이 하나의 경로를 직접 회귀한다. 논문이 말하는 “ground-truth occupancy annotation이 필요 없다”는 장점은 dense geometry supervision이 없다는 뜻이 아니다. Off-the-shelf geometry model이 만든 pseudo point-map target은 사용한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>nuScenes future geometry</th><th>Mean Abs Rel ↓</th><th>Mean δ&lt;1.25 ↑</th></tr></thead><tbody><tr><td>Epona + DVGT</td><td>0.274</td><td>0.655</td></tr><tr><td>VGGT-World</td><td>0.325</td><td>0.544</td></tr><tr><td><strong>GeoWAM</strong></td><td><strong>0.257</strong></td><td><strong>0.754</strong></td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>평균은 1~4초의 여덟 future frame을 묶은 값이다. Video world model은 먼저 미래 RGB를 생성하고 DVGT로 geometry를 다시 복원해 같은 metric으로 비교했다. 이 protocol에서는 GeoWAM이 Epona+DVGT보다 Abs Rel을 0.017 낮추고 threshold accuracy를 0.099 높였다. Geometry를 직접 예측한 VGGT-World와 비교해도 두 지표가 모두 좋다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>NAVSIM v2</th><th>강한 비교군</th><th>GeoWAM</th><th>차이</th></tr></thead><tbody><tr><td>navtest EPDMS</td><td>DVGT-2 89.6</td><td><strong>90.2</strong></td><td>+0.6</td></tr><tr><td>navhard EPDMS</td><td>EponaV2 36.1</td><td><strong>36.6</strong></td><td>+0.5</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>Navhard는 3DGS로 재구성한 장면에서 예측한 ego pose로 다음 관측을 다시 render해 오류를 누적시키는 pseudo-closed-loop 평가다. 실제 도로 주행 closed loop와 같지는 않다. 또 EponaV2 등 표에서 †로 표시된 방법은 RL 또는 PDMS-score supervision을 쓴다. GeoWAM은 그 supervision 없이 표 전체 최고를 기록했지만, 차이는 0.5점으로 작아 독립 재현과 여러 seed 평가가 필요하다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>공개 상태:</strong> 논문과 프로젝트 페이지는 공개됐지만 8월 26일 확인 당시 code와 checkpoint link는 없다. 논문은 CC BY 4.0이며 프로젝트 웹사이트의 CC BY-SA 4.0은 사이트 template에 대한 라이선스다. 향후 software와 model의 사용 조건은 별도로 확인해야 한다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">오늘의 우선순위</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>직접 실행하려면 FixAnything:</strong> 세 편 가운데 실제 inference code와 LoRA가 공개됐다. Base model 용량과 H100 기준 속도는 먼저 계산해야 한다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>VLM inference 비용을 줄이려면 E2S-Pruner:</strong> 학습 없이 붙이는 구조가 매력적이다. 공식 구현 공개 전에는 128~192 token budget부터 자체 baseline을 만드는 편이 현실적이다.</li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><strong>Physical AI 연구 방향을 본다면 GeoWAM:</strong> Pixel generation보다 action과 같은 metric space의 geometry forecasting이 planning에 유리하다는 근거를 제시했다. 아직 재현 가능한 공개물은 없다.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>세 연구는 모두 더 큰 backbone을 제안하지 않았다. E2S-Pruner는 추론 중 남길 증거를 가려낸다. FixAnything은 서로 다른 3D 표현을 공통 video interface로 바꾸고, GeoWAM은 world model의 예측 공간을 action과 가까운 3D 좌표계로 옮긴다. 제품 적용을 검토한다면 headline score보다 입력 계약과 공개 상태를 먼저 보는 편이 빠르다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">원문과 공개 상태 확인</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><a href="https://arxiv.org/list/cs.CV/recent?skip=0&amp;show=2000">arXiv cs.CV recent — 2026년 8월 25일 배치 234편</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://arxiv.org/abs/2608.23253">E2S-Pruner 논문</a> · <a href="https://github.com/taoyu-qian/E2S-Pruner">공식 GitHub — 확인 당시 빈 저장소</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://arxiv.org/abs/2608.23549">FixAnything 논문</a> · <a href="https://fix-anything.github.io/">프로젝트 페이지</a> · <a href="https://github.com/kvuong2711/fix-anything">공식 GitHub</a> · <a href="https://huggingface.co/kvuong2711/fix-anything">LoRA weight</a></li>
+<!-- /wp:list-item --><!-- wp:list-item -->
+<li><a href="https://arxiv.org/abs/2608.23486">GeoWAM 논문</a> · <a href="https://yiren-lu.com/project_pages/geowam/">공식 프로젝트 페이지</a></li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p><em>논문 버전과 저장소 상태는 2026년 8월 26일 확인했습니다. 성능 수치는 각 논문의 평가 조건을 요약한 저자 보고값이며 독립 재현 결과가 아닙니다. 코드·가중치·라이선스 상태는 이후 변경될 수 있습니다.</em></p>
+<!-- /wp:paragraph -->

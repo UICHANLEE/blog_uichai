@@ -72,12 +72,16 @@ for (const requiredRoute of [
   '/ai-mvp-before-model/',
   '/ai-cv-sota-briefing-2026-08-23/',
   '/ai-cv-sota-briefing-2026-08-25/',
+  '/ai-cv-sota-briefing-2026-08-26/',
   '/armorocr-adversarial-ocr-paper-analysis/',
   '/step-pose-video-anomaly-detection-paper-analysis/',
   '/dreamhand-video-diffusion-3d-hand-paper-analysis/',
   '/orarl-video-ora-9b-paper-analysis/',
   '/a2dinov3-rgb-ir-object-detection-paper-analysis/',
   '/stream3dv2-streaming-zero-shot-3d-paper-analysis/',
+  '/e2s-pruner-vlm-token-pruning-paper-analysis/',
+  '/fixanything-3d-reconstruction-repair-paper-analysis/',
+  '/geowam-geometry-world-action-model-paper-analysis/',
 ]) {
   if (!routeFiles.has(requiredRoute)) {
     throw new Error(`필수 카테고리 경로가 없습니다: ${requiredRoute}`);
@@ -121,7 +125,7 @@ for (const editorialFocus of ['IT 최신 뉴스', 'AI 논문 분석', '사업 �
 if (!home.includes('AI CV SOTA 브리핑')) {
   throw new Error('첫 화면에서 최신 AI CV 브리핑을 확인할 수 없습니다.');
 }
-for (const deepDiveTitle of ['OraRL 논문 분석', 'A2DINOv3 논문 분석', 'Stream3Dv2 논문 분석']) {
+for (const deepDiveTitle of ['E2S-Pruner 논문 분석', 'FixAnything 논문 분석', 'GeoWAM 논문 분석']) {
   if (!home.includes(deepDiveTitle)) {
     throw new Error(`첫 화면에서 독립 심층 분석 글을 확인할 수 없습니다: ${deepDiveTitle}`);
   }
@@ -150,6 +154,17 @@ const editorialArticles = new Map([
     '/orarl-video-ora-9b-paper-analysis/',
     '/a2dinov3-rgb-ir-object-detection-paper-analysis/',
     '/stream3dv2-streaming-zero-shot-3d-paper-analysis/',
+  ]],
+  ['/ai-cv-sota-briefing-2026-08-26/', [
+    'AI CV SOTA 브리핑',
+    '<strong>Input</strong>',
+    '<strong>Output</strong>',
+    'arxiv.org/abs/2608.23253',
+    'arxiv.org/abs/2608.23549',
+    'arxiv.org/abs/2608.23486',
+    '/e2s-pruner-vlm-token-pruning-paper-analysis/',
+    '/fixanything-3d-reconstruction-repair-paper-analysis/',
+    '/geowam-geometry-world-action-model-paper-analysis/',
   ]],
   ['/armorocr-adversarial-ocr-paper-analysis/', [
     'ArmorOCR 논문 분석',
@@ -192,6 +207,27 @@ const editorialArticles = new Map([
     '<strong>Output</strong>',
     'arxiv.org/abs/2608.21136',
     'ScanNet200',
+  ]],
+  ['/e2s-pruner-vlm-token-pruning-paper-analysis/', [
+    'E2S-Pruner 논문 분석',
+    '<strong>Input</strong>',
+    '<strong>Output</strong>',
+    'arxiv.org/abs/2608.23253',
+    'TextVQA',
+  ]],
+  ['/fixanything-3d-reconstruction-repair-paper-analysis/', [
+    'FixAnything 논문 분석',
+    '<strong>Input</strong>',
+    '<strong>Output</strong>',
+    'arxiv.org/abs/2608.23549',
+    'DL3DV',
+  ]],
+  ['/geowam-geometry-world-action-model-paper-analysis/', [
+    'GeoWAM 논문 분석',
+    '<strong>Input</strong>',
+    '3. Output — geometry와 action을 따로 보자',
+    'arxiv.org/abs/2608.23486',
+    'NAVSIM v2',
   ]],
 ]);
 for (const [route, expectedFragments] of editorialArticles) {

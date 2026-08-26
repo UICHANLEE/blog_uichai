@@ -2376,7 +2376,7 @@ body.motion-off .pointer-halo {
 	.article-content .wp-block-table table {
 		width: max-content;
 		min-width: 100%;
-		font-size: 0.86rem;
+		font-size: 0.94rem;
 	}
 
 	.article-content .wp-block-table table:has(tr > :nth-child(3)) {

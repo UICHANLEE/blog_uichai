@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="ko-KR">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+			<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2216%22 fill=%22%230b0b0e%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2218%22 fill=%22%23d7ff3f%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%228%22 fill=%22%230b0b0e%22/%3E%3C/svg%3E">
+		<title>AI CV SOTA 브리핑 — E2S-Pruner · FixAnything · GeoWAM (2026.08.26) &#8211; Odd Note</title>
+<meta name="description" content="학습 없는 VLM token pruning E2S-Pruner, 범용 3D rendering 보정 FixAnything, 미래 geometry로 주행하는 GeoWAM의 입출력·과정·비교 결과와 공개 상태를 검증했습니다.">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Odd Note">
+<meta property="og:title" content="AI CV SOTA 브리핑 — E2S-Pruner · FixAnything · GeoWAM (2026.08.26) &#8211; Odd Note">
+<meta property="og:description" content="학습 없는 VLM token pruning E2S-Pruner, 범용 3D rendering 보정 FixAnything, 미래 geometry로 주행하는 GeoWAM의 입출력·과정·비교 결과와 공개 상태를 검증했습니다.">
+<meta property="og:url" content="https://odd-note.invalid/ai-cv-sota-briefing-2026-08-26/">
+<meta property="og:image" content="https://odd-note.invalid/wp-content/themes/odd-note/assets/images/og-tech-business.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Odd Note — IT 최신 뉴스, AI 논문 분석, 사업 지식">
+<meta name="twitter:card" content="summary_large_image">
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<style id="wp-block-library-inline-css">
+:root{--wp-block-synced-color:#7a00df;--wp-block-synced-color--rgb:122,0,223;--wp-bound-block-color:var(--wp-block-synced-color);--wp-editor-canvas-background:#ddd;--wp-admin-theme-color:#007cba;--wp-admin-theme-color--rgb:0,124,186;--wp-admin-theme-color-darker-10:#006ba1;--wp-admin-theme-color-darker-10--rgb:0,107,160.5;--wp-admin-theme-color-darker-20:#005a87;--wp-admin-theme-color-darker-20--rgb:0,90,135;--wp-admin-border-width-focus:2px}@media (min-resolution:192dpi){:root{--wp-admin-border-width-focus:1.5px}}.wp-element-button{cursor:pointer}:root .has-very-light-gray-background-color{background-color:#eee}:root .has-very-dark-gray-background-color{background-color:#313131}:root .has-very-light-gray-color{color:#eee}:root .has-very-dark-gray-color{color:#313131}:root .has-vivid-green-cyan-to-vivid-cyan-blue-gradient-background{background:linear-gradient(135deg,#00d084,#0693e3)}:root .has-purple-crush-gradient-background{background:linear-gradient(135deg,#34e2e4,#4721fb 50%,#ab1dfe)}:root .has-hazy-dawn-gradient-background{background:linear-gradient(135deg,#faaca8,#dad0ec)}:root .has-subdued-olive-gradient-background{background:linear-gradient(135deg,#fafae1,#67a671)}:root .has-atomic-cream-gradient-background{background:linear-gradient(135deg,#fdd79a,#004a59)}:root .has-nightshade-gradient-background{background:linear-gradient(135deg,#330968,#31cdcf)}:root .has-midnight-gradient-background{background:linear-gradient(135deg,#020381,#2874fc)}:root{--wp--preset--font-size--normal:16px;--wp--preset--font-size--huge:42px}.has-regular-font-size{font-size:1em}.has-larger-font-size{font-size:2.625em}.has-normal-font-size{font-size:var(--wp--preset--font-size--normal)}.has-huge-font-size{font-size:var(--wp--preset--font-size--huge)}:root .has-text-align-center{text-align:center}:root .has-text-align-left{text-align:left}:root .has-text-align-right{text-align:right}.has-fit-text{white-space:nowrap!important}#end-resizable-editor-section{display:none}.aligncenter{clear:both}.items-justified-left{justify-content:flex-start}.items-justified-center{justify-content:center}.items-justified-right{justify-content:flex-end}.items-justified-space-between{justify-content:space-between}.screen-reader-text{word-wrap:normal!important;border:0;clip-path:inset(50%);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.screen-reader-text:focus{background-color:#ddd;clip-path:none;color:#444;display:block;font-size:1em;height:auto;left:5px;line-height:normal;padding:15px 23px 14px;text-decoration:none;top:5px;width:auto;z-index:100000}html :where(.has-border-color){border-style:solid}html :where([style*=border-color]){border-style:solid}html :where([style*=border-top-color]){border-top-style:solid}html :where([style*=border-right-color]){border-right-style:solid}html :where([style*=border-bottom-color]){border-bottom-style:solid}html :where([style*=border-left-color]){border-left-style:solid}html :where([style*=border-width]){border-style:solid}html :where([style*=border-top-width]){border-top-style:solid}html :where([style*=border-right-width]){border-right-style:solid}html :where([style*=border-bottom-width]){border-bottom-style:solid}html :where([style*=border-left-width]){border-left-style:solid}html :where(img[class*=wp-image-]){height:auto;max-width:100%}:where(figure){margin:0 0 1em}html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:var(--wp-admin--admin-bar--height,0px)}@media screen and (max-width:600px){html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:0px}}
+
+/*# sourceURL=/wp-includes/css/dist/block-library/common.min.css */
+</style>
+<style id="wp-block-heading-inline-css">
+h1:where(.wp-block-heading).has-background,h2:where(.wp-block-heading).has-background,h3:where(.wp-block-heading).has-background,h4:where(.wp-block-heading).has-background,h5:where(.wp-block-heading).has-background,h6:where(.wp-block-heading).has-background{padding:1.25em 2.375em}h1.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h1.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h2.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h2.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h3.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h3.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h4.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h4.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h5.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h5.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h6.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h6.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]){rotate:180deg}
+/*# sourceURL=/wp-includes/blocks/heading/style.min.css */
+</style>
+<style id="wp-block-list-inline-css">
+ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:1.25em 2.375em}
+/*# sourceURL=/wp-includes/blocks/list/style.min.css */
+</style>
+<style id="wp-block-paragraph-inline-css">
+.is-small-text{font-size:.875em}.is-regular-text{font-size:1em}.is-large-text{font-size:2.25em}.is-larger-text{font-size:3em}.has-drop-cap:not(:focus):first-letter{float:left;font-size:8.4em;font-style:normal;font-weight:100;line-height:.68;margin:.05em .1em 0 0;text-transform:uppercase}body.rtl .has-drop-cap:not(:focus):first-letter{float:none;margin-left:.1em}p.has-drop-cap.has-background{overflow:hidden}:root :where(p.has-background){padding:1.25em 2.375em}:where(p.has-text-color:not(.has-link-color)) a{color:inherit}p.has-text-align-left[style*="writing-mode:vertical-lr"],p.has-text-align-right[style*="writing-mode:vertical-rl"]{rotate:180deg}
+/*# sourceURL=/wp-includes/blocks/paragraph/style.min.css */
+</style>
+<style id="wp-block-separator-inline-css">
+@charset "UTF-8";.wp-block-separator{border:none;border-top:2px solid}:root :where(.wp-block-separator.is-style-dots){height:auto;line-height:1;text-align:center}:root :where(.wp-block-separator.is-style-dots):before{color:currentColor;content:"···";font-family:serif;font-size:1.5em;letter-spacing:2em;padding-left:2em}.wp-block-separator.is-style-dots{background:none!important;border:none!important}
+/*# sourceURL=/wp-includes/blocks/separator/style.min.css */
+</style>
+<style id="wp-block-table-inline-css">
+.wp-block-table{overflow-x:auto}.wp-block-table table{border-collapse:collapse;width:100%}.wp-block-table thead{border-bottom:3px solid}.wp-block-table tfoot{border-top:3px solid}.wp-block-table td,.wp-block-table th{border:1px solid;padding:.5em}.wp-block-table .has-fixed-layout{table-layout:fixed;width:100%}.wp-block-table .has-fixed-layout td,.wp-block-table .has-fixed-layout th{word-break:break-word}.wp-block-table.aligncenter,.wp-block-table.alignleft,.wp-block-table.alignright{display:table;width:auto}.wp-block-table.aligncenter td,.wp-block-table.aligncenter th,.wp-block-table.alignleft td,.wp-block-table.alignleft th,.wp-block-table.alignright td,.wp-block-table.alignright th{word-break:break-word}.wp-block-table .has-subtle-light-gray-background-color{background-color:#f3f4f5}.wp-block-table .has-subtle-pale-green-background-color{background-color:#e9fbe5}.wp-block-table .has-subtle-pale-blue-background-color{background-color:#e7f5fe}.wp-block-table .has-subtle-pale-pink-background-color{background-color:#fcf0ef}.wp-block-table.is-style-stripes{background-color:initial;border-collapse:inherit;border-spacing:0}.wp-block-table.is-style-stripes tbody tr:nth-child(odd){background-color:#f0f0f0}.wp-block-table.is-style-stripes.has-subtle-light-gray-background-color tbody tr:nth-child(odd){background-color:#f3f4f5}.wp-block-table.is-style-stripes.has-subtle-pale-green-background-color tbody tr:nth-child(odd){background-color:#e9fbe5}.wp-block-table.is-style-stripes.has-subtle-pale-blue-background-color tbody tr:nth-child(odd){background-color:#e7f5fe}.wp-block-table.is-style-stripes.has-subtle-pale-pink-background-color tbody tr:nth-child(odd){background-color:#fcf0ef}.wp-block-table.is-style-stripes td,.wp-block-table.is-style-stripes th{border-color:#0000}.wp-block-table.is-style-stripes{border-bottom:1px solid #f0f0f0}.wp-block-table .has-border-color td,.wp-block-table .has-border-color th,.wp-block-table .has-border-color tr,.wp-block-table .has-border-color>*{border-color:inherit}.wp-block-table table[style*=border-top-color] tr:first-child,.wp-block-table table[style*=border-top-color] tr:first-child td,.wp-block-table table[style*=border-top-color] tr:first-child th,.wp-block-table table[style*=border-top-color]>*,.wp-block-table table[style*=border-top-color]>* td,.wp-block-table table[style*=border-top-color]>* th{border-top-color:inherit}.wp-block-table table[style*=border-top-color] tr:not(:first-child){border-top-color:initial}.wp-block-table table[style*=border-right-color] td:last-child,.wp-block-table table[style*=border-right-color] th,.wp-block-table table[style*=border-right-color] tr,.wp-block-table table[style*=border-right-color]>*{border-right-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:last-child,.wp-block-table table[style*=border-bottom-color] tr:last-child td,.wp-block-table table[style*=border-bottom-color] tr:last-child th,.wp-block-table table[style*=border-bottom-color]>*,.wp-block-table table[style*=border-bottom-color]>* td,.wp-block-table table[style*=border-bottom-color]>* th{border-bottom-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:not(:last-child){border-bottom-color:initial}.wp-block-table table[style*=border-left-color] td:first-child,.wp-block-table table[style*=border-left-color] th,.wp-block-table table[style*=border-left-color] tr,.wp-block-table table[style*=border-left-color]>*{border-left-color:inherit}.wp-block-table table[style*=border-style] td,.wp-block-table table[style*=border-style] th,.wp-block-table table[style*=border-style] tr,.wp-block-table table[style*=border-style]>*{border-style:inherit}.wp-block-table table[style*=border-width] td,.wp-block-table table[style*=border-width] th,.wp-block-table table[style*=border-width] tr,.wp-block-table table[style*=border-width]>*{border-style:inherit;border-width:inherit}
+/*# sourceURL=/wp-includes/blocks/table/style.min.css */
+</style>
+
+
+<style id="global-styles-inline-css">
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--color--ink: #0d0d12;--wp--preset--color--paper: #f3efe5;--wp--preset--color--acid: #d8ff45;--wp--preset--color--coral: #ff694f;--wp--preset--color--sky: #8bd9ff;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgb(6,147,227) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgb(252,185,0) 0%,rgb(255,105,0) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgb(255,105,0) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.625), 20px);--wp--preset--font-size--large: clamp(22.041px, 1.378rem + ((1vw - 3.2px) * 1.454), 36px);--wp--preset--font-size--x-large: clamp(25.014px, 1.563rem + ((1vw - 3.2px) * 1.769), 42px);--wp--preset--font-family--sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;--wp--preset--font-family--serif: "Iowan Old Style", "Noto Serif KR", Georgia, serif;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);}:root { --wp--style--global--content-size: 760px;--wp--style--global--wide-size: 1280px; }:where(body) { margin: 0; }.wp-site-blocks > .alignleft { float: left; margin-right: 2em; }.wp-site-blocks > .alignright { float: right; margin-left: 2em; }.wp-site-blocks > .aligncenter { justify-content: center; margin-left: auto; margin-right: auto; }:where(.wp-site-blocks) > * { margin-block-start: 1.5rem; margin-block-end: 0; }:where(.wp-site-blocks) > :first-child { margin-block-start: 0; }:where(.wp-site-blocks) > :last-child { margin-block-end: 0; }:root { --wp--style--block-gap: 1.5rem; }:root :where(.is-layout-flow) > :first-child{margin-block-start: 0;}:root :where(.is-layout-flow) > :last-child{margin-block-end: 0;}:root :where(.is-layout-flow) > *{margin-block-start: 1.5rem;margin-block-end: 0;}:root :where(.is-layout-constrained) > :first-child{margin-block-start: 0;}:root :where(.is-layout-constrained) > :last-child{margin-block-end: 0;}:root :where(.is-layout-constrained) > *{margin-block-start: 1.5rem;margin-block-end: 0;}:root :where(.is-layout-flex){gap: 1.5rem;}:root :where(.is-layout-grid){gap: 1.5rem;}.is-layout-flow > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-flow > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-flow > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-constrained > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-constrained > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > :where(:not(.alignleft):not(.alignright):not(.alignfull)){max-width: var(--wp--style--global--content-size);margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignwide{max-width: var(--wp--style--global--wide-size);}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}body{background-color: #0d0d12;color: #f3efe5;font-family: var(--wp--preset--font-family--sans);line-height: 1.65;padding-top: 0px;padding-right: 0px;padding-bottom: 0px;padding-left: 0px;}a:where(:not(.wp-element-button)){color: #d8ff45;}h1, h2, h3, h4, h5, h6{font-weight: 700;line-height: 1.05;}:root :where(.wp-element-button, .wp-block-button__link){background-color: #32373c;border-width: 0;color: #fff;font-family: inherit;font-size: inherit;font-style: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;padding-top: calc(0.667em + 2px);padding-right: calc(1.333em + 2px);padding-bottom: calc(0.667em + 2px);padding-left: calc(1.333em + 2px);text-decoration: none;text-transform: inherit;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-ink-color{color: var(--wp--preset--color--ink) !important;}.has-paper-color{color: var(--wp--preset--color--paper) !important;}.has-acid-color{color: var(--wp--preset--color--acid) !important;}.has-coral-color{color: var(--wp--preset--color--coral) !important;}.has-sky-color{color: var(--wp--preset--color--sky) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-ink-background-color{background-color: var(--wp--preset--color--ink) !important;}.has-paper-background-color{background-color: var(--wp--preset--color--paper) !important;}.has-acid-background-color{background-color: var(--wp--preset--color--acid) !important;}.has-coral-background-color{background-color: var(--wp--preset--color--coral) !important;}.has-sky-background-color{background-color: var(--wp--preset--color--sky) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-ink-border-color{border-color: var(--wp--preset--color--ink) !important;}.has-paper-border-color{border-color: var(--wp--preset--color--paper) !important;}.has-acid-border-color{border-color: var(--wp--preset--color--acid) !important;}.has-coral-border-color{border-color: var(--wp--preset--color--coral) !important;}.has-sky-border-color{border-color: var(--wp--preset--color--sky) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}.has-sans-font-family{font-family: var(--wp--preset--font-family--sans) !important;}.has-serif-font-family{font-family: var(--wp--preset--font-family--serif) !important;}
+/*# sourceURL=global-styles-inline-css */
+</style>
+
+<link rel='stylesheet' id='odd-note-fonts-css' href='/wp-content/themes/odd-note/assets/fonts/pretendard/pretendardvariable-dynamic-subset.css?ver=1787500912' media='all' />
+<link rel='stylesheet' id='odd-note-site-css' href='/wp-content/themes/odd-note/assets/css/site.css?ver=1787716999' media='all' />
+<meta name="theme-color" content="#0d0d12">
+<!-- ODD_NOTE_ROBOTS:indexable -->
+<link rel="canonical" href="https://odd-note.invalid/ai-cv-sota-briefing-2026-08-26/">
+<link rel="alternate" type="application/rss+xml" title="Odd Note RSS" href="/feed.xml">
+</head>
+<body class="wp-singular post-template-default single single-post postid-55 single-format-standard wp-embed-responsive wp-theme-odd-note odd-note" data-mood="acid">
+
+<a class="skip-link" href="#main-content">본문으로 바로가기</a>
+
+<div class="reading-progress" aria-hidden="true">
+	<span data-reading-progress></span>
+</div>
+
+<div class="pointer-halo" data-pointer-halo aria-hidden="true" hidden>
+	<span data-pointer-label></span>
+</div>
+
+<div class="page-atmosphere" aria-hidden="true"></div>
+
+<header class="site-header" data-site-header>
+	<div class="site-header__inner">
+		<a class="site-brand magnetic" href="/" data-cursor="HOME">
+			<span class="site-brand__mark" aria-hidden="true">◉</span>
+			<span class="site-brand__name">Odd Note</span>
+		</a>
+
+		<button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-primary-navigation" data-menu-toggle hidden>
+			<span class="menu-toggle__label" lang="en">Menu</span>
+		</button>
+
+		<nav id="site-primary-navigation" class="primary-nav" aria-label="주요 메뉴">
+			<ul id="primary-menu" class="site-menu"><li id="menu-item-27" class="menu-item menu-item-type-post_type menu-item-object-page current_page_parent menu-item-27"><a href="/stories/">전체 글</a></li>
+<li id="menu-item-28" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-28"><a href="/category/it-news/">IT 최신 뉴스</a></li>
+<li id="menu-item-29" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-29"><a href="/category/ai-paper-analysis/">AI 논문 분석</a></li>
+<li id="menu-item-30" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-30"><a href="/category/business-knowledge/">사업 지식</a></li>
+<li id="menu-item-31" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-31"><a href="/about/">소개</a></li>
+</ul>		</nav>
+
+		<div class="experience-controls" role="group" aria-label="화면 효과 설정" aria-hidden="true" data-experience-controls inert>
+			<button class="control-button" type="button" data-mood-toggle data-cursor="COLOR" aria-label="색상 분위기 바꾸기">
+				<span class="control-button__dot" aria-hidden="true"></span>
+				<span data-mood-label lang="en">ACID</span>
+			</button>
+			<button class="control-button" type="button" data-motion-toggle data-cursor="MOTION" aria-label="화면 효과" aria-describedby="odd-note-motion-status" aria-pressed="true">
+				<span class="control-button__pulse" aria-hidden="true"></span>
+				<span data-motion-label lang="en">FX ON</span>
+			</button>
+			<span id="odd-note-motion-status" class="screen-reader-text" data-motion-status></span>
+		</div>
+	</div>
+</header>
+
+<main id="main-content" class="single-page" tabindex="-1">
+					<article class="single-article post-55 post type-post status-publish format-standard hentry category-ai-paper-analysis tag-3d-reconstruction tag-ai-- tag-computer-vision tag-e2s-pruner tag-fixanything tag-geowam tag-visual-token-pruning tag-world-action-model">
+			<header class="article-hero section-shell">
+				<div class="post-meta reveal">
+					<span>AI 논문 분석</span>
+					<time datetime="2026-08-26T12:56:35+09:00">2026.08.26</time>
+					<span>8 min read</span>
+				</div>
+				<h1 class="article-title reveal">AI CV SOTA 브리핑 — E2S-Pruner · FixAnything · GeoWAM (2026.08.26)</h1>
+									<p class="article-deck reveal">학습 없는 VLM token pruning E2S-Pruner, 범용 3D rendering 보정 FixAnything, 미래 geometry로 주행하는 GeoWAM의 입출력·과정·비교 결과와 공개 상태를 검증했습니다.</p>
+							</header>
+
+			<div class="article-visual section-shell reveal">
+									<div class="generative-cover generative-cover--article" style="--cover-seed: 1;">
+						<span class="generative-cover__word">AI 논문 분석</span>
+						<span class="generative-cover__issue">NOTE 055</span>
+					</div>
+							</div>
+
+			<div class="article-layout section-shell">
+				<aside class="article-aside reveal">
+					<p>Written by</p>
+					<strong>Odd Note Editor</strong>
+					<a href="/about/" data-cursor="MORE">편집 원칙 보기 ↗</a>
+				</aside>
+
+				<div class="article-content reveal">
+
+<p class="article-lead wp-block-paragraph"><strong>2026년 8월 26일 수요일 오전.</strong> 당시 arXiv cs.CV의 최신 정식 배치였던 8월 25일 공개분은 234편이었다. 최근 24~48시간의 이미지 분류·탐지·세그멘테이션·VLM·비디오·3D 연구를 훑고, 그중 <strong>E2S-Pruner·FixAnything·GeoWAM</strong>을 골랐다.</p>
+
+
+
+<p class="wp-block-paragraph">세 논문이 겨냥한 병목은 서로 다르다. E2S-Pruner는 VLM이 처리할 visual token을 덜어낸다. FixAnything은 앞서 만든 3D representation의 rendering artifact를 video prior로 보정한다. GeoWAM은 미래 RGB 대신 metric 3D geometry를 예측해 ego trajectory를 만든다.</p>
+
+
+
+<p class="wp-block-paragraph">아래 수치는 논문과 공식 프로젝트가 보고한 결과다. 독립 재현으로 확인된 값은 아직 아니다. 성능 유지율은 여러 benchmark를 dense baseline으로 정규화한 저자 정의 평균일 수 있다. 속도는 특정 hardware·batch·해상도 조건에서 잰 값이다. 숫자 하나만 떼어 범용 SOTA로 읽기는 어렵다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>연구</th><th>분야</th><th>눈에 띄는 수치</th><th>2026.08.26 공개 상태</th></tr></thead><tbody><tr><td><strong>E2S-Pruner</strong></td><td>VLM · Token Pruning</td><td>평균 64 token에서 throughput 2.09×</td><td>연결된 GitHub 저장소는 비어 있음</td></tr><tr><td><strong>FixAnything</strong></td><td>3D Reconstruction · Video Diffusion</td><td>6-view 3DGS PSNR 17.65 dB</td><td>추론 코드·LoRA 공개</td></tr><tr><td><strong>GeoWAM</strong></td><td>Geometry World Model · Driving</td><td>NAVSIM v2 navtest EPDMS 90.2</td><td>논문·프로젝트 공개, 코드·checkpoint 미공개</td></tr></tbody></table></figure>
+
+
+
+<h2 class="wp-block-heading">논문별 상세 분석</h2>
+
+
+
+<p class="wp-block-paragraph">이 글은 세 연구의 차이를 빠르게 비교하는 허브다. Input·Process·Output, 학습 데이터, benchmark별 비교 조건과 재현 한계는 아래 독립 분석글에서 한 편씩 다룬다.</p>
+
+
+
+<ul class="wp-block-list">
+<li><a href="/e2s-pruner-vlm-token-pruning-paper-analysis/"><strong>E2S-Pruner 논문 분석</strong></a> — attention head와 layer의 충돌을 evidence fusion으로 다루는 전체 pruning 과정</li>
+
+<li><a href="/fixanything-3d-reconstruction-repair-paper-analysis/"><strong>FixAnything 논문 분석</strong></a> — 3DGS·NeRF·mesh·sparse point를 한 video model로 보정하는 학습과 평가</li>
+
+<li><a href="/geowam-geometry-world-action-model-paper-analysis/"><strong>GeoWAM 논문 분석</strong></a> — 과거 multiview RGB에서 미래 point map과 ego trajectory를 만드는 두 단계 학습</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">1. E2S-Pruner — 불확실성을 남겨둔 채 visual token을 고른다</h2>
+
+
+
+<p class="wp-block-paragraph"><strong>정식명:</strong> E2S-Pruner: Progressive Two-Stage Evidence Fusion for Visual Token Pruning in Vision-Language Models · <strong>arXiv v1 제출:</strong> 2026년 8월 24일 UTC</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>E2S-Pruner의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>이미지와 text prompt, 그리고 VLM 내부의 text-to-visual attention. LLaVA-1.5-7B와 Qwen2-VL-7B에서 평가했다.</td></tr><tr><td><strong>Process</strong></td><td>Head별 중요·비중요·불확실 evidence 생성 → clarity와 head 간 consistency로 reliability 추정 → layer 안의 head evidence 결합 → layer 간 conflict를 Dempster–Shafer 이론으로 순차 결합 → spatial novelty를 반영해 token 선택.</td></tr><tr><td><strong>Output</strong></td><td>다음 LLM layer로 전달할 visual token subset. 별도 auxiliary model, 학습 parameter, fine-tuning은 필요하지 않는다.</td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading">Attention 평균이 숨기는 두 가지 정보</h3>
+
+
+
+<p class="wp-block-paragraph">일반적인 attention 기반 pruning은 여러 head나 layer의 score를 평균한다. 이 방식은 한 layer가 확신하고 다른 layer가 모르는 token과, 여러 layer가 정반대로 판단한 token을 비슷하게 취급할 수 있다. E2S-Pruner는 score 하나로 바로 줄이지 않고 important·unimportant·uncertain의 세 상태를 유지한다. Head와 layer가 얼마나 분명하고 서로 얼마나 충돌하는지를 token 선택에 남기는 셈이다.</p>
+
+
+
+<p class="wp-block-paragraph">마지막에는 spatial novelty constraint를 더한다. 24×24 patch grid를 4×4 spatial cell로 나누고, 각 occupied cell에서 score가 가장 높은 대표 token에 λ=0.1의 soft bonus를 준 뒤 전체 후보에서 다시 Top-K를 고른다. 서로 다른 image region을 덮도록 유도하지만 cell마다 token 하나를 반드시 남기는 hard quota는 아니다. 작은 글자나 세밀한 texture처럼 국소 patch 자체가 답인 과제에서는 극단적인 압축이 여전히 손실을 만든다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>LLaVA-1.5-7B 평균 token budget</th><th>Dense 대비 aggregate retention</th><th>64-token 비교에서 확인할 점</th></tr></thead><tbody><tr><td>192</td><td><strong>98.0%</strong></td><td>V2Drop보다 +0.4%p</td></tr><tr><td>128</td><td><strong>96.8%</strong></td><td>End-to-end latency -48.5%, throughput 1.96×</td></tr><tr><td>64</td><td><strong>90.6%</strong></td><td>V2Drop보다 +3.7%p, SparseVLM보다 +4.1%p</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">32개 LLM layer에서 평균 64 token을 처리한 효율 측정에서 end-to-end latency는 dense 대비 51.5% 줄고 throughput은 2.09배가 됐다. 실제 LLaVA schedule은 576→20→8→0이며 마지막까지 64개를 유지하지 않는다. 같은 설정의 MMBench 성능은 dense의 88.7%다. Aggregate retention 90.6%와 MMBench retention 88.7%는 같은 숫자가 아니다. 전자는 GQA·ScienceQA·TextVQA·POPE·MME·MMBench 여섯 지표를 dense score로 정규화한 평균이다.</p>
+
+
+
+<p class="wp-block-paragraph">가장 분명한 약점은 TextVQA다. 평균 64-token budget에서 E2S-Pruner는 49.5로 LLaVA-PruMerge 54.0보다 낮다. 또 논문이 보고한 peak GPU memory는 dense baseline보다 20.8% 늘었다. Token을 줄이면 언제나 memory까지 줄어든다고 가정할 수 없는 이유다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>공개 상태:</strong> 논문은 공식 GitHub를 code link로 제시하지만 8월 26일 확인 당시 저장소는 비어 있다. 별도 학습 weight가 필요한 방법은 아니어도 pruning 구현과 정확한 evaluation configuration이 없어 즉시 재현하기는 어렵다.</p>
+
+
+
+<h2 class="wp-block-heading">2. FixAnything — 3D representation을 영상으로 펼쳐 고친다</h2>
+
+
+
+<p class="wp-block-paragraph"><strong>정식명:</strong> FixAnything: 3D-Consistent Rendering Refinement via Video Generative Priors · <strong>arXiv v1 제출:</strong> 2026년 8월 24일 UTC · <strong>발표:</strong> ECCV 2026</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>FixAnything의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>3DGS·NeRF·mesh·sparse point cloud를 camera path로 render한 degraded video, clean frame 위치를 나타내는 binary mask.</td></tr><tr><td><strong>Process</strong></td><td>Wan2.1-I2V-14B의 noisy latent에 degraded VAE latent와 mask를 channel-concatenate → rank-64 LoRA SFT → COLMAP pose AUC로 rollout을 정렬한 Flow-DPO.</td></tr><tr><td><strong>Output</strong></td><td>Camera trajectory와 anchor content를 유지하도록 보정한 61-frame video. 3DGS나 mesh 자체를 직접 수정하는 출력은 아니다.</td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading">Representation과 무관한 이유</h3>
+
+
+
+<p class="wp-block-paragraph">3DGS의 floater, NeRF의 foggy geometry, mesh의 texture distortion, point cloud의 hole은 생김새가 다르다. 그래도 camera motion과 대략적인 scene layout은 rendering video에 남는다. FixAnything은 representation 내부 parameter를 고치는 대신 이 공통 신호를 video-to-video translation의 control로 쓴다. 같은 model weight에 입력 rendering만 바꿔 네 표현을 처리할 수 있는 이유다.</p>
+
+
+
+<p class="wp-block-paragraph">Binary mask는 model이 보존해야 할 clean training view를 알려준다. SFT만 거치면 frame별로 그럴듯하지만 시점마다 움직이는 구조를 만들 수 있어, 연구진은 여러 rollout에서 COLMAP이 복원한 camera pose의 AUC@5°를 reward로 삼았다. AUC 차이가 0.2 이상인 pair를 Flow-DPO로 학습해 3D consistency를 LoRA에 반영한다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>DL3DV</th><th>3DGS-Enhancer</th><th>FixAnything, 3DGS input</th><th>차이</th></tr></thead><tbody><tr><td>6-view PSNR</td><td>16.94 dB</td><td><strong>17.65 dB</strong></td><td>+0.71 dB</td></tr><tr><td>6-view LPIPS</td><td>0.356</td><td><strong>0.289</strong></td><td>-0.067</td></tr><tr><td>9-view PSNR</td><td>18.50 dB</td><td><strong>19.76 dB</strong></td><td>+1.26 dB</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">Flow-DPO ablation에서는 SFT-only의 camera-pose AUC@5°가 61.12에서 68.32로 올랐고, PSNR은 17.51→17.65 dB, LPIPS는 0.296→0.289가 됐다. 화질 지표보다 pose recovery의 변화가 크다. 20 paired video로도 PSNR 16.70을 얻었다는 data-efficiency 결과가 있지만, 이는 model 전체를 20개 영상으로 학습했다는 뜻이 아니다. Wan2.1의 대규모 사전학습 prior 위에 conditioning LoRA를 맞춘 결과다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>공개 상태:</strong> Apache-2.0 추론 코드와 FixAnything LoRA가 공개됐다. Base model인 Wan2.1-I2V-14B-480P 파일은 약 60GB다. 공식 예제는 832×480, 61 frame을 사용하며 5 denoising step에서 단일 H100으로 약 31초를 보고한다. 실행 가능하다는 말과 가벼운 production component라는 말은 다르다.</p>
+
+
+
+<h2 class="wp-block-heading">3. GeoWAM — 미래의 픽셀보다 미래의 좌표를 예측한다</h2>
+
+
+
+<p class="wp-block-paragraph"><strong>정식명:</strong> GeoWAM: Visual Geometry World Action Models for Autonomous Driving · <strong>arXiv v1 제출:</strong> 2026년 8월 24일 UTC · <strong>현재 버전:</strong> v2, 8월 25일</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>구분</th><th>GeoWAM의 정의</th></tr></thead><tbody><tr><td><strong>Input</strong></td><td>시간순 historical multiview RGB와 camera·ego context.</td></tr><tr><td><strong>Process</strong></td><td>Geometry encoder로 history memory 구성 → learned query가 미래 geometry token 예측 → Point DPT가 dense point map·confidence 생성 → stop-gradient geometry를 조건으로 future ego token과 trajectory 회귀.</td></tr><tr><td><strong>Output</strong></td><td>여러 미래 시점의 dense metric point map과 confidence, 단일 future ego trajectory.</td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading">두 단계 학습과 pseudo geometry target</h3>
+
+
+
+<p class="wp-block-paragraph">첫 단계는 과거 multiview image로 미래 geometry를 맞히는 pretraining이다. 미래 frame 자체는 forecasting branch의 입력으로 주지 않고, 같은 geometry encoder가 만든 detached future feature와 dense point map을 target으로 쓴다. Feature cosine alignment, Euclidean·confidence-aware point regression, multi-scale surface-normal consistency가 supervision을 이룬다.</p>
+
+
+
+<p class="wp-block-paragraph">두 번째 단계에서는 미래 geometry token이 future ego/pose decoder를 조건화한다. Trajectory loss가 geometry forecaster를 임의로 바꾸지 않도록 stop-gradient를 둔다. 마지막 trajectory head는 anchor 후보나 mode classification 없이 하나의 경로를 직접 회귀한다. 논문이 말하는 “ground-truth occupancy annotation이 필요 없다”는 장점은 dense geometry supervision이 없다는 뜻이 아니다. Off-the-shelf geometry model이 만든 pseudo point-map target은 사용한다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>nuScenes future geometry</th><th>Mean Abs Rel ↓</th><th>Mean δ&lt;1.25 ↑</th></tr></thead><tbody><tr><td>Epona + DVGT</td><td>0.274</td><td>0.655</td></tr><tr><td>VGGT-World</td><td>0.325</td><td>0.544</td></tr><tr><td><strong>GeoWAM</strong></td><td><strong>0.257</strong></td><td><strong>0.754</strong></td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">평균은 1~4초의 여덟 future frame을 묶은 값이다. Video world model은 먼저 미래 RGB를 생성하고 DVGT로 geometry를 다시 복원해 같은 metric으로 비교했다. 이 protocol에서는 GeoWAM이 Epona+DVGT보다 Abs Rel을 0.017 낮추고 threshold accuracy를 0.099 높였다. Geometry를 직접 예측한 VGGT-World와 비교해도 두 지표가 모두 좋다.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>NAVSIM v2</th><th>강한 비교군</th><th>GeoWAM</th><th>차이</th></tr></thead><tbody><tr><td>navtest EPDMS</td><td>DVGT-2 89.6</td><td><strong>90.2</strong></td><td>+0.6</td></tr><tr><td>navhard EPDMS</td><td>EponaV2 36.1</td><td><strong>36.6</strong></td><td>+0.5</td></tr></tbody></table></figure>
+
+
+
+<p class="wp-block-paragraph">Navhard는 3DGS로 재구성한 장면에서 예측한 ego pose로 다음 관측을 다시 render해 오류를 누적시키는 pseudo-closed-loop 평가다. 실제 도로 주행 closed loop와 같지는 않다. 또 EponaV2 등 표에서 †로 표시된 방법은 RL 또는 PDMS-score supervision을 쓴다. GeoWAM은 그 supervision 없이 표 전체 최고를 기록했지만, 차이는 0.5점으로 작아 독립 재현과 여러 seed 평가가 필요하다.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>공개 상태:</strong> 논문과 프로젝트 페이지는 공개됐지만 8월 26일 확인 당시 code와 checkpoint link는 없다. 논문은 CC BY 4.0이며 프로젝트 웹사이트의 CC BY-SA 4.0은 사이트 template에 대한 라이선스다. 향후 software와 model의 사용 조건은 별도로 확인해야 한다.</p>
+
+
+
+<h2 class="wp-block-heading">오늘의 우선순위</h2>
+
+
+
+<ul class="wp-block-list">
+<li><strong>직접 실행하려면 FixAnything:</strong> 세 편 가운데 실제 inference code와 LoRA가 공개됐다. Base model 용량과 H100 기준 속도는 먼저 계산해야 한다.</li>
+
+<li><strong>VLM inference 비용을 줄이려면 E2S-Pruner:</strong> 학습 없이 붙이는 구조가 매력적이다. 공식 구현 공개 전에는 128~192 token budget부터 자체 baseline을 만드는 편이 현실적이다.</li>
+
+<li><strong>Physical AI 연구 방향을 본다면 GeoWAM:</strong> Pixel generation보다 action과 같은 metric space의 geometry forecasting이 planning에 유리하다는 근거를 제시했다. 아직 재현 가능한 공개물은 없다.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">세 연구는 모두 더 큰 backbone을 제안하지 않았다. E2S-Pruner는 추론 중 남길 증거를 가려낸다. FixAnything은 서로 다른 3D 표현을 공통 video interface로 바꾸고, GeoWAM은 world model의 예측 공간을 action과 가까운 3D 좌표계로 옮긴다. 제품 적용을 검토한다면 headline score보다 입력 계약과 공개 상태를 먼저 보는 편이 빠르다.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity" />
+
+
+
+<h3 class="wp-block-heading">원문과 공개 상태 확인</h3>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://arxiv.org/list/cs.CV/recent?skip=0&amp;show=2000">arXiv cs.CV recent — 2026년 8월 25일 배치 234편</a></li>
+
+<li><a href="https://arxiv.org/abs/2608.23253">E2S-Pruner 논문</a> · <a href="https://github.com/taoyu-qian/E2S-Pruner">공식 GitHub — 확인 당시 빈 저장소</a></li>
+
+<li><a href="https://arxiv.org/abs/2608.23549">FixAnything 논문</a> · <a href="https://fix-anything.github.io/">프로젝트 페이지</a> · <a href="https://github.com/kvuong2711/fix-anything">공식 GitHub</a> · <a href="https://huggingface.co/kvuong2711/fix-anything">LoRA weight</a></li>
+
+<li><a href="https://arxiv.org/abs/2608.23486">GeoWAM 논문</a> · <a href="https://yiren-lu.com/project_pages/geowam/">공식 프로젝트 페이지</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><em>논문 버전과 저장소 상태는 2026년 8월 26일 확인했습니다. 성능 수치는 각 논문의 평가 조건을 요약한 저자 보고값이며 독립 재현 결과가 아닙니다. 코드·가중치·라이선스 상태는 이후 변경될 수 있습니다.</em></p>
+
+									</div>
+			</div>
+
+			<footer class="article-footer section-shell reveal">
+				<div class="article-tags"><a href="/tag/3d-reconstruction/" rel="tag">3D Reconstruction</a> <a href="/tag/ai-%eb%85%bc%eb%ac%b8-%eb%b6%84%ec%84%9d/" rel="tag">AI 논문 분석</a> <a href="/tag/computer-vision/" rel="tag">Computer Vision</a> <a href="/tag/e2s-pruner/" rel="tag">E2S-Pruner</a> <a href="/tag/fixanything/" rel="tag">FixAnything</a> <a href="/tag/geowam/" rel="tag">GeoWAM</a> <a href="/tag/visual-token-pruning/" rel="tag">Visual Token Pruning</a> <a href="/tag/world-action-model/" rel="tag">World Action Model</a></div>
+				<nav class="post-navigation" aria-label="다른 글">
+					<div><a href="/geowam-geometry-world-action-model-paper-analysis/" rel="prev"><span>이전 글</span>GeoWAM 논문 분석: 미래 RGB 대신 3D Geometry를 예측해 주행하는 World Action Model</a></div>
+					<div></div>
+				</nav>
+			</footer>
+
+					</article>
+	</main>
+
+<footer class="site-footer">
+	<div class="site-footer__orb" aria-hidden="true"></div>
+	<div class="site-footer__inner">
+		<p class="section-kicker reveal" lang="en">SIGNAL TO ACTION</p>
+		<h2 class="site-footer__title reveal">다음 판단을<br><em>더 선명하게.</em></h2>
+
+		<div class="site-footer__actions reveal">
+			<a class="magnetic-button magnetic" href="/feed.xml" data-cursor="RSS">
+				<span>RSS로 새 글 받기</span>
+				<span aria-hidden="true">↗</span>
+			</a>
+			<a class="text-link" href="/stories/" data-cursor="BROWSE">전체 글에서 찾아보기 <span aria-hidden="true">↗</span></a>
+		</div>
+
+		<div class="site-footer__base">
+			<p>© 2026 Odd Note</p>
+							<nav class="footer-nav" aria-label="푸터 메뉴">
+					<ul id="menu-odd-note-footer" class="footer-menu"><li id="menu-item-18" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-18"><a href="/about/">소개</a></li>
+<li id="menu-item-19" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19"><a href="/contact/">문의</a></li>
+<li id="menu-item-20" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-privacy-policy menu-item-20"><a rel="privacy-policy" href="/privacy/">개인정보처리방침</a></li>
+<li id="menu-item-21" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-21"><a href="/disclosure/">광고·제휴 고지</a></li>
+</ul>				</nav>
+						<p lang="en">Technology, evidence, and business — carefully edited.</p>
+		</div>
+	</div>
+</footer>
+
+<script data-wp-strategy="defer" defer id="odd-note-interactions-js" src="/wp-content/themes/odd-note/assets/js/site.js?ver=1787501504"></script>
+</body>
+</html>
